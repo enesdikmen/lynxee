@@ -20,10 +20,10 @@ const LensHeader = ({
   stats,
   onPlaceChange,
 }: LensHeaderProps) => (
-  <header className="rounded-xl border-4 border-border bg-accent-soft p-8 shadow-card">
+  <header className="paper-card bg-accent-soft p-8">
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-ink">
+        <p className="sticker-badge sticker-badge--sunny">
           Lynxee lens
         </p>
         <h1 className="text-3xl font-semibold text-ink md:text-4xl">
@@ -34,9 +34,9 @@ const LensHeader = ({
           what each panel will contain.
         </p>
       </div>
-      <div className="rounded-lg border-4 border-border bg-lens px-4 py-3 text-xs font-semibold text-ink shadow-soft">
+      <div className="paper-card paper-card--mini bg-lens px-4 py-3 text-xs font-semibold text-ink">
         <div className="flex flex-col gap-2">
-          <label className="text-[11px] uppercase tracking-[0.2em] text-ink">
+          <label className="sticker-badge sticker-badge--lens">
             Place
           </label>
           <select
@@ -62,9 +62,9 @@ const LensHeader = ({
       {stats.map((item) => (
         <div
           key={item.label}
-          className="rounded-lg border-4 border-border bg-paper p-4 text-ink shadow-soft"
+          className="paper-card paper-card--mini paper-card--wiggle bg-paper p-4 text-ink"
         >
-          <p className="text-[11px] uppercase tracking-[0.2em]">
+          <p className="sticker-badge">
             {item.label}
           </p>
           <p className="mt-2 text-xl font-semibold">{item.value}</p>

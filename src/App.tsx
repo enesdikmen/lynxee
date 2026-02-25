@@ -26,6 +26,15 @@ type SpeciesCard = {
   scientificName: string
   imageUrl: string
   highlight: string
+  taxonLine?: string
+}
+
+type DatasetSummary = {
+  key: string
+  title: string
+  doi?: string
+  publisher?: string
+  license?: string
 }
 
 const places: Place[] = [
@@ -86,6 +95,7 @@ const fallbackTopSpecies: SpeciesCard[] = [
     scientificName: 'Erithacus rubecula',
     imageUrl: 'https://placehold.co/320x220/fed7aa/1f2937?text=Robin',
     highlight: 'Peak in spring gardens',
+    taxonLine: 'Animalia · Chordata · Aves',
   },
   {
     id: 's2',
@@ -93,6 +103,7 @@ const fallbackTopSpecies: SpeciesCard[] = [
     scientificName: 'Parus major',
     imageUrl: 'https://placehold.co/320x220/bbf7d0/1f2937?text=Great+Tit',
     highlight: 'Top urban songbird',
+    taxonLine: 'Animalia · Chordata · Aves',
   },
   {
     id: 's3',
@@ -100,6 +111,7 @@ const fallbackTopSpecies: SpeciesCard[] = [
     scientificName: 'Apus apus',
     imageUrl: 'https://placehold.co/320x220/bae6fd/1f2937?text=Swift',
     highlight: 'Summer aerial flocks',
+    taxonLine: 'Animalia · Chordata · Aves',
   },
   {
     id: 's4',
@@ -107,6 +119,7 @@ const fallbackTopSpecies: SpeciesCard[] = [
     scientificName: 'Erinaceus europaeus',
     imageUrl: 'https://placehold.co/320x220/fcd34d/1f2937?text=Hedgehog',
     highlight: 'Night sightings rise',
+    taxonLine: 'Animalia · Chordata · Mammalia',
   },
   {
     id: 's5',
@@ -114,6 +127,7 @@ const fallbackTopSpecies: SpeciesCard[] = [
     scientificName: 'Anas platyrhynchos',
     imageUrl: 'https://placehold.co/320x220/fecaca/1f2937?text=Mallard',
     highlight: 'Stable year-round',
+    taxonLine: 'Animalia · Chordata · Aves',
   },
   {
     id: 's6',
@@ -121,6 +135,7 @@ const fallbackTopSpecies: SpeciesCard[] = [
     scientificName: 'Pieris rapae',
     imageUrl: 'https://placehold.co/320x220/c7d2fe/1f2937?text=Butterfly',
     highlight: 'Summer peak',
+    taxonLine: 'Animalia · Arthropoda · Insecta',
   },
 ]
 
@@ -303,6 +318,13 @@ function App() {
             highlight: species.rank
               ? `${species.rank} · ${species.kingdom ?? 'GBIF'}`
               : 'GBIF species',
+            taxonLine: [
+              species.kingdom,
+              species.phylum,
+              species.class,
+            ]
+              .filter(Boolean)
+              .join(' · '),
           }
         }),
       )
@@ -413,8 +435,16 @@ function App() {
     staleTime: 1000 * 60 * 60,
   })
 
-  const datasetTitles =
-    datasetQuery.data?.map((dataset) => dataset.title).filter(Boolean) ?? []
+  const datasetSummaries: DatasetSummary[] =
+    datasetQuery.data
+      ?.map((dataset) => ({
+        key: dataset.key,
+        title: dataset.title,
+        doi: dataset.doi,
+        publisher: dataset.publisher,
+        license: dataset.license,
+      }))
+      .filter((dataset) => dataset.title) ?? []
 
   const maxSeasonality = useMemo(
     () => Math.max(...seasonalityData, 1),
@@ -536,7 +566,7 @@ function App() {
                   maxClass={maxClass}
                   placeLabel={selectedPlace?.label}
                   totalRecords={totalRecords}
-                  datasetTitles={datasetTitles}
+                  datasetSummaries={datasetSummaries}
                 />
               </div>
             </div>

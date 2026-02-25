@@ -1,9 +1,12 @@
+import { motion } from 'framer-motion'
+
 type SpeciesCard = {
   id: string
   commonName: string
   scientificName: string
   imageUrl: string
   highlight: string
+  taxonLine?: string
 }
 
 type IucnSummaryItem = {
@@ -34,28 +37,48 @@ function LensMainPanels({
   yearTrend,
   maxTrend,
 }: LensMainPanelsProps) {
+  const peakYear = yearTrend.reduce(
+    (peak, item) => (item.count > peak.count ? item : peak),
+    yearTrend[0] ?? { year: 0, count: 0 },
+  )
+
+  const hoverMotion = {
+    whileHover: { y: -6, scale: 1.02 },
+    whileFocus: { y: -6, scale: 1.02 },
+  }
+
   return (
     <>
       <section className="collage-hero collage-hero--species grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:items-start">
-        <div className="collage-panel collage-panel--primary rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+        <motion.div
+          className="collage-panel collage-panel--primary paper-card bg-surface p-6 hover-group"
+          {...hoverMotion}
+          transition={{ duration: 0.24 }}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Top species</h2>
-            <span className="text-[11px] uppercase tracking-[0.2em] text-ink">
-              {topSpecies.length} featured
-            </span>
+            <h2 className="poster-title text-2xl text-ink">Top species</h2>
+            <span className="sticker-badge">{topSpecies.length} featured</span>
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {topSpecies.map((species) => (
-              <article
+              <motion.article
                 key={species.id}
-                className="overflow-hidden rounded-lg border-4 border-border bg-paper shadow-soft"
+                className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow overflow-hidden bg-paper"
+                whileHover={{ y: -4, scale: 1.02 }}
+                whileFocus={{ y: -4, scale: 1.02 }}
+                transition={{ duration: 0.24 }}
               >
-                <img
-                  src={species.imageUrl}
-                  alt={species.commonName}
-                  className="h-32 w-full object-cover"
-                  loading="lazy"
-                />
+                <div className="relative">
+                  <span className="hover-stamp hover-stamp--image">
+                    {species.taxonLine ?? 'GBIF species'}
+                  </span>
+                  <img
+                    src={species.imageUrl}
+                    alt={species.commonName}
+                    className="h-32 w-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
                 <div className="space-y-1 px-4 py-3">
                   <p className="text-sm font-semibold text-ink">
                     {species.commonName}
@@ -65,56 +88,70 @@ function LensMainPanels({
                   </p>
                   <p className="text-[11px] text-ink">{species.highlight}</p>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-  <div className="collage-panel collage-panel--float rounded-xl border-4 border-border bg-gold p-6 shadow-soft lg:-mt-8">
-          <h2 className="text-xl font-semibold text-ink">IUCN summary</h2>
+        <motion.div
+          className="collage-panel collage-panel--float paper-card bg-gold p-6 lg:-mt-8 hover-group"
+          {...hoverMotion}
+          transition={{ duration: 0.24 }}
+        >
+          <h2 className="poster-title text-2xl text-ink">IUCN summary</h2>
           <p className="mt-2 text-xs text-ink">
             Conservation status mix from GBIF facets.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            {iucnSummary.map((item) => (
-              <div
-                key={item.status}
-                className="rounded-lg border-4 border-border bg-paper p-3 shadow-soft"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="rounded-full border-2 border-border bg-surface px-2 py-0.5 text-[10px] font-semibold uppercase text-ink">
-                    {item.status}
-                  </span>
-                  <span className="text-xs text-ink-soft">{item.count}</span>
-                </div>
-                <p className="mt-2 text-sm font-semibold text-ink">
-                  {item.label}
-                </p>
-                <p className="text-[11px] text-ink-soft">
-                  {item.label === 'Unknown'
-                    ? 'Status not reported in GBIF records.'
-                    : 'IUCN Red List category'}
-                </p>
-              </div>
-            ))}
+            {iucnSummary.map((item) => {
+              return (
+                <motion.div
+                  key={item.status}
+                  className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow bg-paper p-3"
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  whileFocus={{ y: -4, scale: 1.02 }}
+                  transition={{ duration: 0.24 }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="sticker-badge sticker-badge--sunny">
+                      {item.status}
+                    </span>
+                    <span className="text-xs text-ink-soft">{item.count}</span>
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-ink">
+                    {item.label}
+                  </p>
+                  <p className="text-[11px] text-ink-soft">
+                    {item.label === 'Unknown'
+                      ? 'Status not reported in GBIF records.'
+                      : 'IUCN Red List category'}
+                  </p>
+                </motion.div>
+              )
+            })}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <section className="collage-hero collage-hero--charts grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
-        <div className="collage-panel collage-panel--tilt-left rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+        <motion.div
+          className="collage-panel collage-panel--tilt-left paper-card bg-surface p-6 hover-group"
+          {...hoverMotion}
+          transition={{ duration: 0.24 }}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Seasonality</h2>
-            <span className="text-[11px] uppercase tracking-[0.2em] text-ink">
-              Monthly records
-            </span>
+            <h2 className="poster-title text-2xl text-ink">Seasonality</h2>
+            <span className="sticker-badge">Monthly records</span>
           </div>
           <div className="mt-4 flex items-end gap-2">
             {seasonality.map((value, index) => (
-              <div key={`month-${value}-${index}`} className="flex-1">
-                <div
-                  className="rounded-md border-2 border-border bg-lens-strong"
+              <div key={`month-${value}-${index}`} className="hover-group flex-1">
+                <motion.div
+                  className="hover-glow rounded-md border-2 border-border bg-lens-strong"
                   style={{ height: `${(value / maxSeasonality) * 140}px` }}
+                  whileHover={{ y: -4, scale: 1.04 }}
+                  whileFocus={{ y: -4, scale: 1.04 }}
+                  transition={{ duration: 0.22 }}
                 />
                 <p className="mt-2 text-center text-[10px] text-ink">
                   {index + 1}
@@ -122,15 +159,20 @@ function LensMainPanels({
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-  <div className="collage-panel collage-panel--tilt-right rounded-xl border-4 border-border bg-surface p-6 shadow-soft lg:-mt-6">
+        <motion.div
+          className="collage-panel collage-panel--tilt-right paper-card bg-surface p-6 lg:-mt-6 hover-group"
+          {...hoverMotion}
+          transition={{ duration: 0.24 }}
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Year trend</h2>
-            <span className="text-[11px] uppercase tracking-[0.2em] text-ink">
-              Records per year
-            </span>
+            <h2 className="poster-title text-2xl text-ink">Year trend</h2>
+            <span className="sticker-badge">Records per year</span>
           </div>
+          <span className="hover-stamp hover-stamp--top-right">
+            Peak {peakYear.year} · {peakYear.count.toLocaleString()}
+          </span>
           <div className="mt-4">
             <svg viewBox="0 0 240 120" className="h-36 w-full">
               <polyline
@@ -171,7 +213,7 @@ function LensMainPanels({
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
     </>
   )

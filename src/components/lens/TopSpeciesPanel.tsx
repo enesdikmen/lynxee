@@ -5,10 +5,10 @@ type TopSpeciesPanelProps = {
 }
 
 const TopSpeciesPanel = ({ species }: TopSpeciesPanelProps) => (
-  <div className="rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+  <div className="paper-card bg-surface p-6">
     <div className="flex items-center justify-between">
       <h2 className="text-xl font-semibold">Top species</h2>
-      <span className="text-[11px] uppercase tracking-[0.2em] text-ink">
+      <span className="sticker-badge">
         {species.length} featured
       </span>
     </div>
@@ -16,7 +16,7 @@ const TopSpeciesPanel = ({ species }: TopSpeciesPanelProps) => (
       {species.map((item) => (
         <article
           key={item.id}
-          className="overflow-hidden rounded-lg border-4 border-border bg-paper shadow-soft"
+          className="paper-card paper-card--mini paper-card--wiggle overflow-hidden bg-paper"
         >
           <img
             src={item.imageUrl}

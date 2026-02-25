@@ -1,6 +1,16 @@
+import { motion } from 'framer-motion'
+
 type BreakdownItem = {
   label: string
   count: number
+}
+
+type DatasetSummary = {
+  key: string
+  title: string
+  doi?: string
+  publisher?: string
+  license?: string
 }
 
 type LensBreakdownProps = {
@@ -10,7 +20,7 @@ type LensBreakdownProps = {
   maxClass: number
   placeLabel?: string
   totalRecords: number
-  datasetTitles: string[]
+  datasetSummaries: DatasetSummary[]
 }
 
 function LensBreakdown({
@@ -20,20 +30,33 @@ function LensBreakdown({
   maxClass,
   placeLabel,
   totalRecords,
-  datasetTitles,
+  datasetSummaries,
 }: LensBreakdownProps) {
+  const hoverMotion = {
+    whileHover: { y: -6, scale: 1.02 },
+    whileFocus: { y: -6, scale: 1.02 },
+    transition: { duration: 0.24 },
+  }
+
   return (
     <section className="collage-hero collage-hero--badges grid gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:items-start">
-      <div className="collage-panel collage-panel--wide rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
-        <h2 className="text-xl font-semibold">Kingdom + class breakdown</h2>
+      <motion.div
+        className="collage-panel collage-panel--wide paper-card bg-surface p-6 hover-group"
+        {...hoverMotion}
+      >
+        <h2 className="poster-title text-2xl text-ink">Kingdom + class breakdown</h2>
         <div className="mt-4 space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink">
-              Kingdoms
-            </p>
+            <p className="sticker-badge">Kingdoms</p>
             <div className="mt-3 space-y-2">
               {kingdomBreakdown.map((item) => (
-                <div key={item.label} className="space-y-1">
+                <motion.div
+                  key={item.label}
+                  className="hover-group hover-glow space-y-1"
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileFocus={{ y: -2, scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-ink">{item.label}</span>
                     <span className="text-ink-soft">{item.count}</span>
@@ -44,17 +67,21 @@ function LensBreakdown({
                       style={{ width: `${(item.count / maxKingdom) * 100}%` }}
                     />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink">
-              Classes
-            </p>
+            <p className="sticker-badge">Classes</p>
             <div className="mt-3 space-y-2">
               {classBreakdown.map((item) => (
-                <div key={item.label} className="space-y-1">
+                <motion.div
+                  key={item.label}
+                  className="hover-group hover-glow space-y-1"
+                  whileHover={{ y: -2, scale: 1.01 }}
+                  whileFocus={{ y: -2, scale: 1.01 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-ink">{item.label}</span>
                     <span className="text-ink-soft">{item.count}</span>
@@ -65,28 +92,41 @@ function LensBreakdown({
                       style={{ width: `${(item.count / maxClass) * 100}%` }}
                     />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="collage-panel collage-panel--float rounded-xl border-4 border-border bg-lens p-6 shadow-card lg:-mt-10">
-        <h2 className="text-xl font-semibold text-ink">Attribution</h2>
+      <motion.div
+        className="collage-panel collage-panel--float paper-card bg-lens p-6 lg:-mt-10 hover-group"
+        {...hoverMotion}
+      >
+        <h2 className="poster-title text-2xl text-ink">Attribution</h2>
         <div className="collage-badge-stack mt-3 space-y-3 text-xs text-ink">
-          <div className="rounded-lg border-2 border-border bg-paper p-3">
+          <motion.div
+            className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow bg-paper p-3"
+            whileHover={{ y: -3, scale: 1.02 }}
+            whileFocus={{ y: -3, scale: 1.02 }}
+            transition={{ duration: 0.22 }}
+          >
             <p className="font-semibold">GBIF occurrence download</p>
             <p className="text-ink-soft">
               {placeLabel ?? 'Selected place'} · {totalRecords.toLocaleString()} records
             </p>
-          </div>
-          <div className="rounded-lg border-2 border-border bg-paper p-3">
+          </motion.div>
+          <motion.div
+            className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow bg-paper p-3"
+            whileHover={{ y: -3, scale: 1.02 }}
+            whileFocus={{ y: -3, scale: 1.02 }}
+            transition={{ duration: 0.22 }}
+          >
             <p className="font-semibold">Top datasets</p>
-            {datasetTitles.length > 0 ? (
+            {datasetSummaries.length > 0 ? (
               <ul className="mt-2 list-inside list-disc text-[11px] text-ink-soft">
-                {datasetTitles.map((title) => (
-                  <li key={title}>{title}</li>
+                {datasetSummaries.map((dataset) => (
+                  <li key={dataset.key}>{dataset.title}</li>
                 ))}
               </ul>
             ) : (
@@ -94,15 +134,20 @@ function LensBreakdown({
                 Loading dataset metadata…
               </p>
             )}
-          </div>
-          <div className="rounded-lg border-2 border-border bg-paper p-3">
+          </motion.div>
+          <motion.div
+            className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow bg-paper p-3"
+            whileHover={{ y: -3, scale: 1.02 }}
+            whileFocus={{ y: -3, scale: 1.02 }}
+            transition={{ duration: 0.22 }}
+          >
             <p className="font-semibold">Media credits</p>
             <p className="text-[11px] text-ink-soft">
               Image credits will be pulled from GBIF media.
             </p>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }

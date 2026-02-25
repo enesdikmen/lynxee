@@ -18,7 +18,7 @@
 /* ── Frame: the bordered poster object ── */
 .poster-frame {
   position: relative;
-  width: min(840px, 88vw);
+  width: min(980px, 94vw);
   border-radius: 18px;
   border: 5px solid rgb(var(--color-ink));
   background: rgb(var(--color-paper));
@@ -237,6 +237,134 @@
   top: -26px;
   right: 12%;
   transform: rotate(-8deg);
+}
+
+/* ── Panel styling: cut paper cards + sticker badges ── */
+.paper-card {
+  position: relative;
+  border: 4px solid rgb(var(--color-border));
+  border-radius: var(--radius-lg);
+  background: rgb(var(--color-surface));
+  box-shadow:
+    8px 10px 0 0 rgb(var(--color-ink) / 0.65),
+    0 24px 40px -26px rgba(30, 20, 10, 0.35);
+}
+
+.paper-card--mini {
+  border-width: 3px;
+  border-radius: var(--radius-md);
+  box-shadow:
+    5px 6px 0 0 rgb(var(--color-ink) / 0.6),
+    0 18px 30px -24px rgba(30, 20, 10, 0.3);
+}
+
+.paper-card--wiggle {
+  transform: rotate(-0.6deg);
+}
+
+.paper-card--wiggle:nth-child(even) {
+  transform: rotate(0.6deg);
+}
+
+.sticker-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border: 3px solid rgb(var(--color-border));
+  border-radius: 999px;
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-ink));
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  box-shadow: 3px 4px 0 0 rgb(var(--color-ink) / 0.6);
+}
+
+.sticker-badge--sunny {
+  background: rgb(var(--color-gold));
+}
+
+.sticker-badge--lens {
+  background: rgb(var(--color-lens));
+}
+
+/* Hover reveal stamps + glow */
+.hover-group {
+  position: relative;
+}
+
+.hover-stamp {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.7rem;
+  border: 3px dashed rgb(var(--color-border));
+  border-radius: 999px;
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-ink));
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  box-shadow: 3px 4px 0 0 rgb(var(--color-ink) / 0.55);
+  opacity: 0;
+  transform: translateY(8px) scale(0.97) rotate(-1deg);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+  z-index: 6;
+  white-space: nowrap;
+}
+
+.hover-stamp--top-right {
+  top: -14px;
+  right: 16px;
+}
+
+.hover-stamp--top-left {
+  top: -14px;
+  left: 16px;
+}
+
+.hover-stamp--bottom-right {
+  bottom: -16px;
+  right: 18px;
+}
+
+.hover-stamp--bottom-left {
+  bottom: -16px;
+  left: 18px;
+}
+
+.hover-stamp--center {
+  left: 50%;
+  top: 10px;
+  transform: translate(-50%, 0) scale(0.97) rotate(-1deg);
+}
+
+.hover-stamp--image {
+  top: 10px;
+  right: 10px;
+  left: auto;
+  transform: translate(0, 0) scale(0.97) rotate(-1deg);
+}
+
+.hover-group:hover .hover-stamp,
+.hover-group:focus-within .hover-stamp {
+  opacity: 1;
+  transform: translateY(0) scale(1) rotate(-1deg);
+}
+
+.hover-glow {
+  transition: filter 240ms ease;
+}
+
+.hover-group:hover .hover-glow,
+.hover-group:focus-within .hover-glow {
+  filter: drop-shadow(0 0 18px rgb(var(--color-accent) / 0.25));
 }
 
 .collage-sticker--bug-2 {

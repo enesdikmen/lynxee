@@ -13,11 +13,11 @@ const BreakdownPanel = ({
   maxKingdom,
   maxClass,
 }: BreakdownPanelProps) => (
-  <div className="rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+  <div className="paper-card bg-surface p-6">
     <h2 className="text-xl font-semibold">Kingdom + class breakdown</h2>
     <div className="mt-4 space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink">
+        <p className="sticker-badge">
           Kingdoms
         </p>
         <div className="mt-3 space-y-2">
@@ -38,7 +38,7 @@ const BreakdownPanel = ({
         </div>
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink">
+        <p className="sticker-badge">
           Classes
         </p>
         <div className="mt-3 space-y-2">
