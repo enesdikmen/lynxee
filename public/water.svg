@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Water drop tag sticker">
+  <!-- Drop -->
+  <path d="M256 70
+       C206 142 156 206 156 278
+       C156 352 202 416 256 416
+       C310 416 356 352 356 278
+       C356 206 306 142 256 70Z" fill="#7ED7FF" stroke="#1B1B1B" stroke-width="18" stroke-linejoin="round"></path>
+
+  <!-- Inner highlight (simple, flat) -->
+  <path d="M222 168
+       C196 206 186 236 186 272
+       C186 312 208 348 232 368" fill="none" stroke="#1B1B1B" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.22"></path>
+
+  <!-- Tiny sparkle -->
+  <g fill="#7ED7FF" stroke="#1B1B1B" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M382 154 L382 192"></path>
+    <path d="M363 173 L401 173"></path>
+  </g>
+
+  <!-- Sparkle dot -->
+  <circle cx="412" cy="208" r="10" fill="#7ED7FF" stroke="#1B1B1B" stroke-width="10"></circle>
+</svg>

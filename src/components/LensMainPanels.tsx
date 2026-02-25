@@ -36,8 +36,8 @@ function LensMainPanels({
 }: LensMainPanelsProps) {
   return (
     <>
-      <section className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div className="rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+      <section className="collage-hero collage-hero--species grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:items-start">
+        <div className="collage-panel collage-panel--primary rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Top species</h2>
             <span className="text-[11px] uppercase tracking-[0.2em] text-ink">
@@ -70,7 +70,7 @@ function LensMainPanels({
           </div>
         </div>
 
-        <div className="rounded-xl border-4 border-border bg-gold p-6 shadow-soft">
+  <div className="collage-panel collage-panel--float rounded-xl border-4 border-border bg-gold p-6 shadow-soft lg:-mt-8">
           <h2 className="text-xl font-semibold text-ink">IUCN summary</h2>
           <p className="mt-2 text-xs text-ink">
             Conservation status mix from GBIF facets.
@@ -101,8 +101,8 @@ function LensMainPanels({
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+      <section className="collage-hero collage-hero--charts grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+        <div className="collage-panel collage-panel--tilt-left rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Seasonality</h2>
             <span className="text-[11px] uppercase tracking-[0.2em] text-ink">
@@ -124,7 +124,7 @@ function LensMainPanels({
           </div>
         </div>
 
-        <div className="rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+  <div className="collage-panel collage-panel--tilt-right rounded-xl border-4 border-border bg-surface p-6 shadow-soft lg:-mt-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Year trend</h2>
             <span className="text-[11px] uppercase tracking-[0.2em] text-ink">

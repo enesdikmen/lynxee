@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import './App.css'
 import {
   fetchDatasetMetadata,
   fetchOccurrenceFacets,
@@ -182,6 +183,7 @@ const IUCN_LABELS: Record<string, string> = {
 
 function App() {
   const [selectedPlaceId, setSelectedPlaceId] = useState(places[0]?.id ?? '')
+  const stickerBase = import.meta.env.BASE_URL ?? '/'
   const selectedPlace = useMemo(
     () => places.find((place) => place.id === selectedPlaceId) ?? places[0],
     [selectedPlaceId],
@@ -437,61 +439,110 @@ function App() {
     : '—'
 
   return (
-    <div className="theme-playful min-h-screen bg-paper text-ink">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
-        <LensHeader
-          title={`${selectedPlace?.label ?? 'Pick a place'} biodiversity portrait`}
-          description="Static layout preview for the first data lens. Placeholder values show what each panel will contain."
-          places={places.map((place) => ({
-            id: place.id,
-            label: place.label,
-          }))}
-          selectedPlaceId={selectedPlaceId}
-          onChangePlace={(event) => setSelectedPlaceId(event.target.value)}
-          placeDetails={
-            selectedPlace
-              ? {
-                  label: selectedPlace.label,
-                  latitude: selectedPlace.latitude,
-                  longitude: selectedPlace.longitude,
-                  radiusKm: selectedPlace.radiusKm,
-                }
-              : undefined
-          }
-          stats={[
-            {
-              label: 'Records used',
-              value: totalRecords ? totalRecords.toLocaleString() : '—',
-            },
-            {
-              label: 'Top species in view',
-              value: speciesKeys.length
-                ? speciesKeys.length.toString()
-                : '—',
-            },
-            { label: 'Last refresh', value: updatedAt },
-          ]}
-        />
+    <div className="theme-playful text-ink">
+      <div className="poster-shell">
+        <div className="poster-frame">
+          <main className="poster-canvas">
+            <div className="collage-flow">
+              <div className="collage-section collage-section--header">
+                <span className="collage-tape collage-tape--left" />
+                <span className="collage-tape collage-tape--right" />
+                <span className="collage-sticker collage-sticker--leaf">
+                  <img src={`${stickerBase}leaf.svg`} alt="Leaf sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--leaf-2">
+                  <img src={`${stickerBase}leaf.svg`} alt="Leaf sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--sun">
+                  <img src={`${stickerBase}sun.svg`} alt="Sunny sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--sun-2">
+                  <img src={`${stickerBase}sun.svg`} alt="Sunny sticker" />
+                </span>
+                <LensHeader
+                  title={`${selectedPlace?.label ?? 'Pick a place'} biodiversity portrait`}
+                  description="Static layout preview for the first data lens. Placeholder values show what each panel will contain."
+                  places={places.map((place) => ({
+                    id: place.id,
+                    label: place.label,
+                  }))}
+                  selectedPlaceId={selectedPlaceId}
+                  onChangePlace={(event) =>
+                    setSelectedPlaceId(event.target.value)
+                  }
+                  placeDetails={
+                    selectedPlace
+                      ? {
+                          label: selectedPlace.label,
+                          latitude: selectedPlace.latitude,
+                          longitude: selectedPlace.longitude,
+                          radiusKm: selectedPlace.radiusKm,
+                        }
+                      : undefined
+                  }
+                  stats={[
+                    {
+                      label: 'Records used',
+                      value: totalRecords ? totalRecords.toLocaleString() : '—',
+                    },
+                    {
+                      label: 'Top species in view',
+                      value: speciesKeys.length
+                        ? speciesKeys.length.toString()
+                        : '—',
+                    },
+                    { label: 'Last refresh', value: updatedAt },
+                  ]}
+                />
+              </div>
 
-        <LensMainPanels
-          topSpecies={topSpeciesData}
-          iucnSummary={iucnSummaryData}
-          seasonality={seasonalityData}
-          maxSeasonality={maxSeasonality}
-          yearTrend={yearTrendData}
-          maxTrend={maxTrend}
-        />
+              <div className="collage-section collage-section--main">
+                <span className="collage-tape collage-tape--center" />
+                <span className="collage-tape collage-tape--short" />
+                <span className="collage-sticker collage-sticker--bug">
+                  <img src={`${stickerBase}beetle.svg`} alt="Beetle sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--bug-2">
+                  <img src={`${stickerBase}beetle.svg`} alt="Beetle sticker" />
+                </span>
+                <LensMainPanels
+                  topSpecies={topSpeciesData}
+                  iucnSummary={iucnSummaryData}
+                  seasonality={seasonalityData}
+                  maxSeasonality={maxSeasonality}
+                  yearTrend={yearTrendData}
+                  maxTrend={maxTrend}
+                />
+              </div>
 
-        <LensBreakdown
-          kingdomBreakdown={kingdomBreakdown}
-          classBreakdown={classBreakdown}
-          maxKingdom={maxKingdom}
-          maxClass={maxClass}
-          placeLabel={selectedPlace?.label}
-          totalRecords={totalRecords}
-          datasetTitles={datasetTitles}
-        />
-      </main>
+              <div className="collage-section collage-section--breakdown">
+                <span className="collage-tape collage-tape--tilt" />
+                <span className="collage-sticker collage-sticker--drop">
+                  <img src={`${stickerBase}water.svg`} alt="Water drop sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--drop-2">
+                  <img src={`${stickerBase}water.svg`} alt="Water drop sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--mushroom">
+                  <img src={`${stickerBase}mushroom.svg`} alt="Mushroom sticker" />
+                </span>
+                <span className="collage-sticker collage-sticker--mushroom-2">
+                  <img src={`${stickerBase}mushroom.svg`} alt="Mushroom sticker" />
+                </span>
+                <LensBreakdown
+                  kingdomBreakdown={kingdomBreakdown}
+                  classBreakdown={classBreakdown}
+                  maxKingdom={maxKingdom}
+                  maxClass={maxClass}
+                  placeLabel={selectedPlace?.label}
+                  totalRecords={totalRecords}
+                  datasetTitles={datasetTitles}
+                />
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
   )
 }

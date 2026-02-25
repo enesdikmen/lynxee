@@ -1,42 +1,270 @@
+/* ── Root ── */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* ── Wall: the ambient background the poster hangs on ── */
+.poster-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(2.5rem, 5vw, 5rem) clamp(1.5rem, 4vw, 4rem);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.15) 0%, transparent 70%),
+    #e8ddd0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* ── Frame: the bordered poster object ── */
+.poster-frame {
+  position: relative;
+  width: min(840px, 88vw);
+  border-radius: 18px;
+  border: 5px solid rgb(var(--color-ink));
+  background: rgb(var(--color-paper));
+  box-shadow:
+    /* chunky drop shadow (poster weight) */
+    6px 8px 0 0 rgb(var(--color-ink) / 0.55),
+    /* soft ambient shadow */
+    0 32px 64px -16px rgba(30, 20, 10, 0.35),
+    /* wall contact shadow */
+    0 6px 20px -4px rgba(30, 20, 10, 0.18);
+  overflow: hidden;
 }
 
-.card {
-  padding: 2em;
+/* Inner vignette — warm darkened edges like a real print */
+.poster-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 80px rgba(80, 50, 20, 0.12),
+    inset 0 0 200px rgba(40, 25, 10, 0.08);
 }
 
-.read-the-docs {
-  color: #888;
+/* ── Canvas: the warm paper surface inside the frame ── */
+.poster-canvas {
+  position: relative;
+  width: 100%;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  background:
+    /* subtle paper noise feel via layered gradients */
+    radial-gradient(circle at 20% 15%, #fff8e8 0%, transparent 50%),
+    radial-gradient(circle at 80% 85%, #ffe6c4 0%, transparent 50%),
+    linear-gradient(
+      175deg,
+      #fff4d8 0%,
+      #ffe8bf 30%,
+      #ffd7a8 65%,
+      #ffc991 100%
+    );
+}
+
+/* ── Collage layout ── */
+.collage-flow {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.75rem, 3vw, 2.75rem);
+  position: relative;
+  z-index: 1;
+}
+
+.collage-section {
+  position: relative;
+}
+
+.collage-section--header {
+  z-index: 4;
+}
+
+.collage-section--main {
+  margin-top: clamp(-2.2rem, -3vw, -1.4rem);
+  z-index: 3;
+}
+
+.collage-section--breakdown {
+  margin-top: clamp(-1.8rem, -2.6vw, -1.2rem);
+  z-index: 2;
+}
+
+.collage-hero {
+  position: relative;
+}
+
+.collage-panel {
+  position: relative;
+  transform-origin: center;
+}
+
+.collage-panel--primary {
+  z-index: 2;
+}
+
+.collage-panel--float {
+  transform: translateY(6px) rotate(-1.2deg);
+  z-index: 3;
+}
+
+.collage-panel--tilt-left {
+  transform: rotate(-1.4deg);
+}
+
+.collage-panel--tilt-right {
+  transform: rotate(1.4deg);
+}
+
+.collage-panel--wide {
+  z-index: 2;
+}
+
+/* Tape accents */
+.collage-tape {
+  position: absolute;
+  width: 110px;
+  height: 26px;
+  background: #fde68a;
+  border: 3px solid rgb(var(--color-ink));
+  border-radius: 8px;
+  box-shadow: 0 10px 0 -6px rgb(var(--color-ink) / 0.55);
+  opacity: 0.9;
+}
+
+.collage-tape--left {
+  top: -14px;
+  left: 18px;
+  transform: rotate(-4deg);
+}
+
+.collage-tape--right {
+  top: -12px;
+  right: 24px;
+  transform: rotate(3deg);
+}
+
+.collage-tape--center {
+  top: -18px;
+  left: 40%;
+  transform: rotate(-2deg);
+}
+
+.collage-tape--tilt {
+  top: -12px;
+  right: 12%;
+  transform: rotate(6deg);
+}
+
+.collage-tape--short {
+  width: 80px;
+  height: 22px;
+  top: 18px;
+  left: 14px;
+  background: #fecdd3;
+  transform: rotate(-6deg);
+}
+
+/* Stacked badges + stats */
+.collage-badge-stack > div:nth-child(1) {
+  transform: rotate(-1deg);
+}
+
+.collage-badge-stack > div:nth-child(2) {
+  transform: translateX(6px) rotate(1deg);
+}
+
+.collage-badge-stack > div:nth-child(3) {
+  transform: translateX(-4px) rotate(-0.8deg);
+}
+
+.collage-stat:nth-child(1) {
+  transform: rotate(-1.5deg);
+}
+
+.collage-stat:nth-child(2) {
+  transform: translateY(6px) rotate(1.5deg);
+}
+
+.collage-stat:nth-child(3) {
+  transform: rotate(-0.6deg);
+}
+
+/* Stickers */
+.collage-sticker {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 6;
+}
+
+.collage-sticker img {
+  width: 46px;
+  height: 46px;
+  display: block;
+}
+
+.collage-sticker--leaf {
+  top: -18px;
+  left: 40%;
+  transform: rotate(-6deg);
+}
+
+.collage-sticker--leaf-2 {
+  top: 22px;
+  left: -6px;
+  transform: rotate(8deg);
+}
+
+.collage-sticker--sun {
+  top: 12px;
+  right: 18px;
+  transform: rotate(8deg);
+}
+
+.collage-sticker--sun-2 {
+  top: -20px;
+  right: 38%;
+  transform: rotate(-10deg);
+}
+
+.collage-sticker--bug {
+  top: -26px;
+  right: 12%;
+  transform: rotate(-8deg);
+}
+
+.collage-sticker--bug-2 {
+  top: 50%;
+  left: -18px;
+  transform: rotate(6deg);
+}
+
+.collage-sticker--drop {
+  top: -18px;
+  left: 8%;
+  transform: rotate(5deg);
+}
+
+.collage-sticker--drop-2 {
+  bottom: 12px;
+  right: 18%;
+  transform: rotate(-4deg);
+}
+
+.collage-sticker--mushroom {
+  bottom: -22px;
+  right: 14%;
+  transform: rotate(-6deg);
+}
+
+.collage-sticker--mushroom-2 {
+  bottom: -24px;
+  left: 24%;
+  transform: rotate(7deg);
 }

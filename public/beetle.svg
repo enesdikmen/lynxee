@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Beetle sticker">
+  <!-- Beetle body -->
+  <ellipse cx="256" cy="276" rx="120" ry="150" fill="#FF8F8F" stroke="#1B1B1B" stroke-width="18"></ellipse>
+
+  <!-- Head -->
+  <circle cx="256" cy="128" r="48" fill="#FF8F8F" stroke="#1B1B1B" stroke-width="18"></circle>
+
+  <!-- Center shell line -->
+  <path d="M256 168 L256 420" fill="none" stroke="#1B1B1B" stroke-width="14" stroke-linecap="round"></path>
+
+  <!-- Shell dots -->
+  <g fill="#FF8F8F" stroke="#1B1B1B" stroke-width="10">
+    <circle cx="216" cy="236" r="12"></circle>
+    <circle cx="296" cy="236" r="12"></circle>
+    <circle cx="206" cy="296" r="12"></circle>
+    <circle cx="306" cy="296" r="12"></circle>
+    <circle cx="216" cy="356" r="12"></circle>
+    <circle cx="296" cy="356" r="12"></circle>
+  </g>
+
+  <!-- Legs -->
+  <g fill="none" stroke="#1B1B1B" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M136 236 C92 220 76 212 64 200"></path>
+    <path d="M136 286 C88 286 72 286 56 286"></path>
+    <path d="M136 336 C92 352 76 360 64 372"></path>
+
+    <path d="M376 236 C420 220 436 212 448 200"></path>
+    <path d="M376 286 C424 286 440 286 456 286"></path>
+    <path d="M376 336 C420 352 436 360 448 372"></path>
+  </g>
+
+  <!-- Antennae -->
+  <g fill="none" stroke="#1B1B1B" stroke-width="12" stroke-linecap="round">
+    <path d="M232 80 C210 48 190 40 168 36"></path>
+    <path d="M280 80 C302 48 322 40 344 36"></path>
+  </g>
+</svg>

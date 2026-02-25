@@ -78,7 +78,7 @@ function LensHeader({
         {stats.map((item) => (
           <div
             key={item.label}
-            className="rounded-lg border-4 border-border bg-paper p-4 text-ink shadow-soft"
+            className="collage-stat rounded-lg border-4 border-border bg-paper p-4 text-ink shadow-soft"
           >
             <p className="text-[11px] uppercase tracking-[0.2em]">
               {item.label}

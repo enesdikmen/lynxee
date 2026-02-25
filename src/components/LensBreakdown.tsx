@@ -23,8 +23,8 @@ function LensBreakdown({
   datasetTitles,
 }: LensBreakdownProps) {
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
+    <section className="collage-hero collage-hero--badges grid gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:items-start">
+      <div className="collage-panel collage-panel--wide rounded-xl border-4 border-border bg-surface p-6 shadow-soft">
         <h2 className="text-xl font-semibold">Kingdom + class breakdown</h2>
         <div className="mt-4 space-y-4">
           <div>
@@ -72,9 +72,9 @@ function LensBreakdown({
         </div>
       </div>
 
-      <div className="rounded-xl border-4 border-border bg-lens p-6 shadow-card">
+      <div className="collage-panel collage-panel--float rounded-xl border-4 border-border bg-lens p-6 shadow-card lg:-mt-10">
         <h2 className="text-xl font-semibold text-ink">Attribution</h2>
-        <div className="mt-3 space-y-3 text-xs text-ink">
+        <div className="collage-badge-stack mt-3 space-y-3 text-xs text-ink">
           <div className="rounded-lg border-2 border-border bg-paper p-3">
             <p className="font-semibold">GBIF occurrence download</p>
             <p className="text-ink-soft">

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Leaf stamp sticker">
+  <!-- Sticker-like rounded badge -->
+  <path d="M126 92
+       Q256 44 386 92
+       Q468 168 430 256
+       Q468 344 386 420
+       Q256 468 126 420
+       Q44 344 82 256
+       Q44 168 126 92Z" fill="#A9F3D6" stroke="#1B1B1B" stroke-width="18" stroke-linejoin="round"></path>
+
+  <!-- Leaf -->
+  <path d="M176 300
+       C176 196 254 134 334 132
+       C350 132 362 144 362 160
+       C362 244 300 344 214 362
+       C192 366 176 346 176 324
+       Z" fill="#A9F3D6" stroke="#1B1B1B" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- Leaf midrib -->
+  <path d="M210 356
+       C254 322 292 276 324 216" fill="none" stroke="#1B1B1B" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- Small veins -->
+  <path d="M250 318 C236 304 222 296 206 292" fill="none" stroke="#1B1B1B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path d="M282 286 C270 272 256 264 240 260" fill="none" stroke="#1B1B1B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+  <path d="M308 252 C298 242 286 234 272 230" fill="none" stroke="#1B1B1B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>

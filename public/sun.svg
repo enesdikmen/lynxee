@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Sunny badge sticker">
+  <!-- Sun body -->
+  <circle cx="256" cy="256" r="132" fill="#FFD34D" stroke="#1B1B1B" stroke-width="18"></circle>
+
+  <!-- Short chunky rays -->
+  <g fill="#FFD34D" stroke="#1B1B1B" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 58 L256 104"></path>
+    <path d="M256 408 L256 454"></path>
+    <path d="M58 256 L104 256"></path>
+    <path d="M408 256 L454 256"></path>
+
+    <path d="M116 116 L148 148"></path>
+    <path d="M364 364 L396 396"></path>
+    <path d="M396 116 L364 148"></path>
+    <path d="M148 364 L116 396"></path>
+  </g>
+
+  <!-- Face -->
+  <g fill="none" stroke="#1B1B1B" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Eyes -->
+    <path d="M212 242 C222 232 238 232 248 242" stroke-width="14"></path>
+    <path d="M264 242 C274 232 290 232 300 242" stroke-width="14"></path>
+
+    <!-- Smile -->
+    <path d="M206 292 C230 322 282 322 306 292" stroke-width="18"></path>
+  </g>
+
+  <!-- Cheeks (outlined dots) -->
+  <g fill="#FFD34D" stroke="#1B1B1B" stroke-width="10">
+    <circle cx="188" cy="278" r="14"></circle>
+    <circle cx="324" cy="278" r="14"></circle>
+  </g>
+</svg>
