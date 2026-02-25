@@ -39,16 +39,16 @@ function LensBreakdown({
   }
 
   return (
-    <section className="collage-hero collage-hero--badges grid gap-6 lg:grid-cols-[1.2fr_0.9fr] lg:items-start">
+    <section className="collage-hero collage-hero--badges grid gap-5 lg:grid-cols-[1.2fr_0.9fr] lg:items-start">
       <motion.div
-        className="collage-panel collage-panel--wide paper-card bg-surface p-6 hover-group"
+        className="collage-panel collage-panel--wide paper-card bg-surface p-5 hover-group"
         {...hoverMotion}
       >
         <h2 className="poster-title text-2xl text-ink">Kingdom + class breakdown</h2>
-        <div className="mt-4 space-y-4">
+  <div className="mt-3 space-y-3">
           <div>
             <p className="sticker-badge">Kingdoms</p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2 space-y-2">
               {kingdomBreakdown.map((item) => (
                 <motion.div
                   key={item.label}
@@ -73,7 +73,7 @@ function LensBreakdown({
           </div>
           <div>
             <p className="sticker-badge">Classes</p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2 space-y-2">
               {classBreakdown.map((item) => (
                 <motion.div
                   key={item.label}
@@ -100,11 +100,11 @@ function LensBreakdown({
       </motion.div>
 
       <motion.div
-        className="collage-panel collage-panel--float paper-card bg-lens p-6 lg:-mt-10 hover-group"
+        className="collage-panel collage-panel--float paper-card bg-lens p-5 lg:-mt-8 hover-group"
         {...hoverMotion}
       >
         <h2 className="poster-title text-2xl text-ink">Attribution</h2>
-        <div className="collage-badge-stack mt-3 space-y-3 text-xs text-ink">
+  <div className="collage-badge-stack mt-3 space-y-2 text-xs text-ink">
           <motion.div
             className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow bg-paper p-3"
             whileHover={{ y: -3, scale: 1.02 }}

@@ -49,9 +49,9 @@ function LensMainPanels({
 
   return (
     <>
-      <section className="collage-hero collage-hero--species grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:items-start">
+      <section className="collage-hero collage-hero--species grid gap-5 lg:grid-cols-[1.7fr_1fr] lg:items-start">
         <motion.div
-          className="collage-panel collage-panel--primary paper-card bg-surface p-6 hover-group"
+          className="collage-panel collage-panel--primary paper-card bg-surface p-5 hover-group"
           {...hoverMotion}
           transition={{ duration: 0.24 }}
         >
@@ -59,19 +59,19 @@ function LensMainPanels({
             <h2 className="poster-title text-2xl text-ink">Top species</h2>
             <span className="sticker-badge">{topSpecies.length} featured</span>
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {topSpecies.map((species) => (
               <motion.article
                 key={species.id}
-                className="paper-card paper-card--mini paper-card--wiggle hover-group hover-glow overflow-hidden bg-paper"
+                className="species-card paper-card paper-card--mini paper-card--wiggle hover-group hover-glow bg-paper"
                 whileHover={{ y: -4, scale: 1.02 }}
                 whileFocus={{ y: -4, scale: 1.02 }}
                 transition={{ duration: 0.24 }}
               >
-                <div className="relative">
-                  <span className="hover-stamp hover-stamp--image">
-                    {species.taxonLine ?? 'GBIF species'}
-                  </span>
+                <span className="hover-stamp hover-stamp--species">
+                  {species.taxonLine ?? 'GBIF species'}
+                </span>
+                <div className="species-card__image">
                   <img
                     src={species.imageUrl}
                     alt={species.commonName}
@@ -94,15 +94,15 @@ function LensMainPanels({
         </motion.div>
 
         <motion.div
-          className="collage-panel collage-panel--float paper-card bg-gold p-6 lg:-mt-8 hover-group"
+          className="collage-panel collage-panel--float paper-card bg-gold p-5 lg:-mt-2 hover-group"
           {...hoverMotion}
           transition={{ duration: 0.24 }}
         >
           <h2 className="poster-title text-2xl text-ink">IUCN summary</h2>
-          <p className="mt-2 text-xs text-ink">
+          <p className="mt-2 text-[11px] text-ink">
             Conservation status mix from GBIF facets.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-3">
             {iucnSummary.map((item) => {
               return (
                 <motion.div
@@ -133,9 +133,9 @@ function LensMainPanels({
         </motion.div>
       </section>
 
-      <section className="collage-hero collage-hero--charts grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+      <section className="collage-hero collage-hero--charts grid gap-5 lg:grid-cols-[1.1fr_1fr] lg:items-start">
         <motion.div
-          className="collage-panel collage-panel--tilt-left paper-card bg-surface p-6 hover-group"
+          className="collage-panel collage-panel--tilt-left paper-card bg-surface p-5 hover-group"
           {...hoverMotion}
           transition={{ duration: 0.24 }}
         >
@@ -143,7 +143,7 @@ function LensMainPanels({
             <h2 className="poster-title text-2xl text-ink">Seasonality</h2>
             <span className="sticker-badge">Monthly records</span>
           </div>
-          <div className="mt-4 flex items-end gap-2">
+          <div className="mt-3 flex items-end gap-2">
             {seasonality.map((value, index) => (
               <div key={`month-${value}-${index}`} className="hover-group flex-1">
                 <motion.div
@@ -162,7 +162,7 @@ function LensMainPanels({
         </motion.div>
 
         <motion.div
-          className="collage-panel collage-panel--tilt-right paper-card bg-surface p-6 lg:-mt-6 hover-group"
+          className="collage-panel collage-panel--tilt-right paper-card bg-surface p-5 lg:-mt-4 hover-group"
           {...hoverMotion}
           transition={{ duration: 0.24 }}
         >
@@ -173,8 +173,8 @@ function LensMainPanels({
           <span className="hover-stamp hover-stamp--top-right">
             Peak {peakYear.year} · {peakYear.count.toLocaleString()}
           </span>
-          <div className="mt-4">
-            <svg viewBox="0 0 240 120" className="h-36 w-full">
+          <div className="mt-3">
+            <svg viewBox="0 0 240 120" className="h-32 w-full">
               <polyline
                 fill="none"
                 stroke="rgb(var(--color-accent))"

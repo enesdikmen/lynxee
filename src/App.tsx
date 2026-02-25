@@ -27,6 +27,10 @@ type SpeciesCard = {
   imageUrl: string
   highlight: string
   taxonLine?: string
+  classGroup?: string
+  popularity?: number
+  isOverallTop?: boolean
+  hasImage?: boolean
 }
 
 type DatasetSummary = {
@@ -85,6 +89,22 @@ const places: Place[] = [
     latitude: 1.3521,
     longitude: 103.8198,
     radiusKm: 35,
+  },
+  {
+    id: 'bursa-tr',
+    label: 'Bursa, TR',
+    country: 'Turkey',
+    latitude: 40.1825734,
+    longitude: 29.0675039,
+    radiusKm: 45,
+  },
+  {
+    id: 'alicante-es',
+    label: 'Alicante, ES',
+    country: 'Spain',
+    latitude: 38.3436365,
+    longitude: -0.4881708,
+    radiusKm: 40,
   },
 ]
 
@@ -198,6 +218,7 @@ const IUCN_LABELS: Record<string, string> = {
 
 function App() {
   const [selectedPlaceId, setSelectedPlaceId] = useState(places[0]?.id ?? '')
+  const [onlyWithImages, setOnlyWithImages] = useState(false)
   const stickerBase = import.meta.env.BASE_URL ?? '/'
   const selectedPlace = useMemo(
     () => places.find((place) => place.id === selectedPlaceId) ?? places[0],
@@ -205,7 +226,7 @@ function App() {
   )
 
   const facetsQuery = useQuery({
-    queryKey: ['occurrenceFacets', selectedPlace?.id],
+    queryKey: ['occurrenceFacets', selectedPlace?.id, onlyWithImages],
     queryFn: ({ signal }) =>
       fetchOccurrenceFacets({
         latitude: selectedPlace?.latitude ?? 0,
@@ -220,7 +241,8 @@ function App() {
           'kingdomKey',
           'classKey',
         ],
-        facetLimit: 12,
+        facetLimit: onlyWithImages ? 120 : 60,
+        mediaType: onlyWithImages ? 'StillImage' : undefined,
         signal,
       }),
     enabled: Boolean(selectedPlace),
@@ -281,34 +303,89 @@ function App() {
       .sort((a, b) => a.year - b.year)
   }, [facetsSummary])
 
-  const speciesKeys = useMemo(() => {
-    if (!facetsSummary?.speciesKey?.length) return []
-    return facetsSummary.speciesKey
-      .map((item) => Number(item.name))
-      .filter((value) => Number.isFinite(value))
-      .slice(0, 6)
-  }, [facetsSummary])
+  const classKeys = useMemo(
+    () =>
+      facetsSummary?.classKey
+        ?.map((item) => Number(item.name))
+        .filter((value) => Number.isFinite(value))
+        .slice(0, 8) ?? [],
+    [facetsSummary],
+  )
 
   const topSpeciesQuery = useQuery({
-    queryKey: ['topSpecies', speciesKeys],
+    queryKey: ['topSpecies', selectedPlace?.id, classKeys, onlyWithImages],
     queryFn: async ({ signal }) => {
-      const results = await Promise.all(
-        speciesKeys.map(async (speciesKey) => {
-          const species = await fetchSpecies({ speciesKey, signal })
-          const media = await fetchSpeciesMedia({
+      if (!selectedPlace || !facetsSummary?.speciesKey?.length) return []
+
+      const topOverallFacet = facetsSummary.speciesKey[0]
+      const topOverallKey = Number(topOverallFacet?.name)
+      const topOverallCount = topOverallFacet?.count ?? 0
+
+      const classSpecies = await Promise.all(
+        classKeys.map(async (classKey) => {
+          const response = await fetchOccurrenceFacets({
+            latitude: selectedPlace.latitude,
+            longitude: selectedPlace.longitude,
+            radiusKm: selectedPlace.radiusKm,
+            facetFields: ['speciesKey'],
+            facetLimit: 1,
+            classKey,
+            mediaType: onlyWithImages ? 'StillImage' : undefined,
+            signal,
+          })
+
+          const topCount = response.facets?.[0]?.counts?.[0]
+          const speciesKey = Number(topCount?.name)
+          if (!Number.isFinite(speciesKey)) return null
+
+          return {
+            classKey,
             speciesKey,
+            count: topCount?.count ?? 0,
+          }
+        }),
+      )
+
+      const uniqueSpecies = new Map<
+        number,
+        { speciesKey: number; count: number; classKey?: number; isOverall?: boolean }
+      >()
+
+      if (Number.isFinite(topOverallKey)) {
+        uniqueSpecies.set(topOverallKey, {
+          speciesKey: topOverallKey,
+          count: topOverallCount,
+          isOverall: true,
+        })
+      }
+
+      classSpecies.filter(Boolean).forEach((item) => {
+        if (!item) return
+        if (uniqueSpecies.has(item.speciesKey)) return
+        uniqueSpecies.set(item.speciesKey, item)
+      })
+
+      const results = await Promise.all(
+        Array.from(uniqueSpecies.values()).map(async (item) => {
+          const species = await fetchSpecies({
+            speciesKey: item.speciesKey,
+            signal,
+          })
+          const media = await fetchSpeciesMedia({
+            speciesKey: item.speciesKey,
             limit: 1,
             signal,
           })
           const mediaItem = media.results.find(
-            (item) => item.identifier || item.references,
+            (entry) => entry.identifier || entry.references,
           )
+          const mediaUrl = mediaItem?.identifier ?? mediaItem?.references
           const imageUrl =
-            mediaItem?.identifier ??
-            mediaItem?.references ??
+            mediaUrl ??
             'https://placehold.co/320x220/f3f4f6/1f2937?text=No+image'
+
           return {
-            id: String(speciesKey),
+            id: String(item.speciesKey),
             commonName:
               species.vernacularName ??
               species.canonicalName ??
@@ -325,16 +402,77 @@ function App() {
             ]
               .filter(Boolean)
               .join(' · '),
+            classGroup: species.class ?? species.kingdom ?? 'GBIF',
+            popularity: item.count,
+            isOverallTop: item.isOverall ?? false,
+            hasImage: Boolean(mediaUrl),
           }
         }),
       )
+
       return results
     },
-    enabled: speciesKeys.length > 0,
+    enabled: Boolean(selectedPlace && facetsSummary?.speciesKey?.length),
     staleTime: 1000 * 60 * 20,
   })
 
-  const topSpeciesData = topSpeciesQuery.data ?? fallbackTopSpecies
+  const topSpeciesData = useMemo(() => {
+    if (!topSpeciesQuery.data?.length) return fallbackTopSpecies
+
+    const sorted = [...topSpeciesQuery.data].sort(
+      (a, b) => (b.popularity ?? 0) - (a.popularity ?? 0),
+    )
+
+    const selectTopSpecies = (candidates: SpeciesCard[]) => {
+      const selected: SpeciesCard[] = []
+      const usedGroups = new Set<string>()
+      const usedIds = new Set<string>()
+
+      const topPick =
+        candidates.find((item) => item.isOverallTop) ?? candidates[0]
+      if (topPick) {
+        selected.push(topPick)
+        usedIds.add(topPick.id)
+        if (topPick.classGroup) usedGroups.add(topPick.classGroup)
+      }
+
+      for (const candidate of candidates.slice(1)) {
+        const group = candidate.classGroup ?? 'GBIF'
+        if (usedGroups.has(group)) continue
+        selected.push(candidate)
+        usedIds.add(candidate.id)
+        usedGroups.add(group)
+        if (selected.length === 6) break
+      }
+
+      if (selected.length < 6) {
+        for (const candidate of candidates.slice(1)) {
+          if (usedIds.has(candidate.id)) continue
+          selected.push(candidate)
+          usedIds.add(candidate.id)
+          if (selected.length === 6) break
+        }
+      }
+
+      return { selected, usedIds }
+    }
+
+    const primaryCandidates = onlyWithImages
+      ? sorted.filter((item) => item.hasImage)
+      : sorted
+    const { selected, usedIds } = selectTopSpecies(primaryCandidates)
+
+    if (onlyWithImages && selected.length < 6) {
+      for (const candidate of sorted) {
+        if (usedIds.has(candidate.id)) continue
+        selected.push(candidate)
+        usedIds.add(candidate.id)
+        if (selected.length === 6) break
+      }
+    }
+
+    return selected
+  }, [topSpeciesQuery.data, onlyWithImages])
 
   const iucnSummaryData = useMemo(() => {
     if (!facetsSummary?.iucn?.length) return fallbackIucnSummary
@@ -354,7 +492,7 @@ function App() {
     [facetsSummary],
   )
 
-  const classKeys = useMemo(
+  const classKeyList = useMemo(
     () =>
       facetsSummary?.classKey
         ?.map((item) => Number(item.name))
@@ -366,9 +504,9 @@ function App() {
   const taxonKeys = useMemo(() => {
     const merged = new Set<number>()
     kingdomKeys.forEach((key) => merged.add(key))
-    classKeys.forEach((key) => merged.add(key))
+    classKeyList.forEach((key) => merged.add(key))
     return Array.from(merged)
-  }, [kingdomKeys, classKeys])
+  }, [kingdomKeys, classKeyList])
 
   const taxonLabelsQuery = useQuery({
     queryKey: ['taxonLabels', taxonKeys],
@@ -477,18 +615,6 @@ function App() {
               <div className="collage-section collage-section--header">
                 <span className="collage-tape collage-tape--left" />
                 <span className="collage-tape collage-tape--right" />
-                <span className="collage-sticker collage-sticker--leaf">
-                  <img src={`${stickerBase}leaf.svg`} alt="Leaf sticker" />
-                </span>
-                <span className="collage-sticker collage-sticker--leaf-2">
-                  <img src={`${stickerBase}leaf.svg`} alt="Leaf sticker" />
-                </span>
-                <span className="collage-sticker collage-sticker--sun">
-                  <img src={`${stickerBase}sun.svg`} alt="Sunny sticker" />
-                </span>
-                <span className="collage-sticker collage-sticker--sun-2">
-                  <img src={`${stickerBase}sun.svg`} alt="Sunny sticker" />
-                </span>
                 <LensHeader
                   title={`${selectedPlace?.label ?? 'Pick a place'} biodiversity portrait`}
                   description="Static layout preview for the first data lens. Placeholder values show what each panel will contain."
@@ -500,6 +626,11 @@ function App() {
                   onChangePlace={(event) =>
                     setSelectedPlaceId(event.target.value)
                   }
+                  onlyWithImages={onlyWithImages}
+                  onToggleOnlyWithImages={(event) =>
+                    setOnlyWithImages(event.target.checked)
+                  }
+                  stickerBase={stickerBase}
                   placeDetails={
                     selectedPlace
                       ? {
@@ -517,8 +648,8 @@ function App() {
                     },
                     {
                       label: 'Top species in view',
-                      value: speciesKeys.length
-                        ? speciesKeys.length.toString()
+                      value: facetsSummary?.speciesKey?.length
+                        ? facetsSummary.speciesKey.length.toString()
                         : '—',
                     },
                     { label: 'Last refresh', value: updatedAt },

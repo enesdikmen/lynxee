@@ -48,7 +48,7 @@
 .poster-canvas {
   position: relative;
   width: 100%;
-  padding: clamp(1.5rem, 3vw, 2.75rem);
+  padding: clamp(1.35rem, 2.6vw, 2.4rem);
   background:
     /* subtle paper noise feel via layered gradients */
     radial-gradient(circle at 20% 15%, #fff8e8 0%, transparent 50%),
@@ -66,7 +66,7 @@
 .collage-flow {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.75rem, 3vw, 2.75rem);
+  gap: clamp(1.4rem, 2.4vw, 2.2rem);
   position: relative;
   z-index: 1;
 }
@@ -80,12 +80,12 @@
 }
 
 .collage-section--main {
-  margin-top: clamp(-2.2rem, -3vw, -1.4rem);
+  margin-top: clamp(-1.8rem, -2.4vw, -1rem);
   z-index: 3;
 }
 
 .collage-section--breakdown {
-  margin-top: clamp(-1.8rem, -2.6vw, -1.2rem);
+  margin-top: clamp(-1.5rem, -2vw, -0.9rem);
   z-index: 2;
 }
 
@@ -103,7 +103,7 @@
 }
 
 .collage-panel--float {
-  transform: translateY(6px) rotate(-1.2deg);
+  transform: translateY(2px) rotate(-1.2deg);
   z-index: 3;
 }
 
@@ -210,27 +210,27 @@
 }
 
 .collage-sticker--leaf {
-  top: -18px;
-  left: 40%;
-  transform: rotate(-6deg);
+  top: -36px;
+  left: 12%;
+  transform: rotate(-8deg);
 }
 
 .collage-sticker--leaf-2 {
-  top: 22px;
-  left: -6px;
-  transform: rotate(8deg);
+  top: 18px;
+  left: -24px;
+  transform: rotate(10deg);
 }
 
 .collage-sticker--sun {
-  top: 12px;
-  right: 18px;
-  transform: rotate(8deg);
+  top: -28px;
+  right: -26px;
+  transform: rotate(10deg);
 }
 
 .collage-sticker--sun-2 {
-  top: -20px;
-  right: 38%;
-  transform: rotate(-10deg);
+  top: 28px;
+  right: 18%;
+  transform: rotate(-12deg);
 }
 
 .collage-sticker--bug {
@@ -264,6 +264,17 @@
 
 .paper-card--wiggle:nth-child(even) {
   transform: rotate(0.6deg);
+}
+
+.species-card {
+  overflow: visible;
+}
+
+.species-card__image {
+  border-bottom: 3px solid rgb(var(--color-border));
+  border-top-left-radius: calc(var(--radius-md) - 2px);
+  border-top-right-radius: calc(var(--radius-md) - 2px);
+  overflow: hidden;
 }
 
 .sticker-badge {
@@ -352,8 +363,27 @@
   transform: translate(0, 0) scale(0.97) rotate(-1deg);
 }
 
+.hover-stamp--species {
+  top: -18px;
+  left: 16px;
+  transform: translate(0, 0) scale(0.97) rotate(-1deg);
+  z-index: 7;
+}
+
 .hover-group:hover .hover-stamp,
 .hover-group:focus-within .hover-stamp {
+  opacity: 1;
+  transform: translateY(0) scale(1) rotate(-1deg);
+}
+
+.hover-group:hover .hover-stamp--species,
+.hover-group:focus-within .hover-stamp--species {
+  opacity: 0;
+  transform: translateY(8px) scale(0.97) rotate(-1deg);
+}
+
+.species-card:hover .hover-stamp--species,
+.species-card:focus-within .hover-stamp--species {
   opacity: 1;
   transform: translateY(0) scale(1) rotate(-1deg);
 }
