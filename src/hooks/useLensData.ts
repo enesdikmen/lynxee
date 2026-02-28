@@ -9,7 +9,7 @@ import {
 import {
   IUCN_LABELS,
   fallbackClassBreakdown,
-  fallbackIucnSummary,
+  fallbackConservationSnapshot,
   fallbackKingdomBreakdown,
   fallbackSeasonality,
   fallbackTopSpecies,
@@ -17,10 +17,11 @@ import {
 } from '../data/lensFallbacks'
 import type {
   BreakdownItem,
+  ConservationSnapshot,
   DatasetSummary,
-  IucnStatus,
   Place,
   SpeciesCard,
+  ThreatenedSpecies,
   YearTrendPoint,
 } from '../types/lens'
 
@@ -28,7 +29,7 @@ export type LensData = {
   seasonalityData: number[]
   yearTrendData: YearTrendPoint[]
   topSpeciesData: SpeciesCard[]
-  iucnSummaryData: IucnStatus[]
+  conservationSnapshot: ConservationSnapshot
   kingdomBreakdown: BreakdownItem[]
   classBreakdown: BreakdownItem[]
   datasetSummaries: DatasetSummary[]
@@ -62,7 +63,6 @@ export const useLensData = (
           'year',
           'speciesKey',
           'datasetKey',
-          'iucnRedListCategory',
           'kingdomKey',
           'classKey',
         ],
@@ -98,7 +98,6 @@ export const useLensData = (
       year: getCounts('year'),
       speciesKey: getCounts('speciesKey'),
       datasetKey: getCounts('datasetKey'),
-      iucn: getCounts('iucnRedListCategory'),
       kingdomKey: getCounts('kingdomKey'),
       classKey: getCounts('classKey'),
     }
@@ -302,14 +301,156 @@ export const useLensData = (
     return selected
   }, [topSpeciesQuery.data, onlyWithImages])
 
-  const iucnSummaryData = useMemo(() => {
-    if (!facetsSummary?.iucn?.length) return fallbackIucnSummary
-    return facetsSummary.iucn.map((item) => ({
-      status: item.name,
-      label: IUCN_LABELS[item.name] ?? 'Unknown',
-      count: item.count,
+  // ── Conservation snapshot ──────────────────────────────────────────
+  // Instead of raw IUCN record counts, we build a meaningful snapshot:
+  //  • species counts per IUCN category (via speciesKey facet per category)
+  //  • a headline "X threatened species" number
+  //  • actual names/photos for the top threatened species
+
+  const THREATENED_CATS = ['CR', 'EN', 'VU'] as const
+  const ALL_CATS = ['LC', 'NT', 'VU', 'EN', 'CR', 'DD'] as const
+
+  // For each IUCN category, get the number of distinct species (not records).
+  const speciesCountsQuery = useQuery({
+    queryKey: ['iucnSpeciesCounts', selectedPlace?.id, onlyWithImages],
+    queryFn: async ({ signal }) => {
+      if (!selectedPlace) return []
+      const results = await Promise.all(
+        ALL_CATS.map(async (cat) => {
+          // Get species count per IUCN category by faceting on speciesKey.
+          // A high facetLimit gives us the number of distinct species entries.
+          const response = await fetchOccurrenceFacets({
+            latitude: selectedPlace.latitude,
+            longitude: selectedPlace.longitude,
+            radiusKm: selectedPlace.radiusKm,
+            facetFields: ['speciesKey'],
+            facetLimit: 500,
+            iucnRedListCategory: cat,
+            mediaType: onlyWithImages ? 'StillImage' : undefined,
+            signal,
+          })
+          const speciesCount = response.facets?.[0]?.counts?.length ?? 0
+          return {
+            status: cat,
+            label: IUCN_LABELS[cat] ?? cat,
+            speciesCount,
+          }
+        }),
+      )
+      return results
+    },
+    enabled: Boolean(selectedPlace),
+    staleTime: 1000 * 60 * 10,
+  })
+
+  // Get top threatened species (names + photos) — up to 5 across CR/EN/VU.
+  const threatenedSpeciesQuery = useQuery({
+    queryKey: ['threatenedSpecies', selectedPlace?.id, onlyWithImages],
+    queryFn: async ({ signal }) => {
+      if (!selectedPlace) return []
+
+      // Gather top speciesKeys per threatened category.
+      const perCat = await Promise.all(
+        THREATENED_CATS.map(async (cat) => {
+          const response = await fetchOccurrenceFacets({
+            latitude: selectedPlace.latitude,
+            longitude: selectedPlace.longitude,
+            radiusKm: selectedPlace.radiusKm,
+            facetFields: ['speciesKey'],
+            facetLimit: 3,
+            iucnRedListCategory: cat,
+            mediaType: onlyWithImages ? 'StillImage' : undefined,
+            signal,
+          })
+          return (response.facets?.[0]?.counts ?? []).map((c) => ({
+            speciesKey: Number(c.name),
+            recordCount: c.count,
+            shortCategory: cat,
+          }))
+        }),
+      )
+
+      const all = perCat.flat().filter((s) => Number.isFinite(s.speciesKey))
+
+      // Dedupe & keep top 5 by severity (CR first) then record count.
+      const severityOrder: Record<string, number> = { CR: 0, EN: 1, VU: 2 }
+      all.sort(
+        (a, b) =>
+          (severityOrder[a.shortCategory] ?? 9) -
+            (severityOrder[b.shortCategory] ?? 9) ||
+          b.recordCount - a.recordCount,
+      )
+      const unique = new Map<number, (typeof all)[0]>()
+      for (const item of all) {
+        if (!unique.has(item.speciesKey)) unique.set(item.speciesKey, item)
+        if (unique.size >= 5) break
+      }
+
+      // Resolve names + photos.
+      const resolved: ThreatenedSpecies[] = await Promise.all(
+        Array.from(unique.values()).map(async (item) => {
+          const species = await fetchSpecies({
+            speciesKey: item.speciesKey,
+            signal,
+          })
+          const media = await fetchSpeciesMedia({
+            speciesKey: item.speciesKey,
+            limit: 1,
+            signal,
+          })
+          const mediaUrl =
+            media.results.find((m) => m.identifier)?.identifier ?? undefined
+          return {
+            speciesKey: item.speciesKey,
+            commonName:
+              species.vernacularName ??
+              species.canonicalName ??
+              species.scientificName,
+            scientificName: species.scientificName,
+            imageUrl: mediaUrl,
+            iucnCategory: item.shortCategory,
+            iucnLabel: IUCN_LABELS[item.shortCategory] ?? item.shortCategory,
+            recordCount: item.recordCount,
+          }
+        }),
+      )
+      return resolved
+    },
+    enabled: Boolean(selectedPlace),
+    staleTime: 1000 * 60 * 20,
+  })
+
+  const conservationSnapshot = useMemo<ConservationSnapshot>(() => {
+    if (!speciesCountsQuery.data?.length) return fallbackConservationSnapshot
+
+    const categoryBreakdown = speciesCountsQuery.data.map((c) => ({
+      status: c.status,
+      label: c.label,
+      count: c.speciesCount,
     }))
-  }, [facetsSummary])
+
+    const totalAssessedSpecies = categoryBreakdown.reduce(
+      (sum, c) => sum + c.count,
+      0,
+    )
+    const threatenedCount = categoryBreakdown
+      .filter((c) =>
+        (THREATENED_CATS as readonly string[]).includes(c.status),
+      )
+      .reduce((sum, c) => sum + c.count, 0)
+    const threatenedPercent =
+      totalAssessedSpecies > 0
+        ? Math.round((threatenedCount / totalAssessedSpecies) * 1000) / 10
+        : 0
+
+    return {
+      totalAssessedSpecies,
+      threatenedCount,
+      threatenedPercent,
+      threatenedSpecies: threatenedSpeciesQuery.data ?? [],
+      categoryBreakdown,
+    }
+  }, [speciesCountsQuery.data, threatenedSpeciesQuery.data])
 
   const kingdomKeys = useMemo(
     () =>
@@ -439,7 +580,7 @@ export const useLensData = (
     seasonalityData,
     yearTrendData,
     topSpeciesData,
-    iucnSummaryData,
+    conservationSnapshot,
     kingdomBreakdown,
     classBreakdown,
     datasetSummaries,

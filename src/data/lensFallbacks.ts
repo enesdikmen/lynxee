@@ -1,5 +1,6 @@
 import type {
   BreakdownItem,
+  ConservationSnapshot,
   IucnStatus,
   Place,
   SpeciesCard,
@@ -173,4 +174,44 @@ export const IUCN_LABELS: Record<string, string> = {
   DATA_DEFICIENT: 'Data deficient',
   EXTINCT: 'Extinct',
   EXTINCT_IN_THE_WILD: 'Extinct in the wild',
+}
+
+export const fallbackConservationSnapshot: ConservationSnapshot = {
+  totalAssessedSpecies: 248,
+  threatenedCount: 31,
+  threatenedPercent: 12.5,
+  threatenedSpecies: [
+    {
+      speciesKey: 0,
+      commonName: 'European Eel',
+      scientificName: 'Anguilla anguilla',
+      iucnCategory: 'CR',
+      iucnLabel: 'Critically endangered',
+      recordCount: 14,
+    },
+    {
+      speciesKey: 0,
+      commonName: 'Greater Horseshoe Bat',
+      scientificName: 'Rhinolophus ferrumequinum',
+      iucnCategory: 'VU',
+      iucnLabel: 'Vulnerable',
+      recordCount: 8,
+    },
+    {
+      speciesKey: 0,
+      commonName: 'Corn Crake',
+      scientificName: 'Crex crex',
+      iucnCategory: 'EN',
+      iucnLabel: 'Endangered',
+      recordCount: 5,
+    },
+  ],
+  categoryBreakdown: [
+    { status: 'LC', label: 'Least concern', count: 182 },
+    { status: 'NT', label: 'Near threatened', count: 26 },
+    { status: 'VU', label: 'Vulnerable', count: 18 },
+    { status: 'EN', label: 'Endangered', count: 9 },
+    { status: 'CR', label: 'Critically endangered', count: 4 },
+    { status: 'DD', label: 'Data deficient', count: 31 },
+  ],
 }

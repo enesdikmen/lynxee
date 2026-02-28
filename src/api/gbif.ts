@@ -87,6 +87,7 @@ export interface OccurrenceFacetRequest extends RequestOptions {
 	facetLimit?: number
 	classKey?: number | number[]
 	mediaType?: string | string[]
+	iucnRedListCategory?: string | string[]
 }
 
 export interface SpeciesRequest extends RequestOptions {
@@ -156,6 +157,7 @@ export const fetchOccurrenceFacets = async ({
 	facetLimit = 10,
 	classKey,
 	mediaType,
+	iucnRedListCategory,
 	signal,
 }: OccurrenceFacetRequest) => {
 		const bounds = toBounds(latitude, longitude, radiusKm)
@@ -167,6 +169,7 @@ export const fetchOccurrenceFacets = async ({
 		decimalLongitude: `${bounds.minLon},${bounds.maxLon}`,
 		classKey,
 		mediaType,
+		iucnRedListCategory,
 		facet: facetFields,
 		facetLimit,
 	})

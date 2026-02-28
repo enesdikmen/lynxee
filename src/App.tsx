@@ -20,7 +20,7 @@ function App() {
     seasonalityData,
     yearTrendData,
     topSpeciesData,
-    iucnSummaryData,
+    conservationSnapshot,
     kingdomBreakdown,
     classBreakdown,
     datasetSummaries,
@@ -94,7 +94,7 @@ function App() {
                 </span>
                 <LensMainPanels
                   topSpecies={topSpeciesData}
-                  iucnSummary={iucnSummaryData}
+                  conservationSnapshot={conservationSnapshot}
                   seasonality={seasonalityData}
                   maxSeasonality={maxSeasonality}
                   yearTrend={yearTrendData}

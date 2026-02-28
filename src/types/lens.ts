@@ -36,6 +36,24 @@ export type IucnStatus = {
   count: number
 }
 
+export type ThreatenedSpecies = {
+  speciesKey: number
+  commonName: string
+  scientificName: string
+  imageUrl?: string
+  iucnCategory: 'CR' | 'EN' | 'VU'
+  iucnLabel: string
+  recordCount: number
+}
+
+export type ConservationSnapshot = {
+  totalAssessedSpecies: number
+  threatenedCount: number
+  threatenedPercent: number
+  threatenedSpecies: ThreatenedSpecies[]
+  categoryBreakdown: IucnStatus[]
+}
+
 export type DatasetSummary = {
   key: string
   title: string
