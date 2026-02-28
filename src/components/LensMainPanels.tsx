@@ -7,6 +7,7 @@ type SpeciesCard = {
   imageUrl: string
   highlight: string
   taxonLine?: string
+  popularity?: number
 }
 
 type IucnSummaryItem = {
@@ -85,6 +86,11 @@ function LensMainPanels({
                   </p>
                   <p className="text-xs italic text-ink-soft">
                     {species.scientificName}
+                  </p>
+                  <p className="text-[11px] font-semibold text-ink">
+                    {species.popularity
+                      ? `${species.popularity.toLocaleString()} records`
+                      : 'Records unknown'}
                   </p>
                   <p className="text-[11px] text-ink">{species.highlight}</p>
                 </div>

@@ -103,6 +103,7 @@ export interface DatasetRequest extends RequestOptions {
 	datasetKey: string
 }
 
+// GBIF occurrence search supports bounding boxes; approximate a radius with lat/lon deltas.
 const toBounds = (latitude: number, longitude: number, radiusKm: number) => {
 	const kmPerDegLat = 110.574
 	const kmPerDegLon = 111.32 * Math.cos((latitude * Math.PI) / 180)
@@ -136,6 +137,7 @@ const buildUrl = (
 	return url.toString()
 }
 
+// Centralized JSON fetch so we keep error messages consistent for UI + debugging.
 const fetchJson = async <T>(url: string, options: RequestOptions = {}) => {
 	const response = await fetch(url, { signal: options.signal })
 
@@ -156,10 +158,11 @@ export const fetchOccurrenceFacets = async ({
 	mediaType,
 	signal,
 }: OccurrenceFacetRequest) => {
-	const bounds = toBounds(latitude, longitude, radiusKm)
+		const bounds = toBounds(latitude, longitude, radiusKm)
 
 	const url = buildUrl('/occurrence/search', {
 		limit: 0,
+			// Using facets with limit=0 keeps payloads small while still returning summary counts.
 		decimalLatitude: `${bounds.minLat},${bounds.maxLat}`,
 		decimalLongitude: `${bounds.minLon},${bounds.maxLon}`,
 		classKey,

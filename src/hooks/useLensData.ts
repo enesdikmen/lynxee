@@ -17,6 +17,7 @@ import {
 } from '../data/lensFallbacks'
 import type {
   BreakdownItem,
+  DatasetSummary,
   IucnStatus,
   Place,
   SpeciesCard,
@@ -30,19 +31,27 @@ export type LensData = {
   iucnSummaryData: IucnStatus[]
   kingdomBreakdown: BreakdownItem[]
   classBreakdown: BreakdownItem[]
-  datasetTitles: string[]
+  datasetSummaries: DatasetSummary[]
   totalRecords: number
   updatedAt: string
-  speciesKeys: number[]
   maxSeasonality: number
   maxTrend: number
   maxKingdom: number
   maxClass: number
 }
 
-export const useLensData = (selectedPlace?: Place): LensData => {
+export type UseLensDataOptions = {
+  onlyWithImages?: boolean
+}
+
+export const useLensData = (
+  selectedPlace?: Place,
+  options: UseLensDataOptions = {},
+): LensData => {
+  const onlyWithImages = options.onlyWithImages ?? false
+
   const facetsQuery = useQuery({
-    queryKey: ['occurrenceFacets', selectedPlace?.id],
+    queryKey: ['occurrenceFacets', selectedPlace?.id, onlyWithImages],
     queryFn: ({ signal }) =>
       fetchOccurrenceFacets({
         latitude: selectedPlace?.latitude ?? 0,
@@ -57,7 +66,9 @@ export const useLensData = (selectedPlace?: Place): LensData => {
           'kingdomKey',
           'classKey',
         ],
-        facetLimit: 12,
+        // Higher facet limit when filtering to images so we still get enough species.
+        facetLimit: onlyWithImages ? 120 : 60,
+        mediaType: onlyWithImages ? 'StillImage' : undefined,
         signal,
       }),
     enabled: Boolean(selectedPlace),
@@ -67,16 +78,20 @@ export const useLensData = (selectedPlace?: Place): LensData => {
   const facetsSummary = useMemo(() => {
     if (!facetsQuery.data) return null
 
+    // Normalize GBIF facet field names (underscores vs camel) for safe lookups.
+    const normalizeField = (value: string) =>
+      value.replace(/_/g, '').toLowerCase()
+
     const facetsByField = facetsQuery.data.facets.reduce(
       (acc, facet) => {
-        acc[facet.field.toLowerCase()] = facet
+        acc[normalizeField(facet.field)] = facet
         return acc
       },
       {} as Record<string, { counts: { name: string; count: number }[] }>,
     )
 
     const getCounts = (field: string) =>
-      facetsByField[field.toLowerCase()]?.counts ?? []
+      facetsByField[normalizeField(field)]?.counts ?? []
 
     return {
       month: getCounts('month'),
@@ -106,43 +121,102 @@ export const useLensData = (selectedPlace?: Place): LensData => {
 
   const yearTrendData = useMemo(() => {
     if (!facetsSummary?.year?.length) return fallbackYearTrend
-    return facetsSummary.year
+    const sorted = facetsSummary.year
       .map((item) => ({
         year: Number(item.name),
         count: item.count,
       }))
       .filter((item) => Number.isFinite(item.year))
       .sort((a, b) => a.year - b.year)
+    // Keep the latest decade to keep the chart legible.
+    return sorted.slice(-10)
   }, [facetsSummary])
 
-  const speciesKeys = useMemo(() => {
-    if (!facetsSummary?.speciesKey?.length) return []
-    return facetsSummary.speciesKey
-      .map((item) => Number(item.name))
-      .filter((value) => Number.isFinite(value))
-      .slice(0, 6)
-  }, [facetsSummary])
+  const classKeys = useMemo(
+    () =>
+      facetsSummary?.classKey
+        ?.map((item) => Number(item.name))
+        .filter((value) => Number.isFinite(value))
+        // Limit per-class lookups to avoid excessive API calls.
+        .slice(0, 8) ?? [],
+    [facetsSummary],
+  )
 
   const topSpeciesQuery = useQuery({
-    queryKey: ['topSpecies', speciesKeys],
+    queryKey: ['topSpecies', selectedPlace?.id, classKeys, onlyWithImages],
     queryFn: async ({ signal }) => {
-      const results = await Promise.all(
-        speciesKeys.map(async (speciesKey) => {
-          const species = await fetchSpecies({ speciesKey, signal })
-          const media = await fetchSpeciesMedia({
+      if (!selectedPlace || !facetsSummary?.speciesKey?.length) return []
+
+      const topOverallFacet = facetsSummary.speciesKey[0]
+      const topOverallKey = Number(topOverallFacet?.name)
+      const topOverallCount = topOverallFacet?.count ?? 0
+
+      // Pick one representative species per major class to diversify the strip.
+      const classSpecies = await Promise.all(
+        classKeys.map(async (classKey) => {
+          const response = await fetchOccurrenceFacets({
+            latitude: selectedPlace.latitude,
+            longitude: selectedPlace.longitude,
+            radiusKm: selectedPlace.radiusKm,
+            facetFields: ['speciesKey'],
+            facetLimit: 1,
+            classKey,
+            mediaType: onlyWithImages ? 'StillImage' : undefined,
+            signal,
+          })
+
+          const topCount = response.facets?.[0]?.counts?.[0]
+          const speciesKey = Number(topCount?.name)
+          if (!Number.isFinite(speciesKey)) return null
+
+          return {
+            classKey,
             speciesKey,
+            count: topCount?.count ?? 0,
+          }
+        }),
+      )
+
+      const uniqueSpecies = new Map<
+        number,
+        { speciesKey: number; count: number; classKey?: number; isOverall?: boolean }
+      >()
+
+      if (Number.isFinite(topOverallKey)) {
+        uniqueSpecies.set(topOverallKey, {
+          speciesKey: topOverallKey,
+          count: topOverallCount,
+          isOverall: true,
+        })
+      }
+
+      classSpecies.filter(Boolean).forEach((item) => {
+        if (!item) return
+        if (uniqueSpecies.has(item.speciesKey)) return
+        uniqueSpecies.set(item.speciesKey, item)
+      })
+
+      const results = await Promise.all(
+        Array.from(uniqueSpecies.values()).map(async (item) => {
+          const species = await fetchSpecies({
+            speciesKey: item.speciesKey,
+            signal,
+          })
+          const media = await fetchSpeciesMedia({
+            speciesKey: item.speciesKey,
             limit: 1,
             signal,
           })
           const mediaItem = media.results.find(
-            (item) => item.identifier || item.references,
+            (entry) => entry.identifier || entry.references,
           )
+          const mediaUrl = mediaItem?.identifier ?? mediaItem?.references
           const imageUrl =
-            mediaItem?.identifier ??
-            mediaItem?.references ??
+            mediaUrl ??
             'https://placehold.co/320x220/f3f4f6/1f2937?text=No+image'
+
           return {
-            id: String(speciesKey),
+            id: String(item.speciesKey),
             commonName:
               species.vernacularName ??
               species.canonicalName ??
@@ -152,16 +226,81 @@ export const useLensData = (selectedPlace?: Place): LensData => {
             highlight: species.rank
               ? `${species.rank} · ${species.kingdom ?? 'GBIF'}`
               : 'GBIF species',
+            taxonLine: [species.kingdom, species.phylum, species.class]
+              .filter(Boolean)
+              .join(' · '),
+            classGroup: species.class ?? species.kingdom ?? 'GBIF',
+            popularity: item.count,
+            isOverallTop: item.isOverall ?? false,
+            hasImage: Boolean(mediaUrl),
           }
         }),
       )
+
       return results
     },
-    enabled: speciesKeys.length > 0,
+    enabled: Boolean(selectedPlace && facetsSummary?.speciesKey?.length),
     staleTime: 1000 * 60 * 20,
   })
 
-  const topSpeciesData = topSpeciesQuery.data ?? fallbackTopSpecies
+  const topSpeciesData = useMemo(() => {
+    if (!topSpeciesQuery.data?.length) return fallbackTopSpecies
+
+    const sorted = [...topSpeciesQuery.data].sort(
+      (a, b) => (b.popularity ?? 0) - (a.popularity ?? 0),
+    )
+
+  // Ensure we show variety (different classes) while still featuring the overall top pick.
+  const selectTopSpecies = (candidates: SpeciesCard[]) => {
+      const selected: SpeciesCard[] = []
+      const usedGroups = new Set<string>()
+      const usedIds = new Set<string>()
+
+      const topPick =
+        candidates.find((item) => item.isOverallTop) ?? candidates[0]
+      if (topPick) {
+        selected.push(topPick)
+        usedIds.add(topPick.id)
+        if (topPick.classGroup) usedGroups.add(topPick.classGroup)
+      }
+
+      for (const candidate of candidates.slice(1)) {
+        const group = candidate.classGroup ?? 'GBIF'
+        if (usedGroups.has(group)) continue
+        selected.push(candidate)
+        usedIds.add(candidate.id)
+        usedGroups.add(group)
+        if (selected.length === 6) break
+      }
+
+      if (selected.length < 6) {
+        for (const candidate of candidates.slice(1)) {
+          if (usedIds.has(candidate.id)) continue
+          selected.push(candidate)
+          usedIds.add(candidate.id)
+          if (selected.length === 6) break
+        }
+      }
+
+      return { selected, usedIds }
+    }
+
+    const primaryCandidates = onlyWithImages
+      ? sorted.filter((item) => item.hasImage)
+      : sorted
+    const { selected, usedIds } = selectTopSpecies(primaryCandidates)
+
+    if (onlyWithImages && selected.length < 6) {
+      for (const candidate of sorted) {
+        if (usedIds.has(candidate.id)) continue
+        selected.push(candidate)
+        usedIds.add(candidate.id)
+        if (selected.length === 6) break
+      }
+    }
+
+    return selected
+  }, [topSpeciesQuery.data, onlyWithImages])
 
   const iucnSummaryData = useMemo(() => {
     if (!facetsSummary?.iucn?.length) return fallbackIucnSummary
@@ -181,7 +320,7 @@ export const useLensData = (selectedPlace?: Place): LensData => {
     [facetsSummary],
   )
 
-  const classKeys = useMemo(
+  const classKeyList = useMemo(
     () =>
       facetsSummary?.classKey
         ?.map((item) => Number(item.name))
@@ -193,9 +332,9 @@ export const useLensData = (selectedPlace?: Place): LensData => {
   const taxonKeys = useMemo(() => {
     const merged = new Set<number>()
     kingdomKeys.forEach((key) => merged.add(key))
-    classKeys.forEach((key) => merged.add(key))
+    classKeyList.forEach((key) => merged.add(key))
     return Array.from(merged)
-  }, [kingdomKeys, classKeys])
+  }, [kingdomKeys, classKeyList])
 
   const taxonLabelsQuery = useQuery({
     queryKey: ['taxonLabels', taxonKeys],
@@ -243,6 +382,7 @@ export const useLensData = (selectedPlace?: Place): LensData => {
 
   const datasetKeys = useMemo(() => {
     if (!facetsSummary?.datasetKey?.length) return []
+    // Keep attribution short while still crediting key sources.
     return facetsSummary.datasetKey
       .slice(0, 3)
       .map((item) => item.name)
@@ -262,8 +402,16 @@ export const useLensData = (selectedPlace?: Place): LensData => {
     staleTime: 1000 * 60 * 60,
   })
 
-  const datasetTitles =
-    datasetQuery.data?.map((dataset) => dataset.title).filter(Boolean) ?? []
+  const datasetSummaries: DatasetSummary[] =
+    datasetQuery.data
+      ?.map((dataset) => ({
+        key: dataset.key,
+        title: dataset.title,
+        doi: dataset.doi,
+        publisher: dataset.publisher,
+        license: dataset.license,
+      }))
+      .filter((dataset) => dataset.title) ?? []
 
   const maxSeasonality = useMemo(
     () => Math.max(...seasonalityData, 1),
@@ -294,10 +442,9 @@ export const useLensData = (selectedPlace?: Place): LensData => {
     iucnSummaryData,
     kingdomBreakdown,
     classBreakdown,
-    datasetTitles,
+    datasetSummaries,
     totalRecords,
     updatedAt,
-    speciesKeys,
     maxSeasonality,
     maxTrend,
     maxKingdom,

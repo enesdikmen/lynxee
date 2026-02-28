@@ -55,6 +55,22 @@ export const places: Place[] = [
     longitude: 103.8198,
     radiusKm: 35,
   },
+  {
+    id: 'bursa-tr',
+    label: 'Bursa, TR',
+    country: 'Turkey',
+    latitude: 40.1825734,
+    longitude: 29.0675039,
+    radiusKm: 45,
+  },
+  {
+    id: 'alicante-es',
+    label: 'Alicante, ES',
+    country: 'Spain',
+    latitude: 38.3436365,
+    longitude: -0.4881708,
+    radiusKm: 40,
+  },
 ]
 
 export const fallbackTopSpecies: SpeciesCard[] = [
@@ -149,4 +165,12 @@ export const IUCN_LABELS: Record<string, string> = {
   EN: 'Endangered',
   CR: 'Critically endangered',
   DD: 'Data deficient',
+  LEAST_CONCERN: 'Least concern',
+  NEAR_THREATENED: 'Near threatened',
+  VULNERABLE: 'Vulnerable',
+  ENDANGERED: 'Endangered',
+  CRITICALLY_ENDANGERED: 'Critically endangered',
+  DATA_DEFICIENT: 'Data deficient',
+  EXTINCT: 'Extinct',
+  EXTINCT_IN_THE_WILD: 'Extinct in the wild',
 }

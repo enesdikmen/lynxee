@@ -13,6 +13,11 @@ export type SpeciesCard = {
   scientificName: string
   imageUrl: string
   highlight: string
+  taxonLine?: string
+  classGroup?: string
+  popularity?: number
+  isOverallTop?: boolean
+  hasImage?: boolean
 }
 
 export type YearTrendPoint = {
@@ -29,4 +34,12 @@ export type IucnStatus = {
   status: string
   label: string
   count: number
+}
+
+export type DatasetSummary = {
+  key: string
+  title: string
+  doi?: string
+  publisher?: string
+  license?: string
 }
