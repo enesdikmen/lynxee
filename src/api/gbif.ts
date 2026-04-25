@@ -63,6 +63,21 @@ export interface GbifMediaResponse {
 	results: GbifMediaItem[]
 }
 
+export interface GbifVernacularName {
+	vernacularName: string
+	language?: string
+	country?: string
+	source?: string
+	preferred?: boolean
+}
+
+export interface GbifVernacularNameResponse {
+	offset: number
+	limit: number
+	endOfRecords: boolean
+	results: GbifVernacularName[]
+}
+
 export interface GbifDataset {
 	key: string
 	title: string
@@ -86,8 +101,10 @@ export interface OccurrenceFacetRequest extends RequestOptions {
 	facetFields: FacetField[]
 	facetLimit?: number
 	classKey?: number | number[]
+	kingdomKey?: number | number[]
 	mediaType?: string | string[]
 	iucnRedListCategory?: string | string[]
+	month?: number | number[]
 }
 
 export interface SpeciesRequest extends RequestOptions {
@@ -156,8 +173,10 @@ export const fetchOccurrenceFacets = async ({
 	facetFields,
 	facetLimit = 10,
 	classKey,
+	kingdomKey,
 	mediaType,
 	iucnRedListCategory,
+	month,
 	signal,
 }: OccurrenceFacetRequest) => {
 		const bounds = toBounds(latitude, longitude, radiusKm)
@@ -168,8 +187,10 @@ export const fetchOccurrenceFacets = async ({
 		decimalLatitude: `${bounds.minLat},${bounds.maxLat}`,
 		decimalLongitude: `${bounds.minLon},${bounds.maxLon}`,
 		classKey,
+		kingdomKey,
 		mediaType,
 		iucnRedListCategory,
+		month,
 		facet: facetFields,
 		facetLimit,
 	})
@@ -190,6 +211,14 @@ export const fetchSpeciesMedia = async ({
 }: SpeciesMediaRequest) => {
 	const url = buildUrl(`/species/${speciesKey}/media`, { limit, offset })
 	return fetchJson<GbifMediaResponse>(url, { signal })
+}
+
+export const fetchSpeciesVernacularNames = async ({
+	speciesKey,
+	signal,
+}: SpeciesRequest) => {
+	const url = buildUrl(`/species/${speciesKey}/vernacularNames`, { limit: 200 })
+	return fetchJson<GbifVernacularNameResponse>(url, { signal })
 }
 
 export const fetchDatasetMetadata = async ({

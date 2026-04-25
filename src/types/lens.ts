@@ -14,10 +14,7 @@ export type SpeciesCard = {
   imageUrl: string
   highlight: string
   taxonLine?: string
-  classGroup?: string
   popularity?: number
-  isOverallTop?: boolean
-  hasImage?: boolean
 }
 
 export type YearTrendPoint = {
