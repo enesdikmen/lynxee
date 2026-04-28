@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import './App.css'
+import GridSandbox from './pages/GridSandbox'
 import VineDecoration from './components/decorations/VineDecoration'
 import { DoodleSparkle } from './components/decorations/Doodles'
 import SpeciesGallery from './components/SpeciesGallery'
@@ -13,6 +14,7 @@ import { places } from './data/lensFallbacks'
 import { useLensData } from './hooks/useLensData'
 
 function App() {
+  const [page, setPage] = useState<'main' | 'sandbox'>('main')
   const [selectedPlaceId, setSelectedPlaceId] = useState(places[0]?.id ?? '')
   const [onlyWithImages, setOnlyWithImages] = useState(false)
   const selectedPlace = useMemo(
@@ -51,8 +53,20 @@ function App() {
   const handlePlaceChange = (e: ChangeEvent<HTMLSelectElement>) =>
     setSelectedPlaceId(e.target.value)
 
+  if (page === 'sandbox') {
+    return <GridSandbox onBack={() => setPage('main')} />
+  }
+
   return (
     <div className="theme-playful text-ink">
+      <button
+        type="button"
+        onClick={() => setPage('sandbox')}
+        className="lab-btn"
+        title="Open layout packer sandbox"
+      >
+        ⚙ Layout Lab
+      </button>
       <div className="poster-shell">
         <div className="poster-frame">
           <main className="poster-canvas">

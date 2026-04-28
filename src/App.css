@@ -964,3 +964,24 @@
   }
   .vine-decoration { display: none; }
 }
+
+/* ── Layout Lab button (floating) ────────────────────────── */
+.lab-btn {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 50;
+  appearance: none;
+  border: 2px solid rgb(var(--color-ink, 26 20 16));
+  background: #ffd166;
+  color: #1a1410;
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 #1a1410;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.lab-btn:hover  { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 0 #1a1410; }
+.lab-btn:active { transform: translate(1px, 1px);   box-shadow: 1px 1px 0 0 #1a1410; }
