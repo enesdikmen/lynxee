@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Mushroom badge sticker">
+  <!-- Cap -->
+  <path d="M124 258
+       C124 160 190 104 256 104
+       C322 104 388 160 388 258
+       C388 276 374 290 356 290
+       L156 290
+       C138 290 124 276 124 258Z" fill="#E84B4B" stroke="#1B1B1B" stroke-width="18" stroke-linejoin="round"></path>
+
+  <!-- Cap dots -->
+  <g fill="#E84B4B" stroke="#1B1B1B" stroke-width="10">
+    <circle cx="196" cy="196" r="14"></circle>
+    <circle cx="256" cy="170" r="14"></circle>
+    <circle cx="316" cy="198" r="14"></circle>
+    <circle cx="230" cy="232" r="12"></circle>
+    <circle cx="290" cy="234" r="12"></circle>
+  </g>
+
+  <!-- Stem -->
+  <path d="M204 290
+       C196 330 194 368 204 404
+       C212 432 234 448 256 448
+       C278 448 300 432 308 404
+       C318 368 316 330 308 290
+       Z" fill="#F6E8D5" stroke="#1B1B1B" stroke-width="18" stroke-linejoin="round"></path>
+
+  <!-- Stem detail -->
+  <path d="M232 330 C244 346 268 346 280 330" fill="none" stroke="#1B1B1B" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.25"></path>
+
+  <!-- Ground arc (sticker feel) -->
+  <path d="M168 448 C204 420 308 420 344 448" fill="none" stroke="#1B1B1B" stroke-width="14" stroke-linecap="round"></path>
+</svg>
