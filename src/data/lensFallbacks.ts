@@ -1,10 +1,8 @@
 import type {
   BreakdownItem,
   ConservationSnapshot,
-  IucnStatus,
   Place,
   SpeciesCard,
-  YearTrendPoint,
 } from '../types/lens'
 
 export const places: Place[] = [
@@ -123,40 +121,12 @@ export const fallbackSeasonality: number[] = [
   18, 24, 32, 48, 68, 82, 74, 60, 44, 30, 22, 16,
 ]
 
-export const fallbackYearTrend: YearTrendPoint[] = [
-  { year: 2016, count: 4200 },
-  { year: 2017, count: 4600 },
-  { year: 2018, count: 5100 },
-  { year: 2019, count: 5900 },
-  { year: 2020, count: 4700 },
-  { year: 2021, count: 6600 },
-  { year: 2022, count: 7200 },
-  { year: 2023, count: 7800 },
-  { year: 2024, count: 8400 },
-]
-
 export const fallbackKingdomBreakdown: BreakdownItem[] = [
   { label: 'Animalia', count: 14800 },
   { label: 'Plantae', count: 8200 },
   { label: 'Fungi', count: 1600 },
   { label: 'Chromista', count: 420 },
   { label: 'Bacteria', count: 210 },
-]
-
-export const fallbackClassBreakdown: BreakdownItem[] = [
-  { label: 'Aves', count: 6100 },
-  { label: 'Insecta', count: 4400 },
-  { label: 'Mammalia', count: 1300 },
-  { label: 'Magnoliopsida', count: 3200 },
-]
-
-export const fallbackIucnSummary: IucnStatus[] = [
-  { status: 'LC', label: 'Least concern', count: 182 },
-  { status: 'NT', label: 'Near threatened', count: 26 },
-  { status: 'VU', label: 'Vulnerable', count: 18 },
-  { status: 'EN', label: 'Endangered', count: 9 },
-  { status: 'CR', label: 'Critically endangered', count: 4 },
-  { status: 'DD', label: 'Data deficient', count: 31 },
 ]
 
 export const IUCN_LABELS: Record<string, string> = {
@@ -180,32 +150,7 @@ export const fallbackConservationSnapshot: ConservationSnapshot = {
   totalAssessedSpecies: 248,
   threatenedCount: 31,
   threatenedPercent: 12.5,
-  threatenedSpecies: [
-    {
-      speciesKey: 0,
-      commonName: 'European Eel',
-      scientificName: 'Anguilla anguilla',
-      iucnCategory: 'CR',
-      iucnLabel: 'Critically endangered',
-      recordCount: 14,
-    },
-    {
-      speciesKey: 0,
-      commonName: 'Greater Horseshoe Bat',
-      scientificName: 'Rhinolophus ferrumequinum',
-      iucnCategory: 'VU',
-      iucnLabel: 'Vulnerable',
-      recordCount: 8,
-    },
-    {
-      speciesKey: 0,
-      commonName: 'Corn Crake',
-      scientificName: 'Crex crex',
-      iucnCategory: 'EN',
-      iucnLabel: 'Endangered',
-      recordCount: 5,
-    },
-  ],
+  threatenedSpecies: [],
   categoryBreakdown: [
     { status: 'LC', label: 'Least concern', count: 182 },
     { status: 'NT', label: 'Near threatened', count: 26 },

@@ -4,17 +4,19 @@ import {
   fetchDatasetMetadata,
   fetchOccurrenceFacets,
   fetchSpecies,
-  fetchSpeciesMedia,
   fetchSpeciesVernacularNames,
 } from '../api/gbif'
 import {
+  resolveSpeciesImage,
+  type ImageSource,
+  ALL_IMAGE_SOURCES,
+} from '../api/speciesImage'
+import {
   IUCN_LABELS,
-  fallbackClassBreakdown,
   fallbackConservationSnapshot,
   fallbackKingdomBreakdown,
   fallbackSeasonality,
   fallbackTopSpecies,
-  fallbackYearTrend,
 } from '../data/lensFallbacks'
 import type {
   BreakdownItem,
@@ -23,8 +25,16 @@ import type {
   Place,
   SpeciesCard,
   ThreatenedSpecies,
-  YearTrendPoint,
 } from '../types/lens'
+
+/** Build the geo-filter portion of a GBIF facet request from a Place.
+ *  Uses the Nominatim bbox when present, else falls back to lat/lon + radius. */
+const placeGeoParams = (place: Place) => ({
+  latitude: place.latitude,
+  longitude: place.longitude,
+  radiusKm: place.radiusKm,
+  bbox: place.bbox,
+})
 
 export type RecordsBreakdownItem = {
   key: string
@@ -36,49 +46,43 @@ export type RecordsBreakdownItem = {
 
 export type LensData = {
   seasonalityData: number[]
-  yearTrendData: YearTrendPoint[]
   topSpeciesData: SpeciesCard[]
   inSeasonSpecies: SpeciesCard[]
   smallWondersSpecies: SpeciesCard[]
   conservationSnapshot: ConservationSnapshot
   kingdomBreakdown: BreakdownItem[]
-  classBreakdown: BreakdownItem[]
   datasetSummaries: DatasetSummary[]
   totalRecords: number
-  updatedAt: string
   maxSeasonality: number
-  maxTrend: number
   multilingualNames: { language: string; name: string }[]
   recordsBreakdown: RecordsBreakdownItem[]
 }
 
 export type UseLensDataOptions = {
-  onlyWithImages?: boolean
+  /** Active image sources, in fallback priority order. */
+  imageSources?: ImageSource[]
 }
 
 export const useLensData = (
   selectedPlace?: Place,
   options: UseLensDataOptions = {},
 ): LensData => {
-  const onlyWithImages = options.onlyWithImages ?? false
+  const imageSources = options.imageSources ?? ALL_IMAGE_SOURCES
 
   const facetsQuery = useQuery({
-    queryKey: ['occurrenceFacets', selectedPlace?.id, onlyWithImages],
+    queryKey: ['occurrenceFacets', selectedPlace?.id],
     queryFn: ({ signal }) =>
       fetchOccurrenceFacets({
-        latitude: selectedPlace?.latitude ?? 0,
-        longitude: selectedPlace?.longitude ?? 0,
-        radiusKm: selectedPlace?.radiusKm ?? 0,
+        ...(selectedPlace
+          ? placeGeoParams(selectedPlace)
+          : { latitude: 0, longitude: 0, radiusKm: 0 }),
         facetFields: [
           'month',
-          'year',
           'datasetKey',
           'kingdomKey',
-          'classKey',
           'basisOfRecord',
         ],
         facetLimit: 60,
-        mediaType: onlyWithImages ? 'StillImage' : undefined,
         signal,
       }),
     enabled: Boolean(selectedPlace),
@@ -105,10 +109,8 @@ export const useLensData = (
 
     return {
       month: getCounts('month'),
-      year: getCounts('year'),
       datasetKey: getCounts('datasetKey'),
       kingdomKey: getCounts('kingdomKey'),
-      classKey: getCounts('classKey'),
       basisOfRecord: getCounts('basisOfRecord'),
     }
   }, [facetsQuery.data])
@@ -126,19 +128,6 @@ export const useLensData = (
     return Array.from({ length: 12 }, (_, index) =>
       countsByMonth[index + 1] ?? 0,
     )
-  }, [facetsSummary])
-
-  const yearTrendData = useMemo(() => {
-    if (!facetsSummary?.year?.length) return fallbackYearTrend
-    const sorted = facetsSummary.year
-      .map((item) => ({
-        year: Number(item.name),
-        count: item.count,
-      }))
-      .filter((item) => Number.isFinite(item.year))
-      .sort((a, b) => a.year - b.year)
-    // Keep the latest decade to keep the chart legible.
-    return sorted.slice(-10)
   }, [facetsSummary])
 
   // The gallery has 6 fixed slots so an average viewer immediately sees a
@@ -163,7 +152,7 @@ export const useLensData = (
   ]
 
   const topSpeciesQuery = useQuery({
-    queryKey: ['topSpecies', selectedPlace?.id, onlyWithImages],
+    queryKey: ['topSpecies', selectedPlace?.id, imageSources],
     queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
       if (!selectedPlace) return []
 
@@ -176,12 +165,9 @@ export const useLensData = (
 
         for (const filter of candidates) {
           const response = await fetchOccurrenceFacets({
-            latitude: selectedPlace.latitude,
-            longitude: selectedPlace.longitude,
-            radiusKm: selectedPlace.radiusKm,
+            ...placeGeoParams(selectedPlace),
             facetFields: ['speciesKey'],
             facetLimit: 1,
-            mediaType: onlyWithImages ? 'StillImage' : undefined,
             signal,
             ...filter,
           })
@@ -208,17 +194,15 @@ export const useLensData = (
 
       return Promise.all(
         picks.map(async (item) => {
-          const [species, media] = await Promise.all([
-            fetchSpecies({ speciesKey: item.speciesKey, signal }),
-            fetchSpeciesMedia({ speciesKey: item.speciesKey, limit: 1, signal }),
-          ])
-          const mediaItem = media.results.find(
-            (entry) => entry.identifier || entry.references,
-          )
-          const imageUrl =
-            mediaItem?.identifier ??
-            mediaItem?.references ??
-            'https://placehold.co/320x220/f3f4f6/1f2937?text=No+image'
+          const species = await fetchSpecies({ speciesKey: item.speciesKey, signal })
+          const image = await resolveSpeciesImage({
+            speciesKey: item.speciesKey,
+            // canonicalName is the binomial without authorship — required for
+            // exact-match lookups (e.g. iNat) that don't tolerate "(Linnaeus, 1758)".
+            scientificName: species.canonicalName ?? species.scientificName,
+            sources: imageSources,
+            signal,
+          })
 
           return {
             id: String(item.speciesKey),
@@ -227,7 +211,8 @@ export const useLensData = (
               species.canonicalName ??
               species.scientificName,
             scientificName: species.scientificName,
-            imageUrl,
+            imageUrl: image.url,
+            squareImageUrl: image.squareUrl,
             highlight: item.slot.label,
             taxonLine: [species.kingdom, species.phylum, species.class]
               .filter(Boolean)
@@ -254,17 +239,13 @@ export const useLensData = (
   ): Promise<SpeciesCard[]> => {
     return Promise.all(
       picks.map(async (item) => {
-        const [species, media] = await Promise.all([
-          fetchSpecies({ speciesKey: item.speciesKey, signal }),
-          fetchSpeciesMedia({ speciesKey: item.speciesKey, limit: 1, signal }),
-        ])
-        const mediaItem = media.results.find(
-          (entry) => entry.identifier || entry.references,
-        )
-        const imageUrl =
-          mediaItem?.identifier ??
-          mediaItem?.references ??
-          'https://placehold.co/320x220/f3f4f6/1f2937?text=No+image'
+        const species = await fetchSpecies({ speciesKey: item.speciesKey, signal })
+        const image = await resolveSpeciesImage({
+          speciesKey: item.speciesKey,
+          scientificName: species.canonicalName ?? species.scientificName,
+          sources: imageSources,
+          signal,
+        })
         return {
           id: String(item.speciesKey),
           commonName:
@@ -272,7 +253,8 @@ export const useLensData = (
             species.canonicalName ??
             species.scientificName,
           scientificName: species.scientificName,
-          imageUrl,
+          imageUrl: image.url,
+          squareImageUrl: image.squareUrl,
           highlight: item.highlight,
           taxonLine: [species.kingdom, species.phylum, species.class]
             .filter(Boolean)
@@ -288,13 +270,11 @@ export const useLensData = (
   const currentMonth = new Date().getMonth() + 1
 
   const inSeasonQuery = useQuery({
-    queryKey: ['lensInSeason', selectedPlace?.id, currentMonth],
+    queryKey: ['lensInSeason', selectedPlace?.id, currentMonth, imageSources],
     queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
       if (!selectedPlace) return []
       const response = await fetchOccurrenceFacets({
-        latitude: selectedPlace.latitude,
-        longitude: selectedPlace.longitude,
-        radiusKm: selectedPlace.radiusKm,
+        ...placeGeoParams(selectedPlace),
         facetFields: ['speciesKey'],
         facetLimit: 5,
         month: currentMonth,
@@ -319,16 +299,13 @@ export const useLensData = (
   // and fungi (kingdomKey=5), merged by raw record count so a fungi-poor
   // city naturally shows more insects.
   const smallWondersQuery = useQuery({
-    queryKey: ['lensSmallWonders', selectedPlace?.id, onlyWithImages],
+    queryKey: ['lensSmallWonders', selectedPlace?.id, imageSources],
     queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
       if (!selectedPlace) return []
       const baseReq = {
-        latitude: selectedPlace.latitude,
-        longitude: selectedPlace.longitude,
-        radiusKm: selectedPlace.radiusKm,
+        ...placeGeoParams(selectedPlace),
         facetFields: ['speciesKey'] as const,
         facetLimit: 5,
-        mediaType: onlyWithImages ? 'StillImage' : undefined,
         signal,
       }
       const [insects, fungi] = await Promise.all([
@@ -377,7 +354,7 @@ export const useLensData = (
 
   // For each IUCN category, get the number of distinct species (not records).
   const speciesCountsQuery = useQuery({
-    queryKey: ['iucnSpeciesCounts', selectedPlace?.id, onlyWithImages],
+    queryKey: ['iucnSpeciesCounts', selectedPlace?.id],
     queryFn: async ({ signal }) => {
       if (!selectedPlace) return []
       const results = await Promise.all(
@@ -385,13 +362,10 @@ export const useLensData = (
           // Get species count per IUCN category by faceting on speciesKey.
           // A high facetLimit gives us the number of distinct species entries.
           const response = await fetchOccurrenceFacets({
-            latitude: selectedPlace.latitude,
-            longitude: selectedPlace.longitude,
-            radiusKm: selectedPlace.radiusKm,
+            ...placeGeoParams(selectedPlace),
             facetFields: ['speciesKey'],
             facetLimit: 500,
             iucnRedListCategory: cat,
-            mediaType: onlyWithImages ? 'StillImage' : undefined,
             signal,
           })
           const speciesCount = response.facets?.[0]?.counts?.length ?? 0
@@ -408,81 +382,61 @@ export const useLensData = (
     staleTime: 1000 * 60 * 10,
   })
 
-  // Get top threatened species (names + photos) — up to 5 across CR/EN/VU.
+  // Top threatened species (CR/EN/VU) — names + photos for the at-risk card.
   const threatenedSpeciesQuery = useQuery({
-    queryKey: ['threatenedSpecies', selectedPlace?.id, onlyWithImages],
-    queryFn: async ({ signal }) => {
+    queryKey: ['threatenedSpecies', selectedPlace?.id, imageSources],
+    queryFn: async ({ signal }): Promise<ThreatenedSpecies[]> => {
       if (!selectedPlace) return []
-
-      // Gather top speciesKeys per threatened category.
       const perCat = await Promise.all(
         THREATENED_CATS.map(async (cat) => {
           const response = await fetchOccurrenceFacets({
-            latitude: selectedPlace.latitude,
-            longitude: selectedPlace.longitude,
-            radiusKm: selectedPlace.radiusKm,
+            ...placeGeoParams(selectedPlace),
             facetFields: ['speciesKey'],
             facetLimit: 3,
             iucnRedListCategory: cat,
-            mediaType: onlyWithImages ? 'StillImage' : undefined,
+            mediaType: 'StillImage', // need a photo
             signal,
           })
           return (response.facets?.[0]?.counts ?? []).map((c) => ({
             speciesKey: Number(c.name),
-            recordCount: c.count,
-            shortCategory: cat,
+            count: c.count,
+            cat,
           }))
         }),
       )
-
-      const all = perCat.flat().filter((s) => Number.isFinite(s.speciesKey))
-
-      // Dedupe & keep top 5 by severity (CR first) then record count.
-      const severityOrder: Record<string, number> = { CR: 0, EN: 1, VU: 2 }
-      all.sort(
-        (a, b) =>
-          (severityOrder[a.shortCategory] ?? 9) -
-            (severityOrder[b.shortCategory] ?? 9) ||
-          b.recordCount - a.recordCount,
-      )
-      const unique = new Map<number, (typeof all)[0]>()
+      const severity: Record<string, number> = { CR: 0, EN: 1, VU: 2 }
+      const all = perCat
+        .flat()
+        .filter((s) => Number.isFinite(s.speciesKey))
+        .sort(
+          (a, b) =>
+            (severity[a.cat] ?? 9) - (severity[b.cat] ?? 9) ||
+            b.count - a.count,
+        )
+      const seen = new Set<number>()
+      const picks: typeof all = []
       for (const item of all) {
-        if (!unique.has(item.speciesKey)) unique.set(item.speciesKey, item)
-        if (unique.size >= 5) break
+        if (seen.has(item.speciesKey)) continue
+        seen.add(item.speciesKey)
+        picks.push(item)
+        if (picks.length >= 3) break
       }
-
-      // Resolve names + photos.
-      const resolved: ThreatenedSpecies[] = await Promise.all(
-        Array.from(unique.values()).map(async (item) => {
-          const species = await fetchSpecies({
-            speciesKey: item.speciesKey,
-            signal,
-          })
-          const media = await fetchSpeciesMedia({
-            speciesKey: item.speciesKey,
-            limit: 1,
-            signal,
-          })
-          const mediaUrl =
-            media.results.find((m) => m.identifier)?.identifier ?? undefined
-          return {
-            speciesKey: item.speciesKey,
-            commonName:
-              species.vernacularName ??
-              species.canonicalName ??
-              species.scientificName,
-            scientificName: species.scientificName,
-            imageUrl: mediaUrl,
-            iucnCategory: item.shortCategory,
-            iucnLabel: IUCN_LABELS[item.shortCategory] ?? item.shortCategory,
-            recordCount: item.recordCount,
-          }
-        }),
+      const cards = await resolveSpeciesCards(
+        picks.map((p) => ({
+          speciesKey: p.speciesKey,
+          count: p.count,
+          highlight: IUCN_LABELS[p.cat] ?? p.cat,
+        })),
+        signal,
       )
-      return resolved
+      return cards.map((card, i) => ({
+        ...card,
+        iucnCategory: picks[i].cat,
+        iucnLabel: IUCN_LABELS[picks[i].cat] ?? picks[i].cat,
+      }))
     },
     enabled: Boolean(selectedPlace),
-    staleTime: 1000 * 60 * 20,
+    staleTime: 1000 * 60 * 30,
   })
 
   const conservationSnapshot = useMemo<ConservationSnapshot>(() => {
@@ -512,8 +466,8 @@ export const useLensData = (
       totalAssessedSpecies,
       threatenedCount,
       threatenedPercent,
-      threatenedSpecies: threatenedSpeciesQuery.data ?? [],
       categoryBreakdown,
+      threatenedSpecies: threatenedSpeciesQuery.data ?? [],
     }
   }, [speciesCountsQuery.data, threatenedSpeciesQuery.data])
 
@@ -580,27 +534,11 @@ export const useLensData = (
     [facetsSummary],
   )
 
-  const classKeyList = useMemo(
-    () =>
-      facetsSummary?.classKey
-        ?.map((item) => Number(item.name))
-        .filter((value) => Number.isFinite(value))
-        .slice(0, 5) ?? [],
-    [facetsSummary],
-  )
-
-  const taxonKeys = useMemo(() => {
-    const merged = new Set<number>()
-    kingdomKeys.forEach((key) => merged.add(key))
-    classKeyList.forEach((key) => merged.add(key))
-    return Array.from(merged)
-  }, [kingdomKeys, classKeyList])
-
   const taxonLabelsQuery = useQuery({
-    queryKey: ['taxonLabels', taxonKeys],
+    queryKey: ['taxonLabels', kingdomKeys],
     queryFn: async ({ signal }) => {
       const entries = await Promise.all(
-        taxonKeys.map(async (key) => {
+        kingdomKeys.map(async (key) => {
           const species = await fetchSpecies({ speciesKey: key, signal })
           return [
             key,
@@ -610,26 +548,13 @@ export const useLensData = (
       )
       return Object.fromEntries(entries)
     },
-    enabled: taxonKeys.length > 0,
+    enabled: kingdomKeys.length > 0,
     staleTime: 1000 * 60 * 60,
   })
 
   const kingdomBreakdown = useMemo(() => {
     if (!facetsSummary?.kingdomKey?.length) return fallbackKingdomBreakdown
     return facetsSummary.kingdomKey
-      .slice(0, 5)
-      .map((item) => {
-        const key = Number(item.name)
-        return {
-          label: taxonLabelsQuery.data?.[key] ?? `Key ${item.name}`,
-          count: item.count,
-        }
-      })
-  }, [facetsSummary, taxonLabelsQuery.data])
-
-  const classBreakdown = useMemo(() => {
-    if (!facetsSummary?.classKey?.length) return fallbackClassBreakdown
-    return facetsSummary.classKey
       .slice(0, 5)
       .map((item) => {
         const key = Number(item.name)
@@ -677,15 +602,8 @@ export const useLensData = (
     () => Math.max(...seasonalityData, 1),
     [seasonalityData],
   )
-  const maxTrend = useMemo(
-    () => Math.max(...yearTrendData.map((item) => item.count), 1),
-    [yearTrendData],
-  )
 
   const totalRecords = facetsQuery.data?.count ?? 0
-  const updatedAt = facetsQuery.dataUpdatedAt
-    ? new Date(facetsQuery.dataUpdatedAt).toLocaleTimeString()
-    : '—'
 
   // ── How we know this — basisOfRecord breakdown ──
   // Maps GBIF's enum into plain-language buckets so a viewer instantly grasps
@@ -745,18 +663,14 @@ export const useLensData = (
 
   return {
     seasonalityData,
-    yearTrendData,
     topSpeciesData,
     inSeasonSpecies,
     smallWondersSpecies,
     conservationSnapshot,
     kingdomBreakdown,
-    classBreakdown,
     datasetSummaries,
     totalRecords,
-    updatedAt,
     maxSeasonality,
-    maxTrend,
     multilingualNames,
     recordsBreakdown,
   }

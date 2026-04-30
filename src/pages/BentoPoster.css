@@ -1,0 +1,681 @@
+/* ═══════════════════════════════════════════════════════
+   BentoPoster — bento-style biodiversity poster
+   Discrete cards, dense CSS grid, neo-brutalist tiles.
+   ═══════════════════════════════════════════════════════ */
+
+.bento-shell {
+  min-height: 100vh;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.18) 0%, transparent 60%),
+    #d9cfc2;
+  position: relative;
+}
+
+.bento-toolbar {
+  position: fixed;
+  top: 0.8rem;
+  right: 0.8rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bento-toolbar__select {
+  appearance: none;
+  border: 2px solid rgb(var(--color-ink));
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23000' stroke-width='1.5' d='M1 1l4 4 4-4'/></svg>") no-repeat right 0.6rem center;
+  padding: 0.4rem 1.8rem 0.4rem 0.7rem;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 rgb(var(--color-ink));
+}
+.bento-toolbar__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border: 2px solid rgb(var(--color-ink));
+  background: #fff;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 rgb(var(--color-ink));
+}
+.bento-toolbar__check input { margin: 0; cursor: pointer; }
+.bento-toolbar__sources {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.bento-toolbar__sources-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 0.1rem;
+}
+.bento-toolbar__btn {
+  appearance: none;
+  border: 2px solid rgb(var(--color-ink));
+  background: #fff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 0 rgb(var(--color-ink));
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.bento-toolbar__btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 0 rgb(var(--color-ink)); }
+.bento-toolbar__btn:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 0 rgb(var(--color-ink)); }
+.bento-toolbar__btn--primary { background: rgb(var(--color-gold)); }
+
+/* ── Grid ─────────────────────────────────────────────── */
+/* Columns + rows + aspect-ratio are set inline so the packer drives layout
+   AND every cell stays a true square (so 1×1 looks square, 2×1 truly 2:1). */
+.bento-grid {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  gap: clamp(0.5rem, 1vw, 0.85rem);
+}
+@media (max-width: 700px) {
+  /* On phones, drop the strict aspect ratio — let cards grow as tall as
+     content needs. Cells are no longer square but the layout still works. */
+  .bento-grid { aspect-ratio: auto !important; grid-auto-rows: minmax(110px, auto); }
+}
+
+/* ── Card base ────────────────────────────────────────── */
+.bento-card {
+  position: relative;
+  border: 2.5px solid rgb(var(--color-ink));
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  box-shadow: 4px 4px 0 0 rgb(var(--color-ink));
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  background: rgb(var(--color-paper));
+}
+
+/* accent palette */
+.accent-paper  { background: #fff8ec; }
+.accent-gold   { background: rgb(var(--color-gold) / 0.85); color: rgb(var(--color-ink)); }
+.accent-forest { background: rgb(var(--color-forest) / 0.18); }
+.accent-accent { background: rgb(var(--color-accent) / 0.85); color: #fff; }
+.accent-accent .bento-card__kicker,
+.accent-accent .bento-card__sub { color: #fff; opacity: 0.85; }
+.accent-ink    { background: rgb(var(--color-ink)); color: #fff; }
+.accent-ink .bento-card__kicker,
+.accent-ink .bento-card__sub { color: #fff; opacity: 0.7; }
+
+/* Invisible padding tiles — keep the rectangle tight with no holes. */
+.bento-card--filler {
+  background: repeating-linear-gradient(
+    45deg,
+    #f3eee5 0 10px,
+    #ece6da 10px 20px
+  );
+  border-color: rgb(var(--color-ink) / 0.6);
+  border-style: dashed;
+  box-shadow: none;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ── Card type ────────────────────────────────────────── */
+.bento-card__kicker {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--color-ink-soft));
+}
+.bento-card__sub {
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: rgb(var(--color-ink-soft));
+  margin: 0;
+}
+.bento-prose {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  margin: 0;
+  font-weight: 600;
+  color: #fff;
+}
+.bento-bignum {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-top: 0.2rem;
+}
+.bento-bignum--sm {
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+}
+
+/* ── Combined stats card (sightings + at-risk + kingdom caption) ────── */
+.bento-card--stats { padding: 0; }
+.bento-stats {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+.bento-stats__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  min-width: 0;
+}
+.bento-stats__divider {
+  width: 2px;
+  align-self: stretch;
+  background: rgba(255,255,255,0.18);
+}
+.bento-stats__danger { color: rgb(var(--color-accent)); }
+.bento-stats__caption {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.45rem 0.85rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+.bento-stats__caption-kicker {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-right: 0.5rem;
+}
+
+/* ── Title card ───────────────────────────────────────── */
+.bento-card--title { gap: 0.2rem; padding: 1rem 1.1rem; }
+.bento-kicker {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgb(var(--color-paper));
+  background: rgb(var(--color-ink));
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  align-self: flex-start;
+  margin-bottom: 0.2rem;
+}
+.bento-title { margin: 0; line-height: 0.9; }
+.bento-title__place {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  line-height: 0.9;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: rgb(var(--color-ink));
+}
+.bento-title__sub {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(0.7rem, 1.4vw, 1rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--color-ink-soft));
+  margin-top: 0.3rem;
+}
+
+/* ── Place picker ─────────────────────────────────────── */
+.bento-select {
+  appearance: none;
+  border: 2px solid rgb(var(--color-ink));
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.bento-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgb(var(--color-ink));
+  margin-top: 0.2rem;
+}
+
+/* ── Hero species ─────────────────────────────────────── */
+.bento-card--hero {
+  padding: 0;
+  flex-direction: column;
+  gap: 0;
+}
+.bento-hero__img {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  object-fit: cover;
+  /* Wildlife photos almost always frame the subject's head in the upper
+     third — biasing the crop up keeps faces from being sliced off. */
+  object-position: 50% 30%;
+  background: #f3eee5;
+}
+.bento-hero__body {
+  padding: 0.7rem 0.9rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-top: 2.5px solid rgb(var(--color-ink));
+  background: #fff8ec;
+}
+.bento-hero__name {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1;
+  margin: 0.1rem 0 0;
+  color: rgb(var(--color-ink));
+}
+.bento-hero__sci {
+  font-style: italic;
+  font-size: 0.85rem;
+  color: rgb(var(--color-ink-soft));
+  margin: 0;
+}
+.bento-hero__taxon {
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgb(var(--color-ink-soft));
+}
+.bento-hero__count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--color-ink));
+  margin-top: 0.15rem;
+}
+.bento-hero__langs-kicker {
+  margin-top: 0.5rem;
+}
+
+/* ── Multilingual names list ──────────────────────────── */
+.bento-langs {
+  list-style: none;
+  padding: 0;
+  margin: 0.2rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.3rem 0.6rem;
+}
+.bento-langs__row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  min-width: 0;
+}
+.bento-langs__code {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  background: rgb(var(--color-ink));
+  color: #fff;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.bento-langs__name {
+  font-weight: 600;
+  color: rgb(var(--color-ink));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Mini species card (1×1) ──────────────────────────── */
+.bento-card--mini {
+  padding: 0;
+  gap: 0;
+}
+.bento-mini__img {
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 60px;
+  object-fit: cover;
+  object-position: 50% 30%;
+  background: #f3eee5;
+}
+.bento-card--mini > .bento-mini__name,
+.bento-card--mini > .bento-mini__sci,
+.bento-card--mini > .bento-mini__count,
+.bento-card--mini > .bento-mini__status {
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+}
+.bento-mini__name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  line-height: 1.15;
+  color: rgb(var(--color-ink));
+  margin-top: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bento-mini__sci {
+  display: block;
+  font-style: italic;
+  font-size: 0.65rem;
+  line-height: 1.2;
+  color: rgb(var(--color-ink-soft));
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bento-mini__count,
+.bento-mini__status {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
+  margin-bottom: 0.45rem;
+  flex-shrink: 0;
+}
+.bento-mini__count { color: rgb(var(--color-ink)); }
+
+/* At-risk mini variant: red border accent + IUCN badge over the photo. */
+.bento-card--at-risk { position: relative; }
+.bento-card--at-risk .bento-mini__img {
+  border-bottom: 3px solid rgb(var(--color-accent));
+}
+.bento-mini__badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  background: rgb(var(--color-accent));
+  color: #fff;
+  border: 1.5px solid rgb(var(--color-ink));
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  z-index: 1;
+}
+
+/* ── Strip (in-season / small wonders thumbnails) ─────── */
+.bento-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  flex: 1 1 auto;
+}
+.bento-strip__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+.bento-strip__item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: 50% 30%;
+  border-radius: 8px;
+  border: 2px solid rgb(var(--color-ink));
+  background: #fff;
+}
+.bento-strip__name {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+  line-height: 1.1;
+  color: rgb(var(--color-ink));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.bento-strip__item { position: relative; }
+.bento-strip__badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  background: rgb(var(--color-accent));
+  color: #fff;
+  border: 1.5px solid rgb(var(--color-ink));
+  border-radius: 6px;
+  padding: 0.05rem 0.3rem;
+  line-height: 1.1;
+}
+.bento-card__kicker--danger {
+  background: rgb(var(--color-accent));
+  color: #fff;
+  margin-top: 0.5rem;
+}
+
+/* ── Seasonality dots ─────────────────────────────────── */
+.bento-season {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: end;
+  gap: 0.2rem;
+  margin-top: 0.4rem;
+  flex: 1 1 auto;
+}
+.bento-season__col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 56px;
+  justify-content: flex-end;
+}
+.bento-season__bubble {
+  background: rgb(var(--color-ink));
+  border-radius: 50%;
+  flex-shrink: 0;
+  min-width: 8px;
+  min-height: 8px;
+}
+.bento-season__label {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: rgb(var(--color-ink-soft));
+}
+
+/* ── Conservation buckets (compact header + photo strip) ─ */
+.bento-card--iucn { gap: 0.25rem; }
+.bento-iucn__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.bento-iucn__buckets {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.bento-iucn__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+  line-height: 1;
+  color: rgb(var(--color-ink));
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem 0.18rem 0.35rem;
+}
+.bento-iucn__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(var(--color-ink));
+  flex-shrink: 0;
+}
+.bento-iucn__count {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.bento-iucn__label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.bento-iucn__risk-kicker {
+  margin-top: 0.25rem;
+}
+.bento-iucn__strip {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0.25rem;
+  align-items: stretch;
+  /* Reserve vertical room for the name + badge under each image so the
+     third species name doesn't get clipped when card height is tight. */
+}
+.bento-iucn__strip .bento-strip__item {
+  min-height: 0;
+  justify-content: flex-start;
+  /* Pad the top so the absolute-positioned IUCN badge never overlaps the
+     name even if the image cell shrinks on tight rows. */
+  padding-top: 0;
+}
+.bento-iucn__strip .bento-strip__item img {
+  flex: 1 1 0;
+  min-height: 50px;
+  aspect-ratio: auto;
+  height: auto;
+}
+.bento-iucn__strip .bento-strip__name {
+  flex-shrink: 0;
+  margin-top: 0.3rem;
+}
+.bento-bucket {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0.05rem 0.4rem;
+  min-width: 0;
+}
+.bento-bucket__dot {
+  grid-row: 1 / span 2;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--color-ink));
+  flex-shrink: 0;
+}
+.bento-bucket__count {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: rgb(var(--color-ink));
+  line-height: 1;
+}
+.bento-bucket__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgb(var(--color-ink));
+}
+.bento-bucket__hint {
+  grid-column: 2 / span 2;
+  font-size: 0.6rem;
+  color: rgb(var(--color-ink-soft));
+  line-height: 1.2;
+}
+
+/* ── How-we-know rows ─────────────────────────────────── */
+.bento-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.bento-card--how .bento-rows {
+  margin-top: 0.3rem;
+  gap: 0.3rem;
+}
+.bento-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.bento-row__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.bento-row__pct {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: #fff;
+  min-width: 2.4rem;
+}
+.bento-row__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+}
+.bento-row__hint {
+  font-size: 0.62rem;
+  color: rgba(255,255,255,0.7);
+  margin-left: 2.9rem;
+}
+.bento-row__bar {
+  height: 5px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-left: 2.9rem;
+}
+.bento-row__bar-fill {
+  height: 100%;
+  background: rgb(var(--color-gold));
+  border-radius: inherit;
+}
+.bento-row--rest {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.5rem;
+  opacity: 0.7;
+}
+
+/* ── Datasets footer ──────────────────────────────────── */
+.bento-datasets {
+  font-size: 0.7rem;
+  color: rgb(var(--color-ink));
+  margin: 0.2rem 0 0;
+  line-height: 1.4;
+}

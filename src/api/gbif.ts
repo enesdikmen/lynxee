@@ -98,6 +98,8 @@ export interface OccurrenceFacetRequest extends RequestOptions {
 	latitude: number
 	longitude: number
 	radiusKm?: number
+	/** Real bounding box (preferred over radiusKm when set). */
+	bbox?: { minLat: number; maxLat: number; minLon: number; maxLon: number }
 	facetFields: FacetField[]
 	facetLimit?: number
 	classKey?: number | number[]
@@ -170,6 +172,7 @@ export const fetchOccurrenceFacets = async ({
 	latitude,
 	longitude,
 	radiusKm = 35,
+	bbox,
 	facetFields,
 	facetLimit = 10,
 	classKey,
@@ -179,13 +182,15 @@ export const fetchOccurrenceFacets = async ({
 	month,
 	signal,
 }: OccurrenceFacetRequest) => {
-		const bounds = toBounds(latitude, longitude, radiusKm)
+	// Geometry: prefer the real bbox from Nominatim, else fall back to a
+	// bbox derived from radiusKm.
+	const b = bbox ?? toBounds(latitude, longitude, radiusKm)
 
 	const url = buildUrl('/occurrence/search', {
 		limit: 0,
-			// Using facets with limit=0 keeps payloads small while still returning summary counts.
-		decimalLatitude: `${bounds.minLat},${bounds.maxLat}`,
-		decimalLongitude: `${bounds.minLon},${bounds.maxLon}`,
+		// Using facets with limit=0 keeps payloads small while still returning summary counts.
+		decimalLatitude: `${b.minLat},${b.maxLat}`,
+		decimalLongitude: `${b.minLon},${b.maxLon}`,
 		classKey,
 		kingdomKey,
 		mediaType,
