@@ -40,12 +40,14 @@ function BentoPoster({
   const [seed, setSeed] = useState(1)
 
   const placeName = selectedPlace?.label?.split(',')[0]?.trim() ?? 'Pick a place'
+  const latitude = selectedPlace?.latitude
+  const longitude = selectedPlace?.longitude
 
   const data = useLensData(selectedPlace, { imageSources })
 
   const tiles = useMemo(
-    () => padToRectangle(buildBentoTiles({ placeName, data }), GRID_W),
-    [placeName, data],
+    () => padToRectangle(buildBentoTiles({ placeName, latitude, longitude, data }), GRID_W),
+    [placeName, latitude, longitude, data],
   )
 
   // Pack the tiles. The total area is a multiple of GRID_W thanks to the

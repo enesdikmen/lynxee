@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react'
 import type { useLensData } from '../hooks/useLensData'
 import type { Anchor } from '../lib/gridPacker'
+import Globe from '../components/Globe'
 
 /** Corner the tile should be hard-pinned to. Resolved against the current
  *  grid size in {@link BentoPoster} so `bottom-right` follows the height. */
@@ -79,11 +80,17 @@ type LensData = ReturnType<typeof useLensData>
 
 export interface BuildTilesArgs {
   placeName: string
+  /** Latitude of the selected place (degrees). Used by the title-tile globe. */
+  latitude?: number
+  /** Longitude of the selected place (degrees). Used by the title-tile globe. */
+  longitude?: number
   data: LensData
 }
 
 export function buildBentoTiles({
   placeName,
+  latitude,
+  longitude,
   data,
 }: BuildTilesArgs): Tile[] {
   const {
@@ -117,13 +124,21 @@ export function buildBentoTiles({
 
   tiles.push(
     makeTile('title', 'title', () => (
-      <>
-        <span className="bento-kicker">Lynxee Lens</span>
-        <h1 className="bento-title">
-          <span className="bento-title__place">{placeName}</span>
-          <span className="bento-title__sub">Biodiversity Portrait</span>
-        </h1>
-      </>
+      <div className="bento-title__layout">
+        {typeof latitude === 'number' && typeof longitude === 'number' && (
+          <Globe
+            className="bento-title__globe"
+            lat={latitude}
+            lon={longitude}
+          />
+        )}
+        <div className="bento-title__text">
+          <h1 className="bento-title">
+            <span className="bento-title__place">{placeName}</span>
+            <span className="bento-title__sub">Biodiversity Portrait</span>
+          </h1>
+        </div>
+      </div>
     )),
   )
 
