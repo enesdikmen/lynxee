@@ -1,15 +1,16 @@
 /**
  * speciesImage — resolve a representative image for a GBIF species using
- * a configurable chain of sources. Each source can be enabled/disabled
- * independently from the UI; the resolver tries enabled sources in the
- * order they appear in `sources` and returns the first hit.
+ * a configurable chain of sources. The resolver tries `sources` in order
+ * and returns the first hit (or null).
  *
  * Sources:
  *   - 'wikidata'   : SPARQL P846 (GBIF taxon key) → P18 → Commons thumb.
  *   - 'inaturalist': iNat taxa search → default_photo.medium_url.
  *   - 'gbif'       : /species/{key}/media (first item with url).
  *
- * Results are cached in-memory by speciesKey for the session.
+ * Cache shape: one Promise per (speciesKey, source) pair, kept for the
+ * session. Each fetch runs to completion exactly once; the resolved value
+ * (image or null) is the cached outcome — see the resolver section below.
  */
 import { fetchSpeciesMedia } from './gbif'
 
@@ -32,23 +33,11 @@ export interface SpeciesImage {
   url: string
   /** Pre-cropped 1:1 thumbnail; falls back to `url` if absent. */
   squareUrl?: string
-  source: ImageSource | 'placeholder'
+  source: ImageSource
   author?: string
   license?: string
   licenseUrl?: string
   sourceUrl?: string
-}
-
-const PLACEHOLDER: SpeciesImage = {
-  url: 'https://placehold.co/320x220/f3f4f6/1f2937?text=No+image',
-  source: 'placeholder',
-}
-
-interface ResolveArgs {
-  speciesKey: number
-  scientificName?: string
-  sources: ImageSource[]
-  signal?: AbortSignal
 }
 
 /** Fetch JSON, swallowing network/parse errors as null so callers can fall through. */
@@ -177,13 +166,13 @@ const tryInat = async (
   const photo = data?.results?.find(
     (r) => r.name?.trim().toLowerCase() === target,
   )?.default_photo
+  // Prefer medium-size assets — `square_url` is often too small and looks
+  // blurry when cards render larger. The strip falls back to `url` via
+  // `squareImageUrl ?? imageUrl` in the consumer, so we don't set squareUrl.
   const url = photo?.medium_url || photo?.url || photo?.square_url
   if (!url) return null
   return {
     url,
-    // Prefer medium-size assets for strip thumbnails too; `square_url` is
-    // often too small and looks blurry when cards render larger.
-    squareUrl: photo?.medium_url || photo?.url || photo?.square_url,
     source: 'inaturalist',
     author: photo?.attribution,
     license: photo?.license_code || undefined,
@@ -213,152 +202,71 @@ const tryGbif = async (
 }
 
 // ── Resolver ──────────────────────────────────────────────────────
+//
+// Design: cache one Promise per (speciesKey, source) pair, forever.
+// • The promise itself dedupes concurrent callers.
+// • The resolved value (image or null) is the cached outcome — so a source
+//   that returned no image is never retried, and a successful hit is reused
+//   instantly when sources are toggled or reordered.
+// • We deliberately do NOT accept an external AbortSignal. React Query
+//   cancels the parent query on every key change (e.g. toggling a source);
+//   if we propagated that, in-flight fetches would be aborted mid-walk and
+//   the next render would have nothing cached. By owning the lifetime of
+//   each fetch we guarantee every (species, source) pair resolves exactly
+//   once and the result sticks around.
 
-const RESOLVERS: Record<
+const FETCHERS: Record<
   ImageSource,
-  (args: ResolveArgs) => Promise<SpeciesImage | null>
+  (args: { speciesKey: number; scientificName?: string; signal: AbortSignal }) =>
+    Promise<SpeciesImage | null>
 > = {
   wikidata: ({ speciesKey, signal }) => tryWikidata(speciesKey, signal),
   inaturalist: ({ scientificName, signal }) => tryInat(scientificName, signal),
   gbif: ({ speciesKey, signal }) => tryGbif(speciesKey, signal),
 }
 
-// Per-source budget. Exceeding it aborts that source and falls through to
-// the next. Wikidata gets the tightest budget because WDQS is the most
-// common offender; Commons + EntityData are fine but the SPARQL hop is not.
-const TIMEOUT_MS: Record<ImageSource, number> = {
-  wikidata: 4000,
-  inaturalist: 5000,
-  gbif: 5000,
-}
+const FETCH_TIMEOUT_MS = 8000
 
-// When a source returns 429/503/504 or times out, skip it for this long.
-const COOLDOWN_MS = 60_000
-const cooldownUntil: Record<ImageSource, number> = {
-  wikidata: 0,
-  inaturalist: 0,
-  gbif: 0,
-}
+const cache = new Map<number, Map<ImageSource, Promise<SpeciesImage | null>>>()
 
-// Cap concurrent fetches per source to avoid stampedes when many tiles
-// render simultaneously.
-const MAX_CONCURRENT = 3
-const inflightCount: Record<ImageSource, number> = {
-  wikidata: 0,
-  inaturalist: 0,
-  gbif: 0,
-}
-const waiters: Record<ImageSource, Array<() => void>> = {
-  wikidata: [],
-  inaturalist: [],
-  gbif: [],
-}
-const acquire = (source: ImageSource): Promise<void> => {
-  if (inflightCount[source] < MAX_CONCURRENT) {
-    inflightCount[source]++
-    return Promise.resolve()
-  }
-  return new Promise((resolve) => {
-    waiters[source].push(() => {
-      inflightCount[source]++
-      resolve()
-    })
-  })
-}
-const release = (source: ImageSource) => {
-  inflightCount[source]--
-  const next = waiters[source].shift()
-  if (next) next()
-}
-
-// One record per speciesKey holds every successfully-resolved source plus
-// any in-flight promises. Toggling source preferences just re-reads from
-// here; nothing is invalidated.
-interface SpeciesImageRecord {
-  results: Partial<Record<ImageSource, SpeciesImage>>
-  inflight: Partial<Record<ImageSource, Promise<SpeciesImage | null>>>
-}
-const cache = new Map<number, SpeciesImageRecord>()
-
-const getRecord = (speciesKey: number): SpeciesImageRecord => {
-  let rec = cache.get(speciesKey)
-  if (!rec) {
-    rec = { results: {}, inflight: {} }
-    cache.set(speciesKey, rec)
-  }
-  return rec
-}
-
-/** Run a source resolver with timeout, concurrency limit, and cooldown. */
-const runSource = (
+const fetchOne = (
   source: ImageSource,
-  args: ResolveArgs,
+  speciesKey: number,
+  scientificName: string | undefined,
 ): Promise<SpeciesImage | null> => {
-  const controller = new AbortController()
-  const parent = args.signal
-  if (parent) {
-    if (parent.aborted) controller.abort()
-    else parent.addEventListener('abort', () => controller.abort())
+  let bySource = cache.get(speciesKey)
+  if (!bySource) {
+    bySource = new Map()
+    cache.set(speciesKey, bySource)
   }
-  const timer = setTimeout(() => {
-    cooldownUntil[source] = Date.now() + COOLDOWN_MS
-    controller.abort()
-  }, TIMEOUT_MS[source])
+  const existing = bySource.get(source)
+  if (existing) return existing
 
-  return acquire(source)
-    .then(() => RESOLVERS[source]({ ...args, signal: controller.signal }))
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS)
+  const promise = FETCHERS[source]({ speciesKey, scientificName, signal: ctl.signal })
     .catch(() => null)
-    .finally(() => {
-      clearTimeout(timer)
-      release(source)
-    })
+    .finally(() => clearTimeout(timer))
+
+  bySource.set(source, promise)
+  return promise
 }
 
-/**
- * Resolve a species image. Cache is keyed by `speciesKey` and stores per-source
- * results, so toggling the active source list is a free re-read for anything
- * already fetched. Sources are tried in `args.sources` order; the first hit
- * wins and later sources are not contacted.
- */
+interface ResolveArgs {
+  speciesKey: number
+  scientificName?: string
+  /** Active sources in priority order. First hit wins. */
+  sources: ImageSource[]
+}
+
+/** Walk `sources` in order; return the first source that yields an image,
+ *  or `null` if none do. Repeated calls with the same species are cheap. */
 export const resolveSpeciesImage = async (
   args: ResolveArgs,
-): Promise<SpeciesImage> => {
-  const rec = getRecord(args.speciesKey)
-
-  // 1) Pure cache hit: any preferred source already resolved.
+): Promise<SpeciesImage | null> => {
   for (const source of args.sources) {
-    const hit = rec.results[source]
-    if (hit) return hit
-  }
-
-  // 2) Walk the chain, fetching only what's missing and not on cooldown.
-  const now = Date.now()
-  for (const source of args.sources) {
-    if (rec.results[source]) return rec.results[source]!
-    if (cooldownUntil[source] > now) continue
-
-    let pending = rec.inflight[source]
-    if (!pending) {
-      pending = runSource(source, args).then((res) => {
-        if (res?.url) rec.results[source] = res
-        delete rec.inflight[source]
-        return res
-      })
-      rec.inflight[source] = pending
-    }
-    const result = await pending
+    const result = await fetchOne(source, args.speciesKey, args.scientificName)
     if (result?.url) return result
-    // null → try next source
   }
-
-  // 3) Nothing worked. Don't cache the placeholder so a later toggle that
-  // re-enables a previously-down source can try again.
-  return PLACEHOLDER
-}
-
-export const clearSpeciesImageCache = () => {
-  cache.clear()
-  cooldownUntil.wikidata = 0
-  cooldownUntil.inaturalist = 0
-  cooldownUntil.gbif = 0
+  return null
 }

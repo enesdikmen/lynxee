@@ -21,6 +21,8 @@ export type SpeciesCard = {
   id: string
   commonName: string
   scientificName: string
+  /** Binomial without authorship — used for image lookups (e.g. iNaturalist). */
+  canonicalName?: string
   imageUrl: string
   /** Pre-cropped 1:1 thumbnail for square strip tiles; falls back to imageUrl. */
   squareImageUrl?: string

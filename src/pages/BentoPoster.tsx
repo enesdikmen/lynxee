@@ -11,11 +11,8 @@ import CitySearch from '../components/CitySearch'
 import { useLensData } from '../hooks/useLensData'
 import { packWithRetries, type BoxSpec } from '../lib/gridPacker'
 import type { Place } from '../types/lens'
-import {
-  ALL_IMAGE_SOURCES,
-  IMAGE_SOURCE_LABELS,
-  type ImageSource,
-} from '../api/speciesImage'
+import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
+import type { ImageSourceConfig } from '../App'
 import { buildBentoTiles, padToRectangle } from './bentoTiles'
 import './BentoPoster.css'
 
@@ -24,16 +21,16 @@ const GRID_W = 6
 interface Props {
   selectedPlace: Place
   onPlaceChange: (place: Place) => void
-  imageSources: ImageSource[]
-  onImageSourcesChange: (next: ImageSource[]) => void
+  imageSourceConfig: ImageSourceConfig
+  onImageSourceConfigChange: (next: ImageSourceConfig) => void
   onOpenSandbox: () => void
 }
 
 function BentoPoster({
   selectedPlace,
   onPlaceChange,
-  imageSources,
-  onImageSourcesChange,
+  imageSourceConfig,
+  onImageSourceConfigChange,
   onOpenSandbox,
 }: Props) {
   // Single seed for poster-level variation. Layout and data already consume it;
@@ -44,8 +41,15 @@ function BentoPoster({
   const latitude = selectedPlace?.latitude
   const longitude = selectedPlace?.longitude
 
+  // Active sources, in priority order. This is the only thing the data layer
+  // ever sees — `imageSourceConfig` is a UI-only concern.
+  const effectiveSources = useMemo(
+    () => imageSourceConfig.filter((c) => c.active).map((c) => c.source),
+    [imageSourceConfig],
+  )
+
   const data = useLensData(selectedPlace, {
-    imageSources,
+    imageSources: effectiveSources,
     // Keep content choices tied to the same poster seed as layout.
     contentSeed: posterSeed,
   })
@@ -91,30 +95,48 @@ function BentoPoster({
     <div className="bento-shell">
       <div className="bento-toolbar">
         <CitySearch selected={selectedPlace} onSelect={onPlaceChange} />
-        <span className="bento-toolbar__sources" title="Image sources, tried in order">
+        <span className="bento-toolbar__sources" title="Image sources — checkbox toggles active state, arrows reorder priority">
           <span className="bento-toolbar__sources-label">Images:</span>
-          {ALL_IMAGE_SOURCES.map((source) => {
-            const active = imageSources.includes(source)
+          {imageSourceConfig.map((entry, i) => {
+            const setActive = (active: boolean) =>
+              onImageSourceConfigChange(
+                imageSourceConfig.map((c) =>
+                  c.source === entry.source ? { ...c, active } : c,
+                ),
+              )
+            const swap = (j: number) => {
+              if (j < 0 || j >= imageSourceConfig.length) return
+              const next = imageSourceConfig.slice()
+              ;[next[i], next[j]] = [next[j], next[i]]
+              onImageSourceConfigChange(next)
+            }
             return (
-              <label key={source} className="bento-toolbar__check">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(e) => {
-                    // Maintain canonical order from ALL_IMAGE_SOURCES so the
-                    // fallback chain stays predictable when toggling.
-                    // No cache clear: the resolver caches per-source, so
-                    // toggling just re-reads what's already been fetched.
-                    const next = e.target.checked
-                      ? ALL_IMAGE_SOURCES.filter(
-                          (s) => s === source || imageSources.includes(s),
-                        )
-                      : imageSources.filter((s) => s !== source)
-                    onImageSourcesChange(next)
-                  }}
-                />
-                {IMAGE_SOURCE_LABELS[source]}
-              </label>
+              <span key={entry.source} className="bento-toolbar__source">
+                <label className="bento-toolbar__check">
+                  <input
+                    type="checkbox"
+                    checked={entry.active}
+                    onChange={(e) => setActive(e.target.checked)}
+                  />
+                  {IMAGE_SOURCE_LABELS[entry.source]}
+                </label>
+                <button
+                  type="button"
+                  className="bento-toolbar__rank"
+                  onClick={() => swap(i - 1)}
+                  disabled={i === 0}
+                  title="Move up in priority"
+                  aria-label={`Move ${IMAGE_SOURCE_LABELS[entry.source]} up`}
+                >▲</button>
+                <button
+                  type="button"
+                  className="bento-toolbar__rank"
+                  onClick={() => swap(i + 1)}
+                  disabled={i === imageSourceConfig.length - 1}
+                  title="Move down in priority"
+                  aria-label={`Move ${IMAGE_SOURCE_LABELS[entry.source]} down`}
+                >▼</button>
+              </span>
             )
           })}
         </span>

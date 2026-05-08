@@ -5,13 +5,17 @@ import { places } from './data/lensFallbacks'
 import type { Place } from './types/lens'
 import { ALL_IMAGE_SOURCES, type ImageSource } from './api/speciesImage'
 
+/** Ordered list of image sources. The order is the fallback priority used
+ *  by `resolveSpeciesImage`; the `active` flag controls whether the source
+ *  is consulted at all. Active and priority are independently editable. */
+export type ImageSourceConfig = Array<{ source: ImageSource; active: boolean }>
+
 function App() {
   const [page, setPage] = useState<'main' | 'sandbox'>('main')
   const [selectedPlace, setSelectedPlace] = useState<Place>(places[0])
-  // Image source toggles. The order in this array also defines the
-  // fallback priority used by `resolveSpeciesImage`.
-  const [imageSources, setImageSources] =
-    useState<ImageSource[]>(ALL_IMAGE_SOURCES)
+  const [imageSourceConfig, setImageSourceConfig] = useState<ImageSourceConfig>(
+    () => ALL_IMAGE_SOURCES.map((source) => ({ source, active: true })),
+  )
 
   if (page === 'sandbox') {
     return <GridSandbox onBack={() => setPage('main')} />
@@ -22,8 +26,8 @@ function App() {
       <BentoPoster
         selectedPlace={selectedPlace}
         onPlaceChange={setSelectedPlace}
-        imageSources={imageSources}
-        onImageSourcesChange={setImageSources}
+        imageSourceConfig={imageSourceConfig}
+        onImageSourceConfigChange={setImageSourceConfig}
         onOpenSandbox={() => setPage('sandbox')}
       />
     </div>

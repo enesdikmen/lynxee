@@ -82,9 +82,8 @@ export function Globe({
 
   // Marker scales with sphere radius, not viewBox size, so the pin stays
   // proportionate even when the globe is zoomed in.
-  const ringR = radius * 0.075
-  const haloR = radius * 0.055
-  const dotR = radius * 0.028
+  const ringR = radius * 0.052
+  const dotR = radius * 0.014
 
   return (
     <svg
@@ -101,11 +100,8 @@ export function Globe({
       <path d={landPath} className="globe__land" />
       <path d={spherePath} className="globe__outline" fill="none" />
       <g className="globe__marker" transform={`translate(${markerX} ${markerY})`}>
-        {/* Layered halo: paper ring + ink ring + gold core. This stack
-            reads against any background (dark ocean, cream land, gold
-            wash) without needing per-context tuning. */}
+        {/* Simple two-layer marker: outer ring + center dot. */}
         <circle r={ringR} className="globe__marker-ring" />
-        <circle r={haloR} className="globe__marker-halo" />
         <circle r={dotR} className="globe__marker-dot" />
       </g>
     </svg>

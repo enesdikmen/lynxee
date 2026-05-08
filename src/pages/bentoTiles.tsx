@@ -108,17 +108,12 @@ export function buildBentoTiles({
   const restRecordsShare = restRecords.reduce((s, r) => s + r.share, 0)
 
   const kingdomTotal = kingdomBreakdown.reduce((s, k) => s + k.count, 0)
-  let kingdomSentence = ''
-  if (kingdomTotal > 0) {
-    const top = kingdomBreakdown
-      .slice(0, 3)
-      .map((k) => `${k.label.toLowerCase()} (${Math.round((k.count / kingdomTotal) * 100)}%)`)
-    kingdomSentence =
-      `Mostly ${top[0]}` +
-      (top[1] ? `, then ${top[1]}` : '') +
-      (top[2] ? `, with a sprinkle of ${top[2]}` : '') +
-      '.'
-  }
+  const kingdomSummary = kingdomTotal > 0
+    ? kingdomBreakdown
+      .slice(0, 4)
+      .map((k) => `${k.label} ${Math.round((k.count / kingdomTotal) * 100)}%`)
+      .join(', ')
+    : ''
 
   const tiles: Tile[] = []
 
@@ -147,25 +142,25 @@ export function buildBentoTiles({
   tiles.push(
     makeTile('stats', 'stats', () => (
       <div className="bento-stats">
-        <div className="bento-stats__cell">
+        <div className="bento-stats__cell bento-stats__cell--sightings">
           <span className="bento-card__kicker">Sightings</span>
-          <span className="bento-bignum bento-bignum--sm">
+          <span className="bento-bignum bento-bignum--sm bento-stats__count bento-stats__count--sightings">
             {totalRecords ? totalRecords.toLocaleString() : '—'}
           </span>
           <span className="bento-card__sub">on GBIF</span>
         </div>
         <div className="bento-stats__divider" />
-        <div className="bento-stats__cell">
+        <div className="bento-stats__cell bento-stats__cell--risk">
           <span className="bento-card__kicker">At risk</span>
-          <span className="bento-bignum bento-bignum--sm bento-stats__danger">
+          <span className="bento-bignum bento-bignum--sm bento-stats__count bento-stats__count--risk bento-stats__danger">
             {conservationSnapshot.threatenedCount}
           </span>
           <span className="bento-card__sub">may disappear</span>
         </div>
-        {kingdomSentence && (
+        {kingdomSummary && (
           <p className="bento-stats__caption">
             <span className="bento-stats__caption-kicker">What life looks like here</span>
-            {kingdomSentence}
+            <span className="bento-stats__caption-text">{kingdomSummary}</span>
           </p>
         )}
       </div>

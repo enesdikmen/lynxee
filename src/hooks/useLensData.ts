@@ -242,15 +242,10 @@ export const useLensData = (
             fetchSpecies({ speciesKey, signal }),
             fetchSpeciesVernacularNames({ speciesKey, signal }),
           ])
-          const image = await resolveSpeciesImage({
-            speciesKey,
-            // canonicalName is the binomial without authorship — required for
-            // exact-match lookups (e.g. iNat) that don't tolerate "(Linnaeus, 1758)".
-            scientificName: species.canonicalName ?? species.scientificName,
-            sources: imageSources,
-            signal,
-          })
 
+          // Image resolution is decoupled and handled by `imageMapQuery`
+          // below so that toggling/reordering image sources does not force
+          // a refetch of GBIF species/facet data.
           return {
             speciesKey,
             cardBase: {
@@ -260,8 +255,8 @@ export const useLensData = (
                 species.canonicalName ??
                 species.scientificName,
               scientificName: species.scientificName,
-              imageUrl: image.url,
-              squareImageUrl: image.squareUrl,
+              canonicalName: species.canonicalName ?? species.scientificName,
+              imageUrl: '',
               taxonLine: [species.kingdom, species.phylum, species.class]
                 .filter(Boolean)
                 .join(' · '),
@@ -322,8 +317,9 @@ export const useLensData = (
   }, [topSpeciesPoolQuery.data, selectedPlace?.id, contentSeed])
 
   // ── Thematic lens strips ─────────────────────────────────────────
-  // Helper: given a list of speciesKey + count picks, resolve names + media
-  // into SpeciesCard[]. Mirrors the gallery resolver above.
+  // Helper: given a list of speciesKey + count picks, resolve names into
+  // SpeciesCard[]. Image URLs are filled in later by the overlay step;
+  // this function only fetches taxonomic metadata.
   const resolveSpeciesCards = async (
     picks: { speciesKey: number; count: number; highlight: string }[],
     signal: AbortSignal | undefined,
@@ -331,12 +327,6 @@ export const useLensData = (
     return Promise.all(
       picks.map(async (item) => {
         const species = await fetchSpecies({ speciesKey: item.speciesKey, signal })
-        const image = await resolveSpeciesImage({
-          speciesKey: item.speciesKey,
-          scientificName: species.canonicalName ?? species.scientificName,
-          sources: imageSources,
-          signal,
-        })
         return {
           id: String(item.speciesKey),
           commonName:
@@ -344,8 +334,8 @@ export const useLensData = (
             species.canonicalName ??
             species.scientificName,
           scientificName: species.scientificName,
-          imageUrl: image.url,
-          squareImageUrl: image.squareUrl,
+          canonicalName: species.canonicalName ?? species.scientificName,
+          imageUrl: '',
           highlight: item.highlight,
           taxonLine: [species.kingdom, species.phylum, species.class]
             .filter(Boolean)
@@ -898,15 +888,123 @@ export const useLensData = (
     })
   }, [facetsSummary, totalRecords])
 
-  return {
-    seasonalityData,
+  // ── Image overlay layer ──────────────────────────────────────────
+  // All species data above is image-free. We collect every speciesKey that
+  // ends up rendered and resolve images in a single dedicated query keyed
+  // by the active source list. This means toggling/reordering image
+  // sources does NOT refetch GBIF facets/species; it only re-resolves
+  // images, which hit the per-source in-memory cache when possible.
+
+  const speciesForImaging = useMemo(() => {
+    const map = new Map<number, { speciesKey: number; canonicalName?: string }>()
+    const collect = (cards: SpeciesCard[] | undefined) => {
+      cards?.forEach((c) => {
+        const key = Number(c.id)
+        if (!Number.isFinite(key) || map.has(key)) return
+        // Skip fallback entries that already ship a baked image URL.
+        if (c.imageUrl) return
+        map.set(key, { speciesKey: key, canonicalName: c.canonicalName })
+      })
+    }
+    collect(topSpeciesData)
+    collect(inSeasonSpecies)
+    collect(smallWondersSpecies)
+    collect(brandNewSpecies)
+    collect(nightCreaturesSpecies)
+    collect(threatenedSpeciesQuery.data)
+    return Array.from(map.values()).sort((a, b) => a.speciesKey - b.speciesKey)
+  }, [
     topSpeciesData,
     inSeasonSpecies,
     smallWondersSpecies,
     brandNewSpecies,
     nightCreaturesSpecies,
-    thematicStripCards,
-    conservationSnapshot,
+    threatenedSpeciesQuery.data,
+  ])
+
+  const imageMapQuery = useQuery({
+    queryKey: [
+      'speciesImages',
+      speciesForImaging.map((s) => s.speciesKey).join(','),
+      imageSources.join(','),
+    ],
+    queryFn: async () => {
+      const map = new Map<number, { url: string; squareUrl?: string }>()
+      if (imageSources.length === 0) return map
+      await Promise.all(
+        speciesForImaging.map(async ({ speciesKey, canonicalName }) => {
+          const img = await resolveSpeciesImage({
+            speciesKey,
+            scientificName: canonicalName,
+            sources: imageSources,
+          })
+          // Only store real hits — null means "no active source had one".
+          // The card renders empty src and CSS hides the broken-image glyph.
+          if (img?.url) map.set(speciesKey, { url: img.url, squareUrl: img.squareUrl })
+        }),
+      )
+      return map
+    },
+    enabled: speciesForImaging.length > 0,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 30,
+  })
+
+  const imageMap = imageMapQuery.data
+
+  const applyImage = useMemo(() => {
+    return <T extends SpeciesCard>(card: T): T => {
+      const img = imageMap?.get(Number(card.id))
+      if (!img) return card
+      return { ...card, imageUrl: img.url, squareImageUrl: img.squareUrl }
+    }
+  }, [imageMap])
+
+  const imagedTopSpecies = useMemo(
+    () => topSpeciesData.map(applyImage),
+    [topSpeciesData, applyImage],
+  )
+  const imagedInSeason = useMemo(
+    () => inSeasonSpecies.map(applyImage),
+    [inSeasonSpecies, applyImage],
+  )
+  const imagedSmallWonders = useMemo(
+    () => smallWondersSpecies.map(applyImage),
+    [smallWondersSpecies, applyImage],
+  )
+  const imagedBrandNew = useMemo(
+    () => brandNewSpecies.map(applyImage),
+    [brandNewSpecies, applyImage],
+  )
+  const imagedNightCreatures = useMemo(
+    () => nightCreaturesSpecies.map(applyImage),
+    [nightCreaturesSpecies, applyImage],
+  )
+  const imagedThematicStripCards = useMemo(
+    () =>
+      thematicStripCards.map((c) => ({
+        ...c,
+        species: c.species.map(applyImage),
+      })),
+    [thematicStripCards, applyImage],
+  )
+  const imagedConservationSnapshot = useMemo(
+    () => ({
+      ...conservationSnapshot,
+      threatenedSpecies: conservationSnapshot.threatenedSpecies.map(applyImage),
+    }),
+    [conservationSnapshot, applyImage],
+  )
+
+  return {
+    seasonalityData,
+    topSpeciesData: imagedTopSpecies,
+    inSeasonSpecies: imagedInSeason,
+    smallWondersSpecies: imagedSmallWonders,
+    brandNewSpecies: imagedBrandNew,
+    nightCreaturesSpecies: imagedNightCreatures,
+    thematicStripCards: imagedThematicStripCards,
+    conservationSnapshot: imagedConservationSnapshot,
     kingdomBreakdown,
     datasetSummaries,
     totalRecords,
