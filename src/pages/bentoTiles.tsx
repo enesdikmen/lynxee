@@ -98,7 +98,7 @@ export function buildBentoTiles({
     kingdomBreakdown, datasetSummaries,
     totalRecords, maxSeasonality,
     recordsBreakdown,
-    inSeasonSpecies, smallWondersSpecies,
+    thematicStripCards,
   } = data
 
   const hero = topSpeciesData[0]
@@ -208,15 +208,14 @@ export function buildBentoTiles({
     )
   }
 
-  if (inSeasonSpecies.length > 0) {
+  thematicStripCards.forEach((card, index) => {
+    const type: TileType = index % 2 === 0 ? 'inSeason' : 'smallWonders'
     tiles.push(
-      makeTile('inSeason', 'in-season', () => (
+      makeTile(type, `thematic-${card.id}`, () => (
         <>
-          <span className="bento-card__kicker">
-            🌸 In season · {new Date().toLocaleString('en', { month: 'long' })}
-          </span>
+          <span className="bento-card__kicker">{card.kicker}</span>
           <div className="bento-strip">
-            {inSeasonSpecies.slice(0, 3).map((sp) => (
+            {card.species.slice(0, 3).map((sp) => (
               <div key={sp.id} className="bento-strip__item">
                 <img src={sp.squareImageUrl ?? sp.imageUrl} alt={sp.commonName} loading="lazy" />
                 <span className="bento-strip__name">{sp.commonName}</span>
@@ -226,25 +225,7 @@ export function buildBentoTiles({
         </>
       )),
     )
-  }
-
-  if (smallWondersSpecies.length > 0) {
-    tiles.push(
-      makeTile('smallWonders', 'small-wonders', () => (
-        <>
-          <span className="bento-card__kicker">🐛 Small wonders</span>
-          <div className="bento-strip">
-            {smallWondersSpecies.slice(0, 3).map((sp) => (
-              <div key={sp.id} className="bento-strip__item">
-                <img src={sp.squareImageUrl ?? sp.imageUrl} alt={sp.commonName} loading="lazy" />
-                <span className="bento-strip__name">{sp.commonName}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )),
-    )
-  }
+  })
 
   tiles.push(
     makeTile('seasonality', 'seasonality', () => (

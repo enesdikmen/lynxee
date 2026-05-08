@@ -1,4 +1,79 @@
 const GBIF_BASE_URL = 'https://api.gbif.org/v1'
+const GBIF_MAX_CONCURRENT_REQUESTS = 6
+const GBIF_MAX_429_RETRIES = 3
+const GBIF_RETRY_BACKOFF_MS = 1000
+
+let gbifInFlight = 0
+const gbifQueue: Array<() => void> = []
+
+const createAbortError = () =>
+	new DOMException('The operation was aborted.', 'AbortError')
+
+const wait = (ms: number, signal?: AbortSignal) =>
+	new Promise<void>((resolve, reject) => {
+		if (ms <= 0) {
+			resolve()
+			return
+		}
+
+		const timer = setTimeout(() => {
+			signal?.removeEventListener('abort', onAbort)
+			resolve()
+		}, ms)
+
+		const onAbort = () => {
+			clearTimeout(timer)
+			signal?.removeEventListener('abort', onAbort)
+			reject(createAbortError())
+		}
+
+		signal?.addEventListener('abort', onAbort, { once: true })
+	})
+
+const parseRetryAfterMs = (value: string | null) => {
+	if (!value) return null
+
+	const asSeconds = Number(value)
+	if (Number.isFinite(asSeconds)) return Math.max(0, asSeconds * 1000)
+
+	const asDate = Date.parse(value)
+	if (Number.isFinite(asDate)) return Math.max(0, asDate - Date.now())
+
+	return null
+}
+
+const acquireGbifSlot = async (signal?: AbortSignal) => {
+	if (signal?.aborted) throw createAbortError()
+
+	if (gbifInFlight < GBIF_MAX_CONCURRENT_REQUESTS) {
+		gbifInFlight += 1
+		return
+	}
+
+	await new Promise<void>((resolve, reject) => {
+		const start = () => {
+			signal?.removeEventListener('abort', onAbort)
+			gbifInFlight += 1
+			resolve()
+		}
+
+		const onAbort = () => {
+			const idx = gbifQueue.indexOf(start)
+			if (idx >= 0) gbifQueue.splice(idx, 1)
+			signal?.removeEventListener('abort', onAbort)
+			reject(createAbortError())
+		}
+
+		gbifQueue.push(start)
+		signal?.addEventListener('abort', onAbort, { once: true })
+	})
+}
+
+const releaseGbifSlot = () => {
+	gbifInFlight = Math.max(0, gbifInFlight - 1)
+	const next = gbifQueue.shift()
+	if (next) next()
+}
 
 export type FacetField =
 	| 'month'
@@ -104,9 +179,13 @@ export interface OccurrenceFacetRequest extends RequestOptions {
 	facetLimit?: number
 	classKey?: number | number[]
 	kingdomKey?: number | number[]
+	orderKey?: number | number[]
+	familyKey?: number | number[]
+	speciesKey?: number | number[]
 	mediaType?: string | string[]
 	iucnRedListCategory?: string | string[]
 	month?: number | number[]
+	year?: number | number[] | string
 }
 
 export interface SpeciesRequest extends RequestOptions {
@@ -159,13 +238,32 @@ const buildUrl = (
 
 // Centralized JSON fetch so we keep error messages consistent for UI + debugging.
 const fetchJson = async <T>(url: string, options: RequestOptions = {}) => {
-	const response = await fetch(url, { signal: options.signal })
+	await acquireGbifSlot(options.signal)
 
-	if (!response.ok) {
-		throw new Error(`GBIF request failed (${response.status}) for ${url}`)
+	try {
+		for (let attempt = 0; attempt <= GBIF_MAX_429_RETRIES; attempt++) {
+			if (options.signal?.aborted) throw createAbortError()
+
+			const response = await fetch(url, { signal: options.signal })
+
+			if (response.ok) {
+				return (await response.json()) as T
+			}
+
+			if (response.status === 429 && attempt < GBIF_MAX_429_RETRIES) {
+				const retryAfterMs = parseRetryAfterMs(response.headers.get('Retry-After'))
+				const waitMs = retryAfterMs ?? GBIF_RETRY_BACKOFF_MS * (attempt + 1)
+				await wait(waitMs, options.signal)
+				continue
+			}
+
+			throw new Error(`GBIF request failed (${response.status}) for ${url}`)
+		}
+
+		throw new Error(`GBIF request failed (429) for ${url}`)
+	} finally {
+		releaseGbifSlot()
 	}
-
-	return (await response.json()) as T
 }
 
 export const fetchOccurrenceFacets = async ({
@@ -177,9 +275,13 @@ export const fetchOccurrenceFacets = async ({
 	facetLimit = 10,
 	classKey,
 	kingdomKey,
+	orderKey,
+	familyKey,
+	speciesKey,
 	mediaType,
 	iucnRedListCategory,
 	month,
+	year,
 	signal,
 }: OccurrenceFacetRequest) => {
 	// Geometry: prefer the real bbox from Nominatim, else fall back to a
@@ -193,9 +295,13 @@ export const fetchOccurrenceFacets = async ({
 		decimalLongitude: `${b.minLon},${b.maxLon}`,
 		classKey,
 		kingdomKey,
+		orderKey,
+		familyKey,
+		speciesKey,
 		mediaType,
 		iucnRedListCategory,
 		month,
+		year,
 		facet: facetFields,
 		facetLimit,
 	})

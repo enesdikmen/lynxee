@@ -3,7 +3,7 @@
  *
  * Tiles come from `buildBentoTiles` and are packed by `gridPacker` into a
  * tight rectangle. Filler tiles pad the layout so cells stay square. The
- * regenerate button reshuffles by bumping the packer seed.
+ * regenerate button reshuffles by bumping a single poster seed.
  */
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -37,13 +37,19 @@ function BentoPoster({
   onImageSourcesChange,
   onOpenSandbox,
 }: Props) {
-  const [seed, setSeed] = useState(1)
+  // Single seed for poster-level variation. Layout and data already consume it;
+  // future style themes should derive from this same seed as well.
+  const [posterSeed, setPosterSeed] = useState(1)
 
   const placeName = selectedPlace?.label?.split(',')[0]?.trim() ?? 'Pick a place'
   const latitude = selectedPlace?.latitude
   const longitude = selectedPlace?.longitude
 
-  const data = useLensData(selectedPlace, { imageSources })
+  const data = useLensData(selectedPlace, {
+    imageSources,
+    // Keep content choices tied to the same poster seed as layout.
+    contentSeed: posterSeed,
+  })
 
   const tiles = useMemo(
     () => padToRectangle(buildBentoTiles({ placeName, latitude, longitude, data }), GRID_W),
@@ -70,11 +76,11 @@ function BentoPoster({
         }
         return { id: t.id, w: t.w, h: t.h }
       })
-      const r = packWithRetries({ width: GRID_W, height: h, boxes: specs, seed }, 60)
+      const r = packWithRetries({ width: GRID_W, height: h, boxes: specs, seed: posterSeed }, 60)
       if (r) return { placements: r.placements, gridH: h }
     }
     return { placements: [], gridH: exactH }
-  }, [tiles, seed])
+  }, [tiles, posterSeed])
 
   const placementById = useMemo(() => {
     const m = new Map<string, (typeof placements)[number]>()
@@ -115,8 +121,8 @@ function BentoPoster({
         <button
           type="button"
           className="bento-toolbar__btn bento-toolbar__btn--primary"
-          onClick={() => setSeed((s) => s + 1)}
-          title="Regenerate layout"
+          onClick={() => setPosterSeed((s) => s + 1)}
+          title="Regenerate layout and data"
         >
           ↻ Regenerate
         </button>

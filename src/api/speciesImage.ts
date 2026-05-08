@@ -44,7 +44,7 @@ const PLACEHOLDER: SpeciesImage = {
   source: 'placeholder',
 }
 
-const cache = new Map<number, Promise<SpeciesImage>>()
+const cache = new Map<string, Promise<SpeciesImage>>()
 
 interface ResolveArgs {
   speciesKey: number
@@ -52,6 +52,11 @@ interface ResolveArgs {
   sources: ImageSource[]
   signal?: AbortSignal
 }
+
+const cacheKeyFor = ({ speciesKey, scientificName, sources }: ResolveArgs) =>
+  `${speciesKey}|${sources.join(',')}|${(scientificName ?? '')
+    .trim()
+    .toLowerCase()}`
 
 /** Fetch JSON, swallowing network/parse errors as null so callers can fall through. */
 const safeJson = async <T>(
@@ -179,11 +184,13 @@ const tryInat = async (
   const photo = data?.results?.find(
     (r) => r.name?.trim().toLowerCase() === target,
   )?.default_photo
-  const url = photo?.medium_url || photo?.url
+  const url = photo?.medium_url || photo?.url || photo?.square_url
   if (!url) return null
   return {
     url,
-    squareUrl: photo?.square_url,
+    // Prefer medium-size assets for strip thumbnails too; `square_url` is
+    // often too small and looks blurry when cards render larger.
+    squareUrl: photo?.medium_url || photo?.url || photo?.square_url,
     source: 'inaturalist',
     author: photo?.attribution,
     license: photo?.license_code || undefined,
@@ -238,10 +245,23 @@ const resolveOnce = async (args: ResolveArgs): Promise<SpeciesImage> => {
 export const resolveSpeciesImage = (
   args: ResolveArgs,
 ): Promise<SpeciesImage> => {
-  const cached = cache.get(args.speciesKey)
+  const key = cacheKeyFor(args)
+  const cached = cache.get(key)
   if (cached) return cached
-  const promise = resolveOnce(args).catch((): SpeciesImage => PLACEHOLDER)
-  cache.set(args.speciesKey, promise)
+
+  const promise = resolveOnce(args)
+    .then((image) => {
+      // Don't keep placeholders in cache. They are often produced by
+      // transient network/rate-limit failures and would hide later fallbacks.
+      if (image.source === 'placeholder') cache.delete(key)
+      return image
+    })
+    .catch((): SpeciesImage => {
+      cache.delete(key)
+      return PLACEHOLDER
+    })
+
+  cache.set(key, promise)
   return promise
 }
 

@@ -29,6 +29,12 @@ export type SpeciesCard = {
   popularity?: number
 }
 
+export type ThematicStripCard = {
+  id: 'inSeason' | 'smallWonders' | 'brandNew' | 'nightCreatures'
+  kicker: string
+  species: SpeciesCard[]
+}
+
 export type BreakdownItem = {
   label: string
   count: number

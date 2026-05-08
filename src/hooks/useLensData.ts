@@ -18,12 +18,21 @@ import {
   fallbackSeasonality,
   fallbackTopSpecies,
 } from '../data/lensFallbacks'
+import {
+  BRAND_NEW_RULE,
+  HERO_SLOT_RULES,
+  IN_SEASON_RULE,
+  NIGHT_CREATURES_RULE,
+  SMALL_WONDERS_RULE,
+  type HeroSlotRule,
+} from '../data/lensSelection'
 import type {
   BreakdownItem,
   ConservationSnapshot,
   DatasetSummary,
   Place,
   SpeciesCard,
+  ThematicStripCard,
   ThreatenedSpecies,
 } from '../types/lens'
 
@@ -35,6 +44,44 @@ const placeGeoParams = (place: Place) => ({
   radiusKm: place.radiusKm,
   bbox: place.bbox,
 })
+
+const hashText = (value: string) => {
+  let hash = 2166136261
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+const mulberry32 = (seed: number) => {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// Seeded selection keeps regenerate deterministic for a given place + seed,
+// while still allowing diversity when rules use pickFromTop > 1.
+const seededPick = <T,>(items: T[], seedKey: string): T => {
+  if (items.length === 1) return items[0]
+  const rnd = mulberry32(hashText(seedKey))
+  return items[Math.floor(rnd() * items.length)]
+}
+
+const seededShuffle = <T,>(items: T[], seedKey: string): T[] => {
+  const rnd = mulberry32(hashText(seedKey))
+  const copy = items.slice()
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
 
 export type RecordsBreakdownItem = {
   key: string
@@ -49,6 +96,9 @@ export type LensData = {
   topSpeciesData: SpeciesCard[]
   inSeasonSpecies: SpeciesCard[]
   smallWondersSpecies: SpeciesCard[]
+  brandNewSpecies: SpeciesCard[]
+  nightCreaturesSpecies: SpeciesCard[]
+  thematicStripCards: ThematicStripCard[]
   conservationSnapshot: ConservationSnapshot
   kingdomBreakdown: BreakdownItem[]
   datasetSummaries: DatasetSummary[]
@@ -61,6 +111,19 @@ export type LensData = {
 export type UseLensDataOptions = {
   /** Active image sources, in fallback priority order. */
   imageSources?: ImageSource[]
+  /** Seed used for deterministic content-level variation. */
+  contentSeed?: number
+}
+
+type TopSpeciesPoolData = {
+  slots: Array<{
+    slot: HeroSlotRule
+    candidates: SpeciesCard[]
+  }>
+  vernacularsBySpecies: Record<
+    number,
+    Awaited<ReturnType<typeof fetchSpeciesVernacularNames>>['results']
+  >
 }
 
 export const useLensData = (
@@ -68,6 +131,7 @@ export const useLensData = (
   options: UseLensDataOptions = {},
 ): LensData => {
   const imageSources = options.imageSources ?? ALL_IMAGE_SOURCES
+  const contentSeed = options.contentSeed ?? 1
 
   const facetsQuery = useQuery({
     queryKey: ['occurrenceFacets', selectedPlace?.id],
@@ -130,73 +194,56 @@ export const useLensData = (
     )
   }, [facetsSummary])
 
-  // The gallery has 6 fixed slots so an average viewer immediately sees a
-  // balanced cross-section of life (mammal · bird · insect · flower · tree/fern
-  // · fungus). For each slot we ask GBIF for the most-recorded species in that
-  // taxonomic group for the place. If a slot has no data we walk down the
-  // fallback list until something hits.
-  type SpeciesSlot = {
-    id: string
-    label: string
-    classKey?: number[] // tried in order
-    kingdomKey?: number // used when the slot spans many classes (e.g. Fungi)
-  }
+  // Gallery species selection is config-driven via HERO_SLOT_RULES.
+  // We fetch candidate pools once per place and reuse them on regenerate.
+  const topSpeciesPoolQuery = useQuery({
+    queryKey: ['topSpeciesPool', selectedPlace?.id, imageSources],
+    queryFn: async ({ signal }): Promise<TopSpeciesPoolData> => {
+      if (!selectedPlace) return { slots: [], vernacularsBySpecies: {} }
 
-  const SPECIES_SLOTS: SpeciesSlot[] = [
-    { id: 'mammal', label: 'Mammal', classKey: [359, 358, 131] }, // Mammalia → Reptilia → Amphibia
-    { id: 'bird', label: 'Bird', classKey: [212] }, // Aves
-    { id: 'insect', label: 'Insect', classKey: [216] }, // Insecta
-    { id: 'flower', label: 'Flowering plant', classKey: [220] }, // Magnoliopsida
-    { id: 'tree-fern', label: 'Tree or fern', classKey: [194, 7228684, 196] }, // Pinopsida → Polypodiopsida → Liliopsida
-    { id: 'fungus', label: 'Fungus', kingdomKey: 5 }, // Kingdom Fungi (any class)
-  ]
-
-  const topSpeciesQuery = useQuery({
-    queryKey: ['topSpecies', selectedPlace?.id, imageSources],
-    queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
-      if (!selectedPlace) return []
-
-      const pickTopSpeciesForSlot = async (
-        slot: SpeciesSlot,
-      ): Promise<{ slot: SpeciesSlot; speciesKey: number; count: number } | null> => {
-        const candidates = slot.kingdomKey
-          ? [{ kingdomKey: slot.kingdomKey }]
-          : (slot.classKey ?? []).map((classKey) => ({ classKey }))
-
-        for (const filter of candidates) {
+      const getPoolForSlot = async (
+        slot: HeroSlotRule,
+      ): Promise<{ slot: HeroSlotRule; pool: Array<{ speciesKey: number; count: number }> } | null> => {
+        for (const filter of slot.filters) {
           const response = await fetchOccurrenceFacets({
             ...placeGeoParams(selectedPlace),
             facetFields: ['speciesKey'],
-            facetLimit: 1,
+            facetLimit: Math.max(slot.pickFromTop, 1),
             signal,
             ...filter,
           })
-          const top = response.facets?.[0]?.counts?.[0]
-          const speciesKey = Number(top?.name)
-          if (Number.isFinite(speciesKey)) {
-            return { slot, speciesKey, count: top?.count ?? 0 }
-          }
+
+          const pool = (response.facets?.[0]?.counts ?? [])
+            .map((c) => ({ speciesKey: Number(c.name), count: c.count }))
+            .filter((c) => Number.isFinite(c.speciesKey))
+            .slice(0, Math.max(slot.pickFromTop, 1))
+
+          if (pool.length > 0) return { slot, pool }
         }
         return null
       }
 
-      const slotPicks = await Promise.all(SPECIES_SLOTS.map(pickTopSpeciesForSlot))
-
-      // Dedupe in case two slots resolved to the same species (rare, but possible).
-      const seen = new Set<number>()
-      const picks = slotPicks.filter(
-        (item): item is { slot: SpeciesSlot; speciesKey: number; count: number } => {
-          if (!item || seen.has(item.speciesKey)) return false
-          seen.add(item.speciesKey)
-          return true
-        },
+      const slotPools = (
+        await Promise.all(HERO_SLOT_RULES.map(getPoolForSlot))
+      ).filter(
+        (
+          item,
+        ): item is { slot: HeroSlotRule; pool: Array<{ speciesKey: number; count: number }> } =>
+          item !== null,
       )
 
-      return Promise.all(
-        picks.map(async (item) => {
-          const species = await fetchSpecies({ speciesKey: item.speciesKey, signal })
+      const uniqueSpeciesKeys = Array.from(
+        new Set(slotPools.flatMap((item) => item.pool.map((p) => p.speciesKey))),
+      )
+
+      const speciesInfo = await Promise.all(
+        uniqueSpeciesKeys.map(async (speciesKey) => {
+          const [species, vernacularNames] = await Promise.all([
+            fetchSpecies({ speciesKey, signal }),
+            fetchSpeciesVernacularNames({ speciesKey, signal }),
+          ])
           const image = await resolveSpeciesImage({
-            speciesKey: item.speciesKey,
+            speciesKey,
             // canonicalName is the binomial without authorship — required for
             // exact-match lookups (e.g. iNat) that don't tolerate "(Linnaeus, 1758)".
             scientificName: species.canonicalName ?? species.scientificName,
@@ -205,30 +252,74 @@ export const useLensData = (
           })
 
           return {
-            id: String(item.speciesKey),
-            commonName:
-              species.vernacularName ??
-              species.canonicalName ??
-              species.scientificName,
-            scientificName: species.scientificName,
-            imageUrl: image.url,
-            squareImageUrl: image.squareUrl,
-            highlight: item.slot.label,
-            taxonLine: [species.kingdom, species.phylum, species.class]
-              .filter(Boolean)
-              .join(' · '),
-            popularity: item.count,
+            speciesKey,
+            cardBase: {
+              id: String(speciesKey),
+              commonName:
+                species.vernacularName ??
+                species.canonicalName ??
+                species.scientificName,
+              scientificName: species.scientificName,
+              imageUrl: image.url,
+              squareImageUrl: image.squareUrl,
+              taxonLine: [species.kingdom, species.phylum, species.class]
+                .filter(Boolean)
+                .join(' · '),
+            },
+            vernaculars: vernacularNames.results,
           }
         }),
       )
+
+      const speciesByKey = new Map<number, (typeof speciesInfo)[number]['cardBase']>()
+      const vernacularsBySpecies: TopSpeciesPoolData['vernacularsBySpecies'] = {}
+
+      for (const info of speciesInfo) {
+        speciesByKey.set(info.speciesKey, info.cardBase)
+        vernacularsBySpecies[info.speciesKey] = info.vernaculars
+      }
+
+      const slots: TopSpeciesPoolData['slots'] = slotPools.map(({ slot, pool }) => ({
+        slot,
+        candidates: pool
+          .map((candidate) => {
+            const base = speciesByKey.get(candidate.speciesKey)
+            if (!base) return null
+            return {
+              ...base,
+              highlight: slot.label,
+              popularity: candidate.count,
+            }
+          })
+          .filter((candidate): candidate is SpeciesCard => candidate !== null),
+      }))
+
+      return { slots, vernacularsBySpecies }
     },
     enabled: Boolean(selectedPlace),
-    staleTime: 1000 * 60 * 20,
+    staleTime: Infinity,
+    gcTime: Infinity,
   })
 
-  const topSpeciesData = topSpeciesQuery.data?.length
-    ? topSpeciesQuery.data
-    : fallbackTopSpecies
+  const topSpeciesData = useMemo(() => {
+    const slots = topSpeciesPoolQuery.data?.slots ?? []
+    if (!slots.length) return fallbackTopSpecies
+
+    const seen = new Set<string>()
+    const picks: SpeciesCard[] = []
+    for (const { slot, candidates } of slots) {
+      if (!candidates.length) continue
+      const chosen = seededPick(
+        candidates,
+        `${selectedPlace?.id ?? 'none'}:${slot.id}:${contentSeed}`,
+      )
+      if (seen.has(chosen.id)) continue
+      seen.add(chosen.id)
+      picks.push(chosen)
+    }
+
+    return picks.length ? picks : fallbackTopSpecies
+  }, [topSpeciesPoolQuery.data, selectedPlace?.id, contentSeed])
 
   // ── Thematic lens strips ─────────────────────────────────────────
   // Helper: given a list of speciesKey + count picks, resolve names + media
@@ -265,9 +356,58 @@ export const useLensData = (
     )
   }
 
+  const resolveMergedStrip = async (
+    sources: { label: string; filter: Record<string, number | undefined> }[],
+    facetLimit: number,
+    stripSize: number,
+    signal: AbortSignal | undefined,
+  ): Promise<SpeciesCard[]> => {
+    if (!selectedPlace) return []
+
+    const baseReq = {
+      ...placeGeoParams(selectedPlace),
+      facetFields: ['speciesKey'] as Array<'speciesKey'>,
+      facetLimit,
+      signal,
+    }
+
+    const responses = await Promise.all(
+      sources.map(async (source) => ({
+        label: source.label,
+        response: await fetchOccurrenceFacets({
+          ...baseReq,
+          ...source.filter,
+        }),
+      })),
+    )
+
+    const all = responses
+      .flatMap(({ label, response }) =>
+        (response.facets?.[0]?.counts ?? []).map((c) => ({
+          speciesKey: Number(c.name),
+          count: c.count,
+          highlight: label,
+        })),
+      )
+      .filter((c) => Number.isFinite(c.speciesKey))
+      .sort((a, b) => b.count - a.count)
+
+    const seen = new Set<number>()
+    const picks: typeof all = []
+    for (const item of all) {
+      if (seen.has(item.speciesKey)) continue
+      seen.add(item.speciesKey)
+      picks.push(item)
+      if (picks.length >= stripSize) break
+    }
+
+    return resolveSpeciesCards(picks, signal)
+  }
+
   // Lens 1 — "In season right now": top species recorded in the current month
   // (with photos) within the place. Uses month facet param.
   const currentMonth = new Date().getMonth() + 1
+  const currentYear = new Date().getFullYear()
 
   const inSeasonQuery = useQuery({
     queryKey: ['lensInSeason', selectedPlace?.id, currentMonth, imageSources],
@@ -276,17 +416,17 @@ export const useLensData = (
       const response = await fetchOccurrenceFacets({
         ...placeGeoParams(selectedPlace),
         facetFields: ['speciesKey'],
-        facetLimit: 5,
+        facetLimit: IN_SEASON_RULE.facetLimit,
         month: currentMonth,
-        mediaType: 'StillImage',
+        mediaType: IN_SEASON_RULE.mediaType,
         signal,
       })
       const counts = response.facets?.[0]?.counts ?? []
       const picks = counts
         .map((c) => ({ speciesKey: Number(c.name), count: c.count }))
         .filter((c) => Number.isFinite(c.speciesKey))
-        .slice(0, 3)
-        .map((c) => ({ ...c, highlight: 'Recorded this month' }))
+        .slice(0, IN_SEASON_RULE.stripSize)
+        .map((c) => ({ ...c, highlight: IN_SEASON_RULE.highlight }))
       return resolveSpeciesCards(picks, signal)
     },
     enabled: Boolean(selectedPlace),
@@ -301,47 +441,156 @@ export const useLensData = (
   const smallWondersQuery = useQuery({
     queryKey: ['lensSmallWonders', selectedPlace?.id, imageSources],
     queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
-      if (!selectedPlace) return []
-      const baseReq = {
-        ...placeGeoParams(selectedPlace),
-        facetFields: ['speciesKey'] as const,
-        facetLimit: 5,
+      return resolveMergedStrip(
+        SMALL_WONDERS_RULE.sources,
+        SMALL_WONDERS_RULE.facetLimit,
+        SMALL_WONDERS_RULE.stripSize,
         signal,
-      }
-      const [insects, fungi] = await Promise.all([
-        fetchOccurrenceFacets({ ...baseReq, classKey: 216, facetFields: ['speciesKey'] }),
-        fetchOccurrenceFacets({ ...baseReq, kingdomKey: 5, facetFields: ['speciesKey'] }),
-      ])
-      const all = [
-        ...(insects.facets?.[0]?.counts ?? []).map((c) => ({
-          speciesKey: Number(c.name),
-          count: c.count,
-          highlight: 'Insect',
-        })),
-        ...(fungi.facets?.[0]?.counts ?? []).map((c) => ({
-          speciesKey: Number(c.name),
-          count: c.count,
-          highlight: 'Fungus',
-        })),
-      ]
-        .filter((c) => Number.isFinite(c.speciesKey))
-        .sort((a, b) => b.count - a.count)
-
-      const seen = new Set<number>()
-      const picks: typeof all = []
-      for (const item of all) {
-        if (seen.has(item.speciesKey)) continue
-        seen.add(item.speciesKey)
-        picks.push(item)
-        if (picks.length >= 3) break
-      }
-      return resolveSpeciesCards(picks, signal)
+      )
     },
     enabled: Boolean(selectedPlace),
     staleTime: 1000 * 60 * 30,
   })
 
   const smallWondersSpecies = smallWondersQuery.data ?? []
+
+  // Lens 3 — "Brand new here": species heavily observed in recent years,
+  // then validated by each species' earliest local GBIF year.
+  const recentStartYear = currentYear - BRAND_NEW_RULE.recentYearsWindow + 1
+
+  const brandNewQuery = useQuery({
+    queryKey: [
+      'lensBrandNew',
+      selectedPlace?.id,
+      recentStartYear,
+      currentYear,
+      imageSources,
+    ],
+    queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
+      if (!selectedPlace) return []
+
+      const response = await fetchOccurrenceFacets({
+        ...placeGeoParams(selectedPlace),
+        facetFields: ['speciesKey'],
+        facetLimit: BRAND_NEW_RULE.candidateLimit,
+        year: `${recentStartYear},${currentYear}`,
+        signal,
+      })
+
+      const candidates = (response.facets?.[0]?.counts ?? [])
+        .map((c) => ({ speciesKey: Number(c.name), count: c.count }))
+        .filter((c) => Number.isFinite(c.speciesKey))
+      // Avoid large burst fan-out: validate only a bounded subset and stop once
+      // we have enough picks for the strip.
+      const checkedCandidates = candidates.slice(0, BRAND_NEW_RULE.maxYearChecks)
+      const validated: Array<{ speciesKey: number; count: number; earliestYear: number }> = []
+
+      for (const candidate of checkedCandidates) {
+        const yearsResponse = await fetchOccurrenceFacets({
+          ...placeGeoParams(selectedPlace),
+          speciesKey: candidate.speciesKey,
+          facetFields: ['year'],
+          facetLimit: BRAND_NEW_RULE.yearFacetLimit,
+          signal,
+        })
+
+        const years = (yearsResponse.facets?.[0]?.counts ?? [])
+          .map((c) => Number(c.name))
+          .filter((year) => Number.isFinite(year))
+          .sort((a, b) => a - b)
+
+        const earliestYear = years[0]
+        if (!earliestYear || earliestYear < recentStartYear) continue
+
+        validated.push({
+          speciesKey: candidate.speciesKey,
+          count: candidate.count,
+          earliestYear,
+        })
+
+        if (validated.length >= BRAND_NEW_RULE.stripSize) break
+      }
+
+      const picks = validated
+        .sort((a, b) => b.earliestYear - a.earliestYear || b.count - a.count)
+        .slice(0, BRAND_NEW_RULE.stripSize)
+        .map((item) => ({
+          speciesKey: item.speciesKey,
+          count: item.count,
+          highlight: `First local GBIF year ${item.earliestYear}`,
+        }))
+
+      return resolveSpeciesCards(picks, signal)
+    },
+    enabled: Boolean(selectedPlace),
+    staleTime: 1000 * 60 * 30,
+  })
+
+  const brandNewSpecies = brandNewQuery.data ?? []
+
+  // Lens 4 — "Night creatures": bats + owls + moth families mixed by count.
+  const nightCreaturesQuery = useQuery({
+    queryKey: ['lensNightCreatures', selectedPlace?.id, imageSources],
+    queryFn: async ({ signal }): Promise<SpeciesCard[]> => {
+      return resolveMergedStrip(
+        NIGHT_CREATURES_RULE.sources,
+        NIGHT_CREATURES_RULE.facetLimit,
+        NIGHT_CREATURES_RULE.stripSize,
+        signal,
+      )
+    },
+    enabled: Boolean(selectedPlace),
+    staleTime: 1000 * 60 * 30,
+  })
+
+  const nightCreaturesSpecies = nightCreaturesQuery.data ?? []
+
+  const thematicPool = useMemo<ThematicStripCard[]>(() => {
+    const monthLabel = new Date(2000, currentMonth - 1, 1).toLocaleString('en', {
+      month: 'long',
+    })
+    const fallbackStripSpecies = topSpeciesData.slice(0, 3)
+
+    const cards: ThematicStripCard[] = [
+      {
+        id: 'inSeason',
+        kicker: `🌸 In season · ${monthLabel}`,
+        species: inSeasonSpecies.length > 0 ? inSeasonSpecies : fallbackStripSpecies,
+      },
+      {
+        id: 'smallWonders',
+        kicker: '🐛 Small wonders',
+        species: smallWondersSpecies.length > 0 ? smallWondersSpecies : fallbackStripSpecies,
+      },
+      {
+        id: 'brandNew',
+        kicker: '📸 Brand new here',
+        species: brandNewSpecies.length > 0 ? brandNewSpecies : fallbackStripSpecies,
+      },
+      {
+        id: 'nightCreatures',
+        kicker: '🌃 Night creatures',
+        species: nightCreaturesSpecies.length > 0 ? nightCreaturesSpecies : fallbackStripSpecies,
+      },
+    ]
+
+    return cards
+  }, [
+    currentMonth,
+    topSpeciesData,
+    inSeasonSpecies,
+    smallWondersSpecies,
+    brandNewSpecies,
+    nightCreaturesSpecies,
+  ])
+
+  const thematicStripCards = useMemo(() => {
+    if (thematicPool.length <= 2) return thematicPool
+    return seededShuffle(
+      thematicPool,
+      `${selectedPlace?.id ?? 'none'}:thematic:${contentSeed}`,
+    ).slice(0, 2)
+  }, [thematicPool, selectedPlace?.id, contentSeed])
 
   // ── Conservation snapshot ──────────────────────────────────────────
   // Instead of raw IUCN record counts, we build a meaningful snapshot:
@@ -471,24 +720,10 @@ export const useLensData = (
     }
   }, [speciesCountsQuery.data, threatenedSpeciesQuery.data])
 
-  // ── Hero species extras: multilingual common names from /vernacularNames.
+  // ── Hero species extras: multilingual common names from cached pools.
   const heroSpeciesKey = topSpeciesData[0]?.id
     ? Number(topSpeciesData[0].id)
     : undefined
-
-  const heroExtrasQuery = useQuery({
-    queryKey: ['heroExtras', heroSpeciesKey],
-    queryFn: async ({ signal }) => {
-      if (!heroSpeciesKey || !Number.isFinite(heroSpeciesKey)) return null
-      const vernaculars = await fetchSpeciesVernacularNames({
-        speciesKey: heroSpeciesKey,
-        signal,
-      })
-      return { vernaculars: vernaculars.results }
-    },
-    enabled: Boolean(heroSpeciesKey),
-    staleTime: 1000 * 60 * 60,
-  })
 
   // Languages we want to feature on the multilingual strip, in display order.
   // Keep it visually diverse (Latin · Germanic · Romance · Slavic · Asian).
@@ -507,7 +742,10 @@ export const useLensData = (
   ]
 
   const multilingualNames = useMemo(() => {
-    const list = heroExtrasQuery.data?.vernaculars ?? []
+    const list =
+      heroSpeciesKey && Number.isFinite(heroSpeciesKey)
+        ? topSpeciesPoolQuery.data?.vernacularsBySpecies[heroSpeciesKey] ?? []
+        : []
     if (!list.length) return []
     const byLang = new Map<string, string>()
     for (const item of list) {
@@ -523,7 +761,7 @@ export const useLensData = (
       if (picked.length >= 5) break
     }
     return picked
-  }, [heroExtrasQuery.data])
+  }, [heroSpeciesKey, topSpeciesPoolQuery.data])
 
   const kingdomKeys = useMemo(
     () =>
@@ -666,6 +904,9 @@ export const useLensData = (
     topSpeciesData,
     inSeasonSpecies,
     smallWondersSpecies,
+    brandNewSpecies,
+    nightCreaturesSpecies,
+    thematicStripCards,
     conservationSnapshot,
     kingdomBreakdown,
     datasetSummaries,
