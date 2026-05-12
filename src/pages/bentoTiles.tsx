@@ -1,11 +1,21 @@
 /**
- * Bento tile factory.
+ * Bento card registry + tile builder.
  *
- * Builds the list of tiles displayed on the bento poster from the lens data.
- * Every tile is one of the types declared in {@link TILE_SPECS}, which is the
- * single source of truth for tile size (w × h), placement anchor, and base
- * className. To change a tile's size or accent, edit `TILE_SPECS` only — the
- * builder below just plugs in the data.
+ * Single source of truth for what cards exist on the poster, how big they
+ * are, how they should be placed, and how they render their content.
+ *
+ * Each card is one entry in {@link CARD_DEFS}. A card may emit zero, one,
+ * or many tile instances per poster (e.g. `speciesMini` emits one tile per
+ * species in the gallery). Eligibility lives inside the card's `build()`:
+ * return `[]` to skip the card for the current data.
+ *
+ * Adding a new card type: append a new entry to {@link CARD_DEFS} — nothing
+ * else changes. Removing one: delete its entry.
+ *
+ * Future hooks (not implemented yet — the shape is ready for them):
+ *   - Per-aspect sizes for vertical / square posters: add a `sizesByAspect`
+ *     field next to `size` and resolve it in {@link buildBentoTiles}.
+ *   - Priority / max-instance caps per card type for tight layouts.
  */
 import type { ReactNode } from 'react'
 import type { useLensData } from '../hooks/useLensData'
@@ -16,6 +26,10 @@ import Globe from '../components/Globe'
  *  grid size in {@link BentoPoster} so `bottom-right` follows the height. */
 export type PinCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 
+/** Allowed tile sizes on the bento grid. The packer assumes 1..2 cells per axis. */
+export type TileSize = { w: 1 | 2; h: 1 | 2 }
+
+/** A single rendered card on the poster. */
 export type Tile = {
   id: string
   w: 1 | 2
@@ -28,45 +42,65 @@ export type Tile = {
   render: () => ReactNode
 }
 
-/**
- * Central registry of tile types. Add a new card by adding an entry here and
- * a `makeTile(type, …)` call in {@link buildBentoTiles}.
- *
- * - `anchor` = soft placement preference (best-effort).
- * - `pin`    = hard corner pin (resolved to (x,y) at pack time).
- *   Use `pin` for boxes whose position is part of the design; use `anchor`
- *   for boxes that just want to lean a certain direction.
- */
-export const TILE_SPECS = {
-  title:        { w: 2, h: 1, className: 'bento-card bento-card--title accent-gold', pin: 'top-left' as PinCorner },
-  stats:        { w: 2, h: 1, className: 'bento-card bento-card--stats accent-ink' },
-  hero:         { w: 2, h: 2, className: 'bento-card bento-card--hero accent-forest' },
-  inSeason:     { w: 2, h: 1, className: 'bento-card accent-gold' },
-  smallWonders: { w: 2, h: 1, className: 'bento-card accent-forest' },
-  speciesMini:  { w: 1, h: 1, className: 'bento-card bento-card--mini accent-paper' },
-  seasonality:  { w: 2, h: 1, className: 'bento-card accent-paper' },
-  iucn:         { w: 2, h: 1, className: 'bento-card bento-card--iucn accent-paper' },
-  howWeKnow:    { w: 2, h: 1, className: 'bento-card bento-card--how accent-ink' },
-  sources:      { w: 1, h: 1, className: 'bento-card accent-gold', pin: 'bottom-right' as PinCorner },
-} as const satisfies Record<
-  string,
-  { w: 1 | 2; h: 1 | 2; className: string; anchor?: Anchor; pin?: PinCorner }
->
+type LensData = ReturnType<typeof useLensData>
 
-export type TileType = keyof typeof TILE_SPECS
+/** Poster shapes the user can pick from in the toolbar. Each aspect resolves
+ *  to a grid width (and optional fixed height) in {@link POSTER_ASPECTS}. */
+export type PosterAspect = 'horizontal' | 'vertical' | 'square'
 
-function makeTile(type: TileType, id: string, render: () => ReactNode): Tile {
-  const spec = TILE_SPECS[type]
-  return {
-    id,
-    w: spec.w,
-    h: spec.h,
-    className: spec.className,
-    anchor: 'anchor' in spec ? (spec.anchor as Anchor | undefined) : undefined,
-    pin: 'pin' in spec ? (spec.pin as PinCorner | undefined) : undefined,
-    render,
-  }
+/** Grid dimensions per aspect. `fixedH` forces the packer to use that exact
+ *  height (used by the curated square poster); otherwise height is derived
+ *  from total tile area. */
+export const POSTER_ASPECTS: Record<
+  PosterAspect,
+  { label: string; gridW: number; fixedH?: number }
+> = {
+  horizontal: { label: 'Wide', gridW: 6 },
+  vertical:   { label: 'Tall', gridW: 4 },
+  square:     { label: 'Square', gridW: 4, fixedH: 4 },
 }
+
+/** What `buildBentoTiles` hands to each card. Lean on purpose. */
+export type CardBuildCtx = {
+  placeName: string
+  latitude?: number
+  longitude?: number
+  data: LensData
+  aspect: PosterAspect
+}
+
+/** What a card's `build()` returns. Per-instance overrides are optional and
+ *  only needed when one card type wants to vary size/placement/style per
+ *  instance (e.g. alternating accents). */
+export type TileInstance = {
+  id: string
+  render: () => ReactNode
+  size?: TileSize
+  anchor?: Anchor
+  pin?: PinCorner
+  className?: string
+}
+
+/** Definition of a card type. */
+export type CardDef = {
+  /** Stable identifier for the card type. */
+  type: string
+  /** Default size for instances of this card. */
+  size: TileSize
+  /** Default placement hint. */
+  anchor?: Anchor
+  pin?: PinCorner
+  /** Default className. */
+  className: string
+  /** Restrict this card to specific poster aspects. Undefined = all aspects. */
+  aspects?: PosterAspect[]
+  /** Produce tile instances for the current context. Return `[]` to skip. */
+  build: (ctx: CardBuildCtx) => TileInstance[]
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Render helpers shared by multiple cards.
+// ───────────────────────────────────────────────────────────────────────────
 
 const MONTH = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
@@ -76,7 +110,330 @@ const fmtPct = (share: number) => {
   return '<1%'
 }
 
-type LensData = ReturnType<typeof useLensData>
+// ───────────────────────────────────────────────────────────────────────────
+// Card registry. Each entry is self-contained: type, size, placement, style,
+// and a `build` that decides eligibility and produces tile instances.
+// ───────────────────────────────────────────────────────────────────────────
+
+export const CARD_DEFS: CardDef[] = [
+  {
+    type: 'title',
+    size: { w: 2, h: 1 },
+    pin: 'top-left',
+    className: 'bento-card bento-card--title accent-gold',
+    build: ({ placeName, latitude, longitude }) => [
+      {
+        id: 'title',
+        render: () => (
+          <div className="bento-title__layout">
+            {typeof latitude === 'number' && typeof longitude === 'number' && (
+              <Globe className="bento-title__globe" lat={latitude} lon={longitude} />
+            )}
+            <div className="bento-title__text">
+              <h1 className="bento-title">
+                <span className="bento-title__place">{placeName}</span>
+                <span className="bento-title__sub">Biodiversity Portrait</span>
+              </h1>
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
+
+  {
+    type: 'sightings',
+    size: { w: 1, h: 1 },
+    className: 'bento-card bento-card--sightings accent-ink',
+    build: ({ data }) => {
+      // Show the headline number plus the top 3 kingdoms as compact %
+      // chips so users see the *composition* of those sightings, not just
+      // the raw count. Falls back gracefully if breakdown is empty.
+      const total = data.kingdomBreakdown.reduce((s, k) => s + k.count, 0)
+      const topKingdoms = total > 0
+        ? [...data.kingdomBreakdown]
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 3)
+            .map((k) => ({ label: k.label, share: k.count / total }))
+        : []
+      return [
+        {
+          id: 'sightings',
+          render: () => (
+            <>
+              <span className="bento-card__kicker">Sightings on GBIF</span>
+              <span className="bento-sightings__num">
+                {data.totalRecords ? data.totalRecords.toLocaleString() : '—'}
+              </span>
+              {topKingdoms.length > 0 && (
+                <ul className="bento-sightings__breakdown">
+                  {topKingdoms.map((k) => (
+                    <li key={k.label} className="bento-sightings__row">
+                      <span className="bento-sightings__pct">{fmtPct(k.share)}</span>
+                      <span className="bento-sightings__label">{k.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ),
+        },
+      ]
+    },
+  },
+
+  {
+    type: 'hero',
+    size: { w: 2, h: 2 },
+    className: 'bento-card bento-card--hero accent-forest',
+    build: ({ data }) => {
+      const hero = data.topSpeciesData[0]
+      if (!hero) return []
+      return [
+        {
+          id: 'hero',
+          render: () => (
+            <>
+              <img src={hero.imageUrl} alt={hero.commonName} className="bento-hero__img" loading="lazy" />
+              <div className="bento-hero__body">
+                <span className="bento-card__kicker">Most observed species</span>
+                <h2 className="bento-hero__name">{hero.commonName}</h2>
+                <p className="bento-hero__sci">{hero.scientificName}</p>
+                {hero.taxonLine && <span className="bento-hero__taxon">{hero.taxonLine}</span>}
+                {hero.popularity ? (
+                  <span className="bento-hero__count">
+                    {hero.popularity.toLocaleString()} observations
+                  </span>
+                ) : null}
+              </div>
+            </>
+          ),
+        },
+      ]
+    },
+  },
+
+  {
+    type: 'speciesMini',
+    size: { w: 1, h: 1 },
+    className: 'bento-card bento-card--mini accent-paper',
+    build: ({ data, aspect }) => {
+      // Square poster only has room for 3 minis; wider posters get up to 5.
+      const max = aspect === 'square' ? 3 : 5
+      return data.topSpeciesData.slice(1, 1 + max).map((sp) => ({
+        id: `sp-${sp.id}`,
+        render: () => (
+          <>
+            <img src={sp.imageUrl} alt={sp.commonName} className="bento-mini__img" loading="lazy" />
+            <span className="bento-mini__name">{sp.commonName}</span>
+            <span className="bento-mini__sci">{sp.scientificName}</span>
+            {sp.popularity ? (
+              <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
+            ) : null}
+          </>
+        ),
+      }))
+    },
+  },
+
+  {
+    type: 'thematicStrip',
+    aspects: ['horizontal', 'vertical'],
+    size: { w: 1, h: 1 },
+    // One species per thematic card, rendered like a `speciesMini` with the
+    // theme kicker shown as a small ribbon over the image. Alternates the
+    // accent so a row of these stays visually varied.
+    className: 'bento-card bento-card--mini accent-gold',
+    build: ({ data }) =>
+      data.thematicStripCards
+        .map((card, index) => {
+          const sp = card.species[0]
+          if (!sp) return null
+          return {
+            id: `thematic-${card.id}`,
+            className:
+              'bento-card bento-card--mini ' +
+              (index % 2 === 0 ? 'accent-gold' : 'accent-forest'),
+            render: () => (
+              <>
+                <img
+                  src={sp.squareImageUrl ?? sp.imageUrl}
+                  alt={sp.commonName}
+                  className="bento-mini__img"
+                  loading="lazy"
+                />
+                <span className="bento-mini__ribbon">{card.kicker}</span>
+                <span className="bento-mini__name">{sp.commonName}</span>
+                <span className="bento-mini__sci">{sp.scientificName}</span>
+              </>
+            ),
+          }
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null),
+  },
+
+  {
+    type: 'seasonality',
+    size: { w: 2, h: 1 },
+    className: 'bento-card accent-paper',
+    build: ({ data }) => [
+      {
+        id: 'seasonality',
+        render: () => (
+          <>
+            <span className="bento-card__kicker">When life is observed</span>
+            <div className="bento-season">
+              {data.seasonalityData.map((val, i) => {
+                const ratio = data.maxSeasonality > 0 ? val / data.maxSeasonality : 0
+                const size = Math.max(ratio * 38, 8)
+                return (
+                  <div key={`m-${i}`} className="bento-season__col">
+                    <div className="bento-season__bubble" style={{ width: size, height: size }} />
+                    <span className="bento-season__label">{MONTH[i]}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        ),
+      },
+    ],
+  },
+
+  {
+    type: 'iucn',
+    size: { w: 1, h: 1 },
+    className: 'bento-card bento-card--iucn accent-paper',
+    build: ({ data }) => {
+      const snap = data.conservationSnapshot
+      if (snap.totalAssessedSpecies <= 0) return []
+      const get = (s: string) =>
+        snap.categoryBreakdown.find((c) => c.status === s)?.count ?? 0
+      const buckets = [
+        { label: 'Doing well', count: get('LC'), color: '#4ade80' },
+        { label: 'Watch list', count: get('NT') + get('DD'), color: '#facc15' },
+        { label: 'At risk', count: get('VU') + get('EN') + get('CR'), color: '#f87171' },
+      ]
+      return [
+        {
+          id: 'iucn',
+          render: () => (
+            <>
+              <span className="bento-card__kicker">IUCN Red List</span>
+              <div className="bento-iucn__buckets">
+                {buckets.map((b) => (
+                  <span key={b.label} className="bento-iucn__pill">
+                    <span className="bento-iucn__dot" style={{ background: b.color }} />
+                    <span className="bento-iucn__count">{b.count}</span>
+                    <span className="bento-iucn__label">{b.label}</span>
+                  </span>
+                ))}
+              </div>
+            </>
+          ),
+        },
+      ]
+    },
+  },
+
+  {
+    type: 'atRisk',
+    size: { w: 1, h: 1 },
+    className: 'bento-card bento-card--mini bento-card--at-risk accent-paper',
+    build: ({ data }) => {
+      const sp = data.conservationSnapshot.threatenedSpecies[0]
+      if (!sp) return []
+      return [
+        {
+          id: 'at-risk',
+          render: () => (
+            <>
+              <img
+                src={sp.squareImageUrl ?? sp.imageUrl}
+                alt={sp.commonName}
+                className="bento-mini__img"
+                loading="lazy"
+              />
+              <span className="bento-mini__ribbon bento-mini__ribbon--danger">
+                At risk · {sp.iucnCategory}
+              </span>
+              <span className="bento-mini__name">{sp.commonName}</span>
+              <span className="bento-mini__sci">{sp.scientificName}</span>
+            </>
+          ),
+        },
+      ]
+    },
+  },
+
+  {
+    type: 'howWeKnow',
+    size: { w: 1, h: 1 },
+    aspects: ['horizontal', 'vertical'],
+    className: 'bento-card bento-card--how accent-ink',
+    build: ({ data }) => {
+      // 1×1 has room for the top 2 sources only; the rest collapse into a
+      // single "+ N others" summary row.
+      const topRecords = data.recordsBreakdown.slice(0, 2)
+      if (topRecords.length === 0) return []
+      const restRecords = data.recordsBreakdown.slice(2)
+      const restShare = restRecords.reduce((s, r) => s + r.share, 0)
+      return [
+        {
+          id: 'how-we-know',
+          render: () => (
+            <>
+              <span className="bento-card__kicker">How we know this</span>
+              <ul className="bento-how__rows">
+                {topRecords.map((item) => (
+                  <li key={item.key} className="bento-how__row">
+                    <span className="bento-how__pct">{fmtPct(item.share)}</span>
+                    <span className="bento-how__label">{item.label}</span>
+                  </li>
+                ))}
+                {restShare > 0.005 && (
+                  <li className="bento-how__row bento-how__row--rest">
+                    <span className="bento-how__pct">{fmtPct(restShare)}</span>
+                    <span className="bento-how__label">
+                      + {restRecords.length} other source{restRecords.length === 1 ? '' : 's'}
+                    </span>
+                  </li>
+                )}
+              </ul>
+            </>
+          ),
+        },
+      ]
+    },
+  },
+
+  {
+    type: 'sources',
+    size: { w: 2, h: 1 },
+    pin: 'bottom-right',
+    className: 'bento-card accent-gold',
+    build: ({ data }) => [
+      {
+        id: 'sources',
+        render: () => (
+          <>
+            <span className="bento-card__kicker">Sources</span>
+            <p className="bento-card__sub">
+              <strong>GBIF</strong> · <strong>Lynxee</strong>
+            </p>
+            {data.datasetSummaries.length > 0 && (
+              <p className="bento-datasets">{data.datasetSummaries[0]?.title}</p>
+            )}
+          </>
+        ),
+      },
+    ],
+  },
+]
+
+// ───────────────────────────────────────────────────────────────────────────
+// Public API used by the poster page.
+// ───────────────────────────────────────────────────────────────────────────
 
 export interface BuildTilesArgs {
   placeName: string
@@ -85,265 +442,52 @@ export interface BuildTilesArgs {
   /** Longitude of the selected place (degrees). Used by the title-tile globe. */
   longitude?: number
   data: LensData
+  /** Which poster shape we are building for. Cards may opt out per aspect
+   *  via their `aspects` field, and may also adapt their content (e.g.
+   *  `speciesMini` emits fewer tiles in square mode). */
+  aspect: PosterAspect
 }
 
-export function buildBentoTiles({
-  placeName,
-  latitude,
-  longitude,
-  data,
-}: BuildTilesArgs): Tile[] {
-  const {
-    seasonalityData, topSpeciesData, conservationSnapshot,
-    kingdomBreakdown, datasetSummaries,
-    totalRecords, maxSeasonality,
-    recordsBreakdown,
-    thematicStripCards,
-  } = data
-
-  const hero = topSpeciesData[0]
-  const restSpecies = topSpeciesData.slice(1, 6)
-  const topRecords = recordsBreakdown.slice(0, 3)
-  const restRecords = recordsBreakdown.slice(3)
-  const restRecordsShare = restRecords.reduce((s, r) => s + r.share, 0)
-
-  const kingdomTotal = kingdomBreakdown.reduce((s, k) => s + k.count, 0)
-  const kingdomSummary = kingdomTotal > 0
-    ? kingdomBreakdown
-      .slice(0, 4)
-      .map((k) => `${k.label} ${Math.round((k.count / kingdomTotal) * 100)}%`)
-      .join(', ')
-    : ''
-
+/** Walk the card registry and produce concrete tiles for the current data. */
+export function buildBentoTiles(args: BuildTilesArgs): Tile[] {
+  const ctx: CardBuildCtx = args
   const tiles: Tile[] = []
-
-  tiles.push(
-    makeTile('title', 'title', () => (
-      <div className="bento-title__layout">
-        {typeof latitude === 'number' && typeof longitude === 'number' && (
-          <Globe
-            className="bento-title__globe"
-            lat={latitude}
-            lon={longitude}
-          />
-        )}
-        <div className="bento-title__text">
-          <h1 className="bento-title">
-            <span className="bento-title__place">{placeName}</span>
-            <span className="bento-title__sub">Biodiversity Portrait</span>
-          </h1>
-        </div>
-      </div>
-    )),
-  )
-
-  // Sightings + at-risk numbers, plus the kingdom sentence ("what life looks
-  // like here") tucked in as a caption — too thin to deserve its own tile.
-  tiles.push(
-    makeTile('stats', 'stats', () => (
-      <div className="bento-stats">
-        <div className="bento-stats__cell bento-stats__cell--sightings">
-          <span className="bento-card__kicker">Sightings</span>
-          <span className="bento-bignum bento-bignum--sm bento-stats__count bento-stats__count--sightings">
-            {totalRecords ? totalRecords.toLocaleString() : '—'}
-          </span>
-          <span className="bento-card__sub">on GBIF</span>
-        </div>
-        <div className="bento-stats__divider" />
-        <div className="bento-stats__cell bento-stats__cell--risk">
-          <span className="bento-card__kicker">At risk</span>
-          <span className="bento-bignum bento-bignum--sm bento-stats__count bento-stats__count--risk bento-stats__danger">
-            {conservationSnapshot.threatenedCount}
-          </span>
-          <span className="bento-card__sub">may disappear</span>
-        </div>
-        {kingdomSummary && (
-          <p className="bento-stats__caption">
-            <span className="bento-stats__caption-kicker">What life looks like here</span>
-            <span className="bento-stats__caption-text">{kingdomSummary}</span>
-          </p>
-        )}
-      </div>
-    )),
-  )
-
-  if (hero) {
-    tiles.push(
-      makeTile('hero', 'hero', () => (
-        <>
-          <img src={hero.imageUrl} alt={hero.commonName} className="bento-hero__img" loading="lazy" />
-          <div className="bento-hero__body">
-            <span className="bento-card__kicker">Most observed species</span>
-            <h2 className="bento-hero__name">{hero.commonName}</h2>
-            <p className="bento-hero__sci">{hero.scientificName}</p>
-            {hero.taxonLine && <span className="bento-hero__taxon">{hero.taxonLine}</span>}
-            {hero.popularity ? (
-              <span className="bento-hero__count">
-                {hero.popularity.toLocaleString()} observations
-              </span>
-            ) : null}
-          </div>
-        </>
-      )),
-    )
+  for (const def of CARD_DEFS) {
+    if (def.aspects && !def.aspects.includes(args.aspect)) continue
+    for (const inst of def.build(ctx)) {
+      tiles.push({
+        id: inst.id,
+        w: inst.size?.w ?? def.size.w,
+        h: inst.size?.h ?? def.size.h,
+        anchor: inst.anchor ?? def.anchor,
+        pin: inst.pin ?? def.pin,
+        className: inst.className ?? def.className,
+        render: inst.render,
+      })
+    }
   }
-
-  for (const sp of restSpecies) {
-    tiles.push(
-      makeTile('speciesMini', `sp-${sp.id}`, () => (
-        <>
-          <img src={sp.imageUrl} alt={sp.commonName} className="bento-mini__img" loading="lazy" />
-          <span className="bento-mini__name">{sp.commonName}</span>
-          <span className="bento-mini__sci">{sp.scientificName}</span>
-          {sp.popularity ? (
-            <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
-          ) : null}
-        </>
-      )),
-    )
-  }
-
-  thematicStripCards.forEach((card, index) => {
-    const type: TileType = index % 2 === 0 ? 'inSeason' : 'smallWonders'
-    tiles.push(
-      makeTile(type, `thematic-${card.id}`, () => (
-        <>
-          <span className="bento-card__kicker">{card.kicker}</span>
-          <div className="bento-strip">
-            {card.species.slice(0, 3).map((sp) => (
-              <div key={sp.id} className="bento-strip__item">
-                <img src={sp.squareImageUrl ?? sp.imageUrl} alt={sp.commonName} loading="lazy" />
-                <span className="bento-strip__name">{sp.commonName}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )),
-    )
-  })
-
-  tiles.push(
-    makeTile('seasonality', 'seasonality', () => (
-      <>
-        <span className="bento-card__kicker">When life is observed</span>
-        <div className="bento-season">
-          {seasonalityData.map((val, i) => {
-            const ratio = maxSeasonality > 0 ? val / maxSeasonality : 0
-            const size = Math.max(ratio * 38, 8)
-            return (
-              <div key={`m-${i}`} className="bento-season__col">
-                <div className="bento-season__bubble" style={{ width: size, height: size }} />
-                <span className="bento-season__label">{MONTH[i]}</span>
-              </div>
-            )
-          })}
-        </div>
-      </>
-    )),
-  )
-
-  if (conservationSnapshot.totalAssessedSpecies > 0) {
-    const get = (s: string) =>
-      conservationSnapshot.categoryBreakdown.find((c) => c.status === s)?.count ?? 0
-    const buckets = [
-      { label: 'Doing well', count: get('LC'), color: '#4ade80' },
-      { label: 'Watch list', count: get('NT') + get('DD'), color: '#facc15' },
-      { label: 'At risk', count: get('VU') + get('EN') + get('CR'), color: '#f87171' },
-    ]
-    const atRiskSpecies = conservationSnapshot.threatenedSpecies.slice(0, 3)
-    tiles.push(
-      makeTile('iucn', 'iucn', () => (
-        <>
-          <div className="bento-iucn__head">
-            <span className="bento-card__kicker">IUCN Red List</span>
-            <div className="bento-iucn__buckets">
-              {buckets.map((b) => (
-                <span key={b.label} className="bento-iucn__pill">
-                  <span className="bento-iucn__dot" style={{ background: b.color }} />
-                  <span className="bento-iucn__count">{b.count}</span>
-                  <span className="bento-iucn__label">{b.label}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-          {atRiskSpecies.length > 0 && (
-            <>
-              <span className="bento-card__kicker bento-card__kicker--danger bento-iucn__risk-kicker">
-                At risk near you
-              </span>
-              <div className="bento-strip bento-iucn__strip">
-                {atRiskSpecies.map((sp) => (
-                  <div key={sp.id} className="bento-strip__item">
-                    <img src={sp.squareImageUrl ?? sp.imageUrl} alt={sp.commonName} loading="lazy" />
-                    <span className="bento-strip__name">{sp.commonName}</span>
-                    <span className="bento-strip__badge">{sp.iucnCategory}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </>
-      )),
-    )
-  }
-
-  if (topRecords.length > 0) {
-    tiles.push(
-      makeTile('howWeKnow', 'how-we-know', () => (
-        <>
-          <span className="bento-card__kicker">How we know this</span>
-          <ul className="bento-rows">
-            {topRecords.map((item) => (
-              <li key={item.key} className="bento-row">
-                <div className="bento-row__head">
-                  <span className="bento-row__pct">{fmtPct(item.share)}</span>
-                  <span className="bento-row__label">{item.label}</span>
-                </div>
-                <div className="bento-row__bar">
-                  <div
-                    className="bento-row__bar-fill"
-                    style={{ width: `${Math.max(item.share * 100, 1.5)}%` }}
-                  />
-                </div>
-              </li>
-            ))}
-            {restRecordsShare > 0.005 && (
-              <li className="bento-row bento-row--rest">
-                <span className="bento-row__pct">{fmtPct(restRecordsShare)}</span>
-                <span className="bento-row__label">
-                  + {restRecords.length} other source{restRecords.length === 1 ? '' : 's'}
-                </span>
-              </li>
-            )}
-          </ul>
-        </>
-      )),
-    )
-  }
-
-  tiles.push(
-    makeTile('sources', 'sources', () => (
-      <>
-        <span className="bento-card__kicker">Sources</span>
-        <p className="bento-card__sub">
-          <strong>GBIF</strong> · <strong>Lynxee</strong>
-        </p>
-        {datasetSummaries.length > 0 && (
-          <p className="bento-datasets">{datasetSummaries[0]?.title}</p>
-        )}
-      </>
-    )),
-  )
-
   return tiles
 }
 
-/** Pad with invisible 1×1 fillers so total area is a multiple of `gridW`. */
-export function padToRectangle(tiles: Tile[], gridW: number): Tile[] {
+/** Pad with invisible 1×1 fillers. When `targetArea` is set, pad up to that
+ *  exact total area (used for fixed-height posters like the 4×4 square).
+ *  Otherwise, pad to the next multiple of `gridW` so a flexible-height
+ *  rectangle can be tiled with no leftover. */
+export function padToRectangle(
+  tiles: Tile[],
+  gridW: number,
+  targetArea?: number,
+): Tile[] {
   const totalArea = tiles.reduce((s, t) => s + t.w * t.h, 0)
-  const remainder = totalArea % gridW
-  if (remainder === 0) return tiles
-  const fillerCount = gridW - remainder
+  let fillerCount: number
+  if (typeof targetArea === 'number') {
+    fillerCount = Math.max(0, targetArea - totalArea)
+  } else {
+    const remainder = totalArea % gridW
+    if (remainder === 0) return tiles
+    fillerCount = gridW - remainder
+  }
+  if (fillerCount === 0) return tiles
   const fillers: Tile[] = Array.from({ length: fillerCount }, (_, i) => ({
     id: `filler-${i}`,
     w: 1,

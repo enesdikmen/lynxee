@@ -13,10 +13,15 @@ import { packWithRetries, type BoxSpec } from '../lib/gridPacker'
 import type { Place } from '../types/lens'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
 import type { ImageSourceConfig } from '../App'
-import { buildBentoTiles, padToRectangle } from './bentoTiles'
+import {
+  buildBentoTiles,
+  padToRectangle,
+  POSTER_ASPECTS,
+  type PosterAspect,
+} from './bentoTiles'
 import './BentoPoster.css'
 
-const GRID_W = 6
+const ASPECT_ORDER: PosterAspect[] = ['horizontal', 'vertical', 'square']
 
 interface Props {
   selectedPlace: Place
@@ -36,6 +41,9 @@ function BentoPoster({
   // Single seed for poster-level variation. Layout and data already consume it;
   // future style themes should derive from this same seed as well.
   const [posterSeed, setPosterSeed] = useState(1)
+  const [aspect, setAspect] = useState<PosterAspect>('horizontal')
+  const aspectCfg = POSTER_ASPECTS[aspect]
+  const GRID_W = aspectCfg.gridW
 
   const placeName = selectedPlace?.label?.split(',')[0]?.trim() ?? 'Pick a place'
   const latitude = selectedPlace?.latitude
@@ -54,18 +62,24 @@ function BentoPoster({
     contentSeed: posterSeed,
   })
 
-  const tiles = useMemo(
-    () => padToRectangle(buildBentoTiles({ placeName, latitude, longitude, data }), GRID_W),
-    [placeName, latitude, longitude, data],
-  )
+  const tiles = useMemo(() => {
+    const built = buildBentoTiles({ placeName, latitude, longitude, data, aspect })
+    // Fixed-height posters (square) need exact area padding; flexible-height
+    // posters just need the total area to be a multiple of GRID_W.
+    const targetArea =
+      typeof aspectCfg.fixedH === 'number' ? GRID_W * aspectCfg.fixedH : undefined
+    return padToRectangle(built, GRID_W, targetArea)
+  }, [placeName, latitude, longitude, data, aspect, aspectCfg.fixedH, GRID_W])
 
-  // Pack the tiles. The total area is a multiple of GRID_W thanks to the
-  // padding, so the exact-height rectangle should always fit. Allow up to
-  // +2 rows of slack in case anchor constraints make the tightest layout
-  // infeasible.
+  // Pack the tiles. For flexible-height posters the area is a multiple of
+  // GRID_W so the exact-height rectangle should always fit; we allow +2 rows
+  // of slack in case anchor constraints make the tightest layout infeasible.
+  // For fixed-height posters we lock to exactly that height.
   const { placements, gridH } = useMemo(() => {
     const exactH = tiles.reduce((s, t) => s + t.w * t.h, 0) / GRID_W
-    for (let h = exactH; h <= exactH + 2; h++) {
+    const startH = aspectCfg.fixedH ?? exactH
+    const endH = aspectCfg.fixedH ?? exactH + 2
+    for (let h = startH; h <= endH; h++) {
       // Hard pins are resolved against the *current* grid height attempt so
       // that e.g. `bottom-right` always means the actual bottom-right corner.
       const specs: BoxSpec[] = tiles.map((t) => {
@@ -82,8 +96,8 @@ function BentoPoster({
       const r = packWithRetries({ width: GRID_W, height: h, boxes: specs, seed: posterSeed }, 60)
       if (r) return { placements: r.placements, gridH: h }
     }
-    return { placements: [], gridH: exactH }
-  }, [tiles, posterSeed])
+    return { placements: [], gridH: startH }
+  }, [tiles, posterSeed, GRID_W, aspectCfg.fixedH])
 
   const placementById = useMemo(() => {
     const m = new Map<string, (typeof placements)[number]>()
@@ -148,6 +162,23 @@ function BentoPoster({
         >
           ↻ Regenerate
         </button>
+        <span className="bento-toolbar__aspects" role="group" aria-label="Poster shape">
+          {ASPECT_ORDER.map((a) => (
+            <button
+              key={a}
+              type="button"
+              className={
+                'bento-toolbar__btn' +
+                (aspect === a ? ' bento-toolbar__btn--primary' : '')
+              }
+              onClick={() => setAspect(a)}
+              title={`${POSTER_ASPECTS[a].label} poster`}
+              aria-pressed={aspect === a}
+            >
+              {POSTER_ASPECTS[a].label}
+            </button>
+          ))}
+        </span>
         <button
           type="button"
           onClick={onOpenSandbox}
@@ -159,7 +190,7 @@ function BentoPoster({
       </div>
 
       <div
-        className="bento-grid"
+        className={`bento-grid bento-grid--${aspect}`}
         style={{
           gridTemplateColumns: `repeat(${GRID_W}, 1fr)`,
           gridTemplateRows: `repeat(${gridH}, 1fr)`,

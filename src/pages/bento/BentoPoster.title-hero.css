@@ -218,14 +218,20 @@
 }
 
 /* ── Mini species card (1×1) ──────────────────────────── */
+/* Every 1×1 mini card shares the same vertical recipe:
+     1. a fixed-ratio image (aspect-ratio: 3/2) anchored to the top
+     2. text rows below that flex to fill whatever remains
+   Pinning the image with aspect-ratio (instead of flex:1) means the
+   picture stays the same size whether the card has 2 or 3 text rows
+   below it. Used by speciesMini, thematicStrip, atRisk. */
 .bento-card--mini {
   padding: 0;
   gap: 0;
 }
 .bento-mini__img {
   width: 100%;
-  flex: 1 1 0;
-  min-height: 60px;
+  aspect-ratio: 3 / 2;
+  flex: 0 0 auto;
   object-fit: cover;
   object-position: 50% 30%;
   background: #f3eee5;
@@ -290,4 +296,34 @@
   border-radius: 6px;
   padding: 0.1rem 0.4rem;
   z-index: 1;
+}
+
+/* ── 1×1 mini card consistency note ─────────────────────
+   Image sizing is enforced via aspect-ratio on .bento-mini__img above
+   (3/2). Do not re-introduce flex:1 here — that would re-couple the
+   image height to the number of text rows below. */
+
+/* Small ribbon overlaying the image (used by thematicStrip + atRisk). */
+.bento-mini__ribbon {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  width: max-content;
+  max-width: calc(100% - 12px);
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(var(--color-ink));
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.12rem 0.4rem;
+  z-index: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bento-mini__ribbon--danger {
+  background: rgb(var(--color-accent));
 }

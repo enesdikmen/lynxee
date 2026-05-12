@@ -189,3 +189,20 @@
   color: rgb(var(--color-ink-soft));
   line-height: 1.2;
 }
+
+/* ── Compact 1×1 IUCN card: vertical stack of three pills ─ */
+.bento-card--iucn .bento-iucn__buckets {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+.bento-card--iucn .bento-iucn__pill {
+  width: 100%;
+  padding: 0.25rem 0.45rem;
+}
+.bento-card--iucn .bento-iucn__count {
+  font-size: 1rem;
+  min-width: 1.8rem;
+}

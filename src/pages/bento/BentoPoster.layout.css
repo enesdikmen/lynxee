@@ -119,6 +119,17 @@ img[src=""] { visibility: hidden; }
   display: grid;
   gap: clamp(0.5rem, 1vw, 0.85rem);
 }
+/* For tall/square posters, cap by viewport height instead of width so the
+   whole poster stays visible without scrolling. `aspect-ratio` is set inline
+   from the packer, so the width auto-derives from the capped height. */
+.bento-grid--vertical,
+.bento-grid--square {
+  /* Subtract toolbar + page padding so the poster sits inside the viewport. */
+  max-height: calc(100vh - 7rem);
+  max-width: 100%;
+  width: auto;
+  height: auto;
+}
 @media (max-width: 700px) {
   /* On phones, drop the strict aspect ratio — let cards grow as tall as
      content needs. Cells are no longer square but the layout still works. */
@@ -206,6 +217,17 @@ img[src=""] { visibility: hidden; }
   align-items: center;
   width: 100%;
   height: 100%;
+}
+/* Single-stat 1×1 variant (used by the standalone sightings card). */
+.bento-stats--solo {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  justify-items: center;
+  text-align: center;
+}
+.bento-stats--solo .bento-stats__cell {
+  padding: 0.5rem 0.6rem;
+  align-items: center;
 }
 .bento-stats__cell {
   display: flex;

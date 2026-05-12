@@ -1,59 +1,109 @@
-/* ── How-we-know rows ─────────────────────────────────── */
-.bento-rows {
+/* ── How-we-know (1×1) ────────────────────────────────── */
+/* Clean two-column layout: big % on the left, source label on the right.
+   No progress bars, no offset hints — they don't fit in a 1×1 cell and
+   the percentages already communicate the share. */
+.bento-card--how {
+  padding: 0.85rem 0.95rem;
+  justify-content: flex-start;
+}
+.bento-how__rows {
   list-style: none;
   padding: 0;
-  margin: 0.4rem 0 0;
+  margin: 0.45rem 0 0;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
 }
-.bento-card--how .bento-rows {
-  margin-top: 0.3rem;
-  gap: 0.3rem;
-}
-.bento-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-.bento-row__head {
-  display: flex;
+.bento-how__row {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
-.bento-row__pct {
+.bento-how__pct {
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 1.1rem;
+  line-height: 1;
   color: #fff;
-  min-width: 2.4rem;
+  text-align: right;
 }
-.bento-row__label {
-  font-size: 0.78rem;
+.bento-how__label {
+  font-size: 0.72rem;
+  line-height: 1.2;
   font-weight: 600;
   color: #fff;
-}
-.bento-row__hint {
-  font-size: 0.62rem;
-  color: rgba(255,255,255,0.7);
-  margin-left: 2.9rem;
-}
-.bento-row__bar {
-  height: 5px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 999px;
+  /* Allow up to 2 lines so longer labels don't get clipped. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-left: 2.9rem;
 }
-.bento-row__bar-fill {
-  height: 100%;
-  background: rgb(var(--color-gold));
-  border-radius: inherit;
+.bento-how__row--rest {
+  opacity: 0.65;
 }
-.bento-row--rest {
-  flex-direction: row;
+.bento-how__row--rest .bento-how__pct {
+  font-size: 0.85rem;
+}
+.bento-how__row--rest .bento-how__label {
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+/* ── Sightings card (1×1) ─────────────────────────────── */
+/* Layout (top → bottom):
+     kicker   "SIGHTINGS ON GBIF"
+     bignum   "2,376,448"
+     rows     three "33% Animalia" lines (kingdom mix) */
+.bento-card--sightings {
+  padding: 0.85rem 0.95rem;
+  justify-content: flex-start;
+  gap: 0.25rem;
+}
+.bento-sightings__num {
+  display: block;
+  font-family: var(--font-display);
+  /* Sized to fit a 7-digit grouped number (e.g. "2,376,448") inside a
+     1×1 cell on the wide poster; the clamp scales it down on Tall/Square
+     where cells are narrower. */
+  font-size: clamp(1.05rem, 2.2vw, 1.7rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.bento-sightings__breakdown {
+  list-style: none;
+  padding: 0;
+  margin: 0.55rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 0.45rem;
+}
+.bento-sightings__row {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
   align-items: baseline;
-  gap: 0.5rem;
-  opacity: 0.7;
+  gap: 0.45rem;
+}
+.bento-sightings__pct {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  line-height: 1;
+  color: rgb(var(--color-gold));
+  text-align: right;
+}
+.bento-sightings__label {
+  font-size: 0.7rem;
+  line-height: 1.15;
+  color: rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Datasets footer ──────────────────────────────────── */
