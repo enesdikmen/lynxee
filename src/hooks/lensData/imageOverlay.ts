@@ -9,10 +9,6 @@ import type {
 
 export type UseLensImageOverlayArgs = {
   topSpeciesData: SpeciesCard[]
-  inSeasonSpecies: SpeciesCard[]
-  smallWondersSpecies: SpeciesCard[]
-  brandNewSpecies: SpeciesCard[]
-  nightCreaturesSpecies: SpeciesCard[]
   thematicStripCards: ThematicStripCard[]
   conservationSnapshot: ConservationSnapshot
   imageSources: ImageSource[]
@@ -20,10 +16,6 @@ export type UseLensImageOverlayArgs = {
 
 export type UseLensImageOverlayResult = {
   topSpeciesData: SpeciesCard[]
-  inSeasonSpecies: SpeciesCard[]
-  smallWondersSpecies: SpeciesCard[]
-  brandNewSpecies: SpeciesCard[]
-  nightCreaturesSpecies: SpeciesCard[]
   thematicStripCards: ThematicStripCard[]
   conservationSnapshot: ConservationSnapshot
 }
@@ -33,10 +25,6 @@ export const useLensImageOverlay = (
 ): UseLensImageOverlayResult => {
   const {
     topSpeciesData,
-    inSeasonSpecies,
-    smallWondersSpecies,
-    brandNewSpecies,
-    nightCreaturesSpecies,
     thematicStripCards,
     conservationSnapshot,
     imageSources,
@@ -53,20 +41,10 @@ export const useLensImageOverlay = (
       })
     }
     collect(topSpeciesData)
-    collect(inSeasonSpecies)
-    collect(smallWondersSpecies)
-    collect(brandNewSpecies)
-    collect(nightCreaturesSpecies)
+    thematicStripCards.forEach((card) => collect(card.species))
     collect(conservationSnapshot.threatenedSpecies)
     return Array.from(map.values()).sort((a, b) => a.speciesKey - b.speciesKey)
-  }, [
-    topSpeciesData,
-    inSeasonSpecies,
-    smallWondersSpecies,
-    brandNewSpecies,
-    nightCreaturesSpecies,
-    conservationSnapshot.threatenedSpecies,
-  ])
+  }, [topSpeciesData, thematicStripCards, conservationSnapshot.threatenedSpecies])
 
   const imageMapQuery = useQuery({
     queryKey: [
@@ -108,22 +86,6 @@ export const useLensImageOverlay = (
     () => topSpeciesData.map(applyImage),
     [topSpeciesData, applyImage],
   )
-  const imagedInSeason = useMemo(
-    () => inSeasonSpecies.map(applyImage),
-    [inSeasonSpecies, applyImage],
-  )
-  const imagedSmallWonders = useMemo(
-    () => smallWondersSpecies.map(applyImage),
-    [smallWondersSpecies, applyImage],
-  )
-  const imagedBrandNew = useMemo(
-    () => brandNewSpecies.map(applyImage),
-    [brandNewSpecies, applyImage],
-  )
-  const imagedNightCreatures = useMemo(
-    () => nightCreaturesSpecies.map(applyImage),
-    [nightCreaturesSpecies, applyImage],
-  )
   const imagedThematicStripCards = useMemo(
     () =>
       thematicStripCards.map((c) => ({
@@ -142,10 +104,6 @@ export const useLensImageOverlay = (
 
   return {
     topSpeciesData: imagedTopSpecies,
-    inSeasonSpecies: imagedInSeason,
-    smallWondersSpecies: imagedSmallWonders,
-    brandNewSpecies: imagedBrandNew,
-    nightCreaturesSpecies: imagedNightCreatures,
     thematicStripCards: imagedThematicStripCards,
     conservationSnapshot: imagedConservationSnapshot,
   }

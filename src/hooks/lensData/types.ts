@@ -18,10 +18,6 @@ export type RecordsBreakdownItem = {
 export type LensData = {
   seasonalityData: number[]
   topSpeciesData: SpeciesCard[]
-  inSeasonSpecies: SpeciesCard[]
-  smallWondersSpecies: SpeciesCard[]
-  brandNewSpecies: SpeciesCard[]
-  nightCreaturesSpecies: SpeciesCard[]
   thematicStripCards: ThematicStripCard[]
   conservationSnapshot: ConservationSnapshot
   kingdomBreakdown: BreakdownItem[]

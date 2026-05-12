@@ -17,6 +17,7 @@ import type {
   Place,
 } from '../types/lens'
 import { useConservationSnapshot } from './lensData/conservation'
+import { dedupeSpeciesAcrossLenses } from './lensData/dedupe'
 import { useLensImageOverlay } from './lensData/imageOverlay'
 import { pickMultilingualNames } from './lensData/multilingual'
 import { buildRecordsBreakdown } from './lensData/recordsBreakdown'
@@ -103,13 +104,7 @@ export const useLensData = (
     contentSeed,
   )
 
-  const {
-    inSeasonSpecies,
-    smallWondersSpecies,
-    brandNewSpecies,
-    nightCreaturesSpecies,
-    thematicStripCards,
-  } = useThematicLensData(selectedPlace, topSpeciesData, contentSeed)
+  const { thematicStripCards } = useThematicLensData(selectedPlace, contentSeed)
 
   const conservationSnapshot = useConservationSnapshot(selectedPlace)
 
@@ -206,22 +201,14 @@ export const useLensData = (
 
   const imaged = useLensImageOverlay({
     topSpeciesData,
-    inSeasonSpecies,
-    smallWondersSpecies,
-    brandNewSpecies,
-    nightCreaturesSpecies,
     thematicStripCards,
     conservationSnapshot,
     imageSources,
   })
 
-  return {
+  return dedupeSpeciesAcrossLenses({
     seasonalityData,
     topSpeciesData: imaged.topSpeciesData,
-    inSeasonSpecies: imaged.inSeasonSpecies,
-    smallWondersSpecies: imaged.smallWondersSpecies,
-    brandNewSpecies: imaged.brandNewSpecies,
-    nightCreaturesSpecies: imaged.nightCreaturesSpecies,
     thematicStripCards: imaged.thematicStripCards,
     conservationSnapshot: imaged.conservationSnapshot,
     kingdomBreakdown,
@@ -230,5 +217,5 @@ export const useLensData = (
     maxSeasonality,
     multilingualNames,
     recordsBreakdown,
-  }
+  })
 }

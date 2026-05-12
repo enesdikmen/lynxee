@@ -11,17 +11,21 @@ import type { Place, SpeciesCard, ThematicStripCard } from '../../types/lens'
 import { placeGeoParams, seededShuffle } from './shared'
 import { resolveSpeciesCards } from './speciesCards'
 
+/**
+ * Each query fetches a small *candidate list* (not a single pick) so that
+ * the cross-lens dedup pass in `dedupe.ts` can fall through to the next
+ * candidate when [0] is already claimed by a higher-priority card. The
+ * renderer (`bentoTiles.tsx`) only shows `species[0]`.
+ *
+ * We return all 4 themes in a deterministic shuffled order; dedup picks
+ * the first 2 that still have surviving candidates after filtering.
+ */
 export type ThematicLensResult = {
-  inSeasonSpecies: SpeciesCard[]
-  smallWondersSpecies: SpeciesCard[]
-  brandNewSpecies: SpeciesCard[]
-  nightCreaturesSpecies: SpeciesCard[]
   thematicStripCards: ThematicStripCard[]
 }
 
 export const useThematicLensData = (
   selectedPlace: Place | undefined,
-  topSpeciesData: SpeciesCard[],
   contentSeed: number,
 ): ThematicLensResult => {
   const currentMonth = new Date().getMonth() + 1
@@ -193,61 +197,47 @@ export const useThematicLensData = (
     staleTime: 1000 * 60 * 30,
   })
 
-  const inSeasonSpecies = inSeasonQuery.data ?? []
-  const smallWondersSpecies = smallWondersQuery.data ?? []
-  const brandNewSpecies = brandNewQuery.data ?? []
-  const nightCreaturesSpecies = nightCreaturesQuery.data ?? []
-
-  const thematicPool = useMemo<ThematicStripCard[]>(() => {
+  const thematicStripCards = useMemo<ThematicStripCard[]>(() => {
     const monthLabel = new Date(2000, currentMonth - 1, 1).toLocaleString('en', {
       month: 'long',
     })
-    const fallbackStripSpecies = topSpeciesData.slice(0, 3)
-
-    return [
+    const all: ThematicStripCard[] = [
       {
         id: 'inSeason',
         kicker: `🌸 In season · ${monthLabel}`,
-        species: inSeasonSpecies.length > 0 ? inSeasonSpecies : fallbackStripSpecies,
+        species: inSeasonQuery.data ?? [],
       },
       {
         id: 'smallWonders',
         kicker: '🐛 Small wonders',
-        species: smallWondersSpecies.length > 0 ? smallWondersSpecies : fallbackStripSpecies,
+        species: smallWondersQuery.data ?? [],
       },
       {
         id: 'brandNew',
         kicker: '📸 Brand new here',
-        species: brandNewSpecies.length > 0 ? brandNewSpecies : fallbackStripSpecies,
+        species: brandNewQuery.data ?? [],
       },
       {
         id: 'nightCreatures',
         kicker: '🌃 Night creatures',
-        species: nightCreaturesSpecies.length > 0 ? nightCreaturesSpecies : fallbackStripSpecies,
+        species: nightCreaturesQuery.data ?? [],
       },
     ]
+    // Deterministic shuffle per place + seed; dedup picks the first two
+    // surviving themes downstream.
+    return seededShuffle(
+      all,
+      `${selectedPlace?.id ?? 'none'}:thematic:${contentSeed}`,
+    )
   }, [
     currentMonth,
-    topSpeciesData,
-    inSeasonSpecies,
-    smallWondersSpecies,
-    brandNewSpecies,
-    nightCreaturesSpecies,
+    inSeasonQuery.data,
+    smallWondersQuery.data,
+    brandNewQuery.data,
+    nightCreaturesQuery.data,
+    selectedPlace?.id,
+    contentSeed,
   ])
 
-  const thematicStripCards = useMemo(() => {
-    if (thematicPool.length <= 2) return thematicPool
-    return seededShuffle(
-      thematicPool,
-      `${selectedPlace?.id ?? 'none'}:thematic:${contentSeed}`,
-    ).slice(0, 2)
-  }, [thematicPool, selectedPlace?.id, contentSeed])
-
-  return {
-    inSeasonSpecies,
-    smallWondersSpecies,
-    brandNewSpecies,
-    nightCreaturesSpecies,
-    thematicStripCards,
-  }
+  return { thematicStripCards }
 }

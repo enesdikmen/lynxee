@@ -5,6 +5,21 @@
  * - Keep selection rules centralized here (do not hardcode them in hooks/pages).
  * - Use one poster seed to pick among top-N candidates deterministically.
  * - Add new 2x1/hero variants by extending this file first.
+ *
+ * Cross-lens species uniqueness:
+ *   Each lens hook (top species / conservation / thematic) produces its own
+ *   candidate pool independently. To avoid the same species appearing in
+ *   two cards, a single dedup pass runs at the end of `useLensData`
+ *   (`hooks/lensData/dedupe.ts`) and walks the pools in a fixed priority:
+ *
+ *     1. topSpeciesData        (hero + minis)        — claims everything
+ *     2. threatenedSpecies     (atRisk)              — claims its rendered pick
+ *     3. thematicStripCards[*] (themed strips)       — claims each strip's [0]
+ *
+ *   Every lens therefore exposes a *list* of candidates (not just the one
+ *   it currently renders) so that lower-priority slots can fall through to
+ *   the next candidate without a refetch. When adding a new selection
+ *   rule, decide its priority and add it to the dedup chain.
  */
 export type TaxonFilter = {
   classKey?: number
