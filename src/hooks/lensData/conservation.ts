@@ -53,7 +53,6 @@ export const useConservationSnapshot = (
             facetFields: ['speciesKey'],
             facetLimit: 3,
             iucnRedListCategory: cat,
-            mediaType: 'StillImage',
             signal,
           })
           return (response.facets?.[0]?.counts ?? []).map((c) => ({

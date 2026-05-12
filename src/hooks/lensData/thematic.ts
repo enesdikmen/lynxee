@@ -84,7 +84,6 @@ export const useThematicLensData = (
         facetFields: ['speciesKey'],
         facetLimit: IN_SEASON_RULE.facetLimit,
         month: currentMonth,
-        mediaType: IN_SEASON_RULE.mediaType,
         signal,
       })
       const counts = response.facets?.[0]?.counts ?? []

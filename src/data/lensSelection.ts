@@ -57,14 +57,12 @@ export type InSeasonRule = {
   facetLimit: number
   stripSize: number
   highlight: string
-  mediaType: 'StillImage'
 }
 
 export const IN_SEASON_RULE: InSeasonRule = {
   facetLimit: 5,
   stripSize: 3,
   highlight: 'Recorded this month',
-  mediaType: 'StillImage',
 }
 
 export type SmallWondersSourceRule = {
