@@ -9,10 +9,10 @@
  *   - static `global_baseline.json` produced by the precompute notebook
  *     (totalRecords + top 500 global species counts).
  *
- * Output: up to `TOP_N` species ranked by `localShare / globalShare`,
- * each enriched with species metadata (vernacular, scientific, taxon
- * line) via `fetchSpecies`, so they can flow through the shared image-
- * overlay pipeline and render as proper species cards.
+ * Output: a small pool (up to 3) of class-diverse signature species.
+ * We keep the best species per class first, then fill remaining slots by
+ * ratio so the poster is more varied (not only birds) while staying
+ * simple and explainable.
  *
  * Caveats:
  *   - We only score species that appear in the top-500 global baseline.
@@ -49,10 +49,10 @@ const MIN_LOCAL_COUNT = 20
  *  blow up for trivial reasons. */
 const MIN_LOCAL_TOTAL = 2000
 const MIN_RATIO = 1.5
-/** How many candidates to keep. Dedupe across lenses may drop some, and
- *  the card picks one at random from the survivors, so we keep a small
- *  pool rather than just the top-1. */
-const TOP_N = 5
+/** Final pool size for the poster card. Regenerate picks one from this pool. */
+const FINAL_POOL_SIZE = 3
+/** How deep we inspect the scored list before applying class-diversity. */
+const METADATA_CANDIDATE_POOL = 15
 const FACET_LIMIT = 500
 
 export type SignatureSpeciesCard = SpeciesCard & {
@@ -107,53 +107,87 @@ export const useLiveSignatureSpecies = (
       }
 
       scored.sort((a, b) => b.ratio - a.ratio)
-      const top = scored.slice(0, TOP_N)
-      if (top.length === 0) return []
+      if (scored.length === 0) return []
 
-      // Resolve full species metadata in parallel so the species card has
-      // a vernacular, scientific name, and taxon line to render.
-      const cards = await Promise.all(
-        top.map(async (entry): Promise<SignatureSpeciesCard> => {
+      const topScored = scored.slice(0, METADATA_CANDIDATE_POOL)
+      type ResolvedCandidate = {
+        entry: Scored
+        species?: Awaited<ReturnType<typeof fetchSpecies>>
+      }
+
+      // Resolve metadata for a shallow scored window, then enforce a simple
+      // "best-per-class" diversity pass before taking the final top-3 pool.
+      const resolved = await Promise.all(
+        topScored.map(async (entry): Promise<ResolvedCandidate> => {
           try {
             const species = await fetchSpecies({
               speciesKey: entry.speciesKey,
               signal,
             })
-            const taxonLine = [species.kingdom, species.phylum, species.class]
-              .filter(Boolean)
-              .join(' · ')
-            return {
-              id: String(entry.speciesKey),
-              commonName:
-                species.vernacularName ??
-                species.canonicalName ??
-                species.scientificName,
-              scientificName: species.scientificName,
-              canonicalName: species.canonicalName ?? species.scientificName,
-              imageUrl: '',
-              highlight: 'Signature species',
-              taxonLine: taxonLine || undefined,
-              popularity: entry.localCount,
-              overRepresentationRatio: entry.ratio,
-              localCount: entry.localCount,
-              globalCount: entry.globalCount,
-            }
+            return { entry, species }
           } catch {
-            return {
-              id: String(entry.speciesKey),
-              commonName: `Species ${entry.speciesKey}`,
-              scientificName: `Species ${entry.speciesKey}`,
-              imageUrl: '',
-              highlight: 'Signature species',
-              popularity: entry.localCount,
-              overRepresentationRatio: entry.ratio,
-              localCount: entry.localCount,
-              globalCount: entry.globalCount,
-            }
+            return { entry }
           }
         }),
       )
-      return cards
+      if (resolved.length === 0) return []
+
+      const byRatioDesc = (a: ResolvedCandidate, b: ResolvedCandidate) =>
+        b.entry.ratio - a.entry.ratio
+
+      const bestByClass = new Map<string, ResolvedCandidate>()
+      for (const candidate of resolved) {
+        const classKey = candidate.species?.class?.trim().toLowerCase() || 'unknown'
+        const previous = bestByClass.get(classKey)
+        if (!previous || candidate.entry.ratio > previous.entry.ratio) {
+          bestByClass.set(classKey, candidate)
+        }
+      }
+
+      const chosen: ResolvedCandidate[] = []
+      const chosenSpeciesKeys = new Set<number>()
+
+      for (const candidate of Array.from(bestByClass.values()).sort(byRatioDesc)) {
+        chosen.push(candidate)
+        chosenSpeciesKeys.add(candidate.entry.speciesKey)
+        if (chosen.length >= FINAL_POOL_SIZE) break
+      }
+
+      if (chosen.length < FINAL_POOL_SIZE) {
+        for (const candidate of resolved) {
+          if (chosenSpeciesKeys.has(candidate.entry.speciesKey)) continue
+          chosen.push(candidate)
+          chosenSpeciesKeys.add(candidate.entry.speciesKey)
+          if (chosen.length >= FINAL_POOL_SIZE) break
+        }
+      }
+
+      return chosen.map(({ entry, species }): SignatureSpeciesCard => {
+        const taxonLine = [species?.kingdom, species?.phylum, species?.class]
+          .filter(Boolean)
+          .join(' · ')
+
+        return {
+          id: String(entry.speciesKey),
+          commonName:
+            species?.vernacularName ??
+            species?.canonicalName ??
+            species?.scientificName ??
+            `Species ${entry.speciesKey}`,
+          scientificName: species?.scientificName ?? `Species ${entry.speciesKey}`,
+          canonicalName:
+            species?.canonicalName ??
+            species?.scientificName ??
+            `Species ${entry.speciesKey}`,
+          imageUrl: '',
+          highlight: 'Signature species',
+          taxonLine: taxonLine || undefined,
+          popularity: entry.localCount,
+          overRepresentationRatio: entry.ratio,
+          localCount: entry.localCount,
+          globalCount: entry.globalCount,
+        }
+      })
     },
     enabled: Boolean(selectedPlace),
     // Global baseline is static; place facet is moderately expensive.

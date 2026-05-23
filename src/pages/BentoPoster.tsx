@@ -63,7 +63,14 @@ function BentoPoster({
   })
 
   const tiles = useMemo(() => {
-    const built = buildBentoTiles({ placeName, latitude, longitude, data, aspect })
+    const built = buildBentoTiles({
+      placeName,
+      latitude,
+      longitude,
+      data,
+      contentSeed: posterSeed,
+      aspect,
+    })
     // Fixed-height posters (square) need exact area padding; flexible-height
     // posters just need the total area to be a multiple of GRID_W.
     const targetArea =

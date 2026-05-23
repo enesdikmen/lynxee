@@ -71,6 +71,8 @@ export type CardBuildCtx = {
   placeName: string
   latitude?: number
   longitude?: number
+  /** Poster/content seed bumped by Regenerate; cards can key random picks to it. */
+  contentSeed: number
   data: LensData
   aspect: PosterAspect
 }
@@ -600,19 +602,20 @@ export const CARD_DEFS: CardDef[] = [
   // language as `speciesMini` / `atRisk`) with a ratio chip. The pool is
   // built by `useLiveSignatureSpecies` and trimmed by
   // `dedupeSpeciesAcrossLenses`, so the pick here can never duplicate the
-  // hero, an at-risk species, or a thematic strip species. We seed the
-  // pick by place so the same place always shows the same signature.
+  // hero, an at-risk species, or a thematic strip species. The hook now
+  // returns a class-diverse top-3 pool; this card picks one using the
+  // current content seed so Regenerate rotates within that pool.
   {
     type: 'signatureSpecies',
     size: { w: 1, h: 1 },
     className:
       'bento-card bento-card--mini bento-card--signature accent-forest',
-    build: ({ data, placeName, latitude, longitude }) => {
+    build: ({ data, placeName, latitude, longitude, contentSeed }) => {
       const pool = data.signatureSpeciesData.filter((sp) => sp.imageUrl)
       if (pool.length === 0) return []
       const sp = seededPick(
         pool,
-        `signature:${placeName}:${latitude ?? ''}:${longitude ?? ''}`,
+        `signature:${placeName}:${latitude ?? ''}:${longitude ?? ''}:${contentSeed}`,
       )
       const r = sp.overRepresentationRatio
       const ratioLabel =
@@ -678,6 +681,8 @@ export interface BuildTilesArgs {
   /** Longitude of the selected place (degrees). Used by the title-tile globe. */
   longitude?: number
   data: LensData
+  /** Regenerate seed used for tile-level random picks (species cards, etc.). */
+  contentSeed: number
   /** Which poster shape we are building for. Cards may opt out per aspect
    *  via their `aspects` field, and may also adapt their content (e.g.
    *  `speciesMini` emits fewer tiles in square mode). */
