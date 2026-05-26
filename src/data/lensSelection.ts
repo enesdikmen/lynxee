@@ -65,6 +65,30 @@ export const HERO_SLOT_RULES: HeroSlotRule[] = [
   { id: 'fungus', label: 'Fungus', filters: [{ kingdomKey: 5 }] },
 ]
 
+/**
+ * Extra mini-square pool for underrepresented taxonomic groups.
+ * Two different categories are selected per poster (seeded) when available.
+ */
+export const EXTRA_MINI_SLOT_RULES: HeroSlotRule[] = [
+  { id: 'reptile', label: 'Reptile', filters: [{ classKey: 358 }] },
+  { id: 'amphibian', label: 'Amphibian', filters: [{ classKey: 131 }] },
+  { id: 'fish', label: 'Fish', filters: [{ classKey: 204 }] },
+  { id: 'arachnid', label: 'Arachnid', filters: [{ classKey: 367 }] },
+]
+
+/** Number of extra mini species cards to add from EXTRA_MINI_SLOT_RULES. */
+export const EXTRA_MINI_SLOT_COUNT = 2
+
+/** How many mini species tiles each poster aspect renders. */
+export const SPECIES_MINI_COUNT_BY_ASPECT = {
+  horizontal: 7,
+  vertical: 5,
+  square: 3,
+} as const
+
+/** Highest mini-count across aspects; used to keep top-species pools sufficiently sized. */
+export const MAX_SPECIES_MINI_COUNT = Math.max(...Object.values(SPECIES_MINI_COUNT_BY_ASPECT))
+
 export type InSeasonRule = {
   facetLimit: number
   stripSize: number

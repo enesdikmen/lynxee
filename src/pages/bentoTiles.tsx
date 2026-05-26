@@ -22,6 +22,7 @@ import type { useLensData } from '../hooks/useLensData'
 import type { Anchor } from '../lib/gridPacker'
 import Globe from '../components/Globe'
 import { seededPick, seededShuffle } from '../hooks/lensData/shared'
+import { SPECIES_MINI_COUNT_BY_ASPECT } from '../data/lensSelection'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
 // NOTE: ~36 MB JSON; bundled into the main chunk for now. When this card
 // graduates from the prototype, switch to a slimmed runtime payload or a
@@ -425,8 +426,7 @@ export const CARD_DEFS: CardDef[] = [
     size: { w: 1, h: 1 },
     className: 'bento-card bento-card--mini accent-paper',
     build: ({ data, aspect }) => {
-      // Square poster only has room for 3 minis; wider posters get up to 5.
-      const max = aspect === 'square' ? 3 : 5
+      const max = SPECIES_MINI_COUNT_BY_ASPECT[aspect]
       return data.topSpeciesData.slice(1, 1 + max).map((sp) => ({
         id: `sp-${sp.id}`,
         render: () => (
@@ -516,6 +516,47 @@ export const CARD_DEFS: CardDef[] = [
       const restRecords = data.recordsBreakdown.slice(2)
       const restShare = restRecords.reduce((s, r) => s + r.share, 0)
 
+      // Stacked-bar segments for "How we know": top-2 + optional rest bucket.
+      type HowSeg = {
+        key: string
+        label: string
+        share: number
+        kind: 'primary' | 'secondary' | 'rest'
+      }
+      const howSegments: HowSeg[] = [
+        ...topRecords.map((r, i) => ({
+          key: r.key,
+          label: (() => {
+            switch (r.key) {
+              case 'HUMAN_OBSERVATION':
+                return 'Citizen science'
+              case 'PRESERVED_SPECIMEN':
+                return 'Museum + herbarium'
+              case 'MATERIAL_SAMPLE':
+                return 'Field samples'
+              case 'MACHINE_OBSERVATION':
+                return 'Cameras + sensors'
+              case 'OBSERVATION':
+                return 'Field observation'
+              default:
+                return r.label
+            }
+          })(),
+          share: r.share,
+          kind: (i === 0 ? 'primary' : 'secondary') as HowSeg['kind'],
+        })),
+        ...(restShare > 0.005
+          ? [
+              {
+                key: '_rest',
+                label: `${restRecords.length} other source${restRecords.length === 1 ? '' : 's'}`,
+                share: restShare,
+                kind: 'rest' as const,
+              },
+            ]
+          : []),
+      ]
+
       return [
         {
           id: 'seasonality',
@@ -523,19 +564,26 @@ export const CARD_DEFS: CardDef[] = [
             <div className="bento-season-how">
               <div className="bento-season-how__left">
                 <div className="bento-season__header">
-                  <span className="bento-card__kicker">When life is observed</span>
+                  <span className="bento-card__kicker bento-card__kicker--season">Seasonality</span>
                   {ys && (
-                    <span className="bento-season__since">Since {ys.firstYear}</span>
+                    <span className="bento-season__since">
+                      Records since {ys.firstYear}
+                    </span>
                   )}
                 </div>
-                <div className="bento-season">
+                <div className="bento-season-bars" aria-label="Monthly observations">
                   {data.seasonalityData.map((val, i) => {
                     const ratio = data.maxSeasonality > 0 ? val / data.maxSeasonality : 0
-                    const size = Math.max(ratio * 38, 8)
                     return (
-                      <div key={`m-${i}`} className="bento-season__col">
-                        <div className="bento-season__bubble" style={{ width: size, height: size }} />
-                        <span className="bento-season__label">{MONTH[i]}</span>
+                      <div key={`m-${i}`} className="bento-season-bars__col">
+                        <div className="bento-season-bars__track">
+                          <div
+                            className="bento-season-bars__bar"
+                            style={{ height: `${Math.max(ratio * 100, 3)}%` }}
+                            title={`${MONTH[i]} · ${fmtCount(val)}`}
+                          />
+                        </div>
+                        <span className="bento-season-bars__label">{MONTH[i]}</span>
                       </div>
                     )
                   })}
@@ -543,38 +591,44 @@ export const CARD_DEFS: CardDef[] = [
                 {ys && (
                   <div className="bento-season__footer">
                     <span className="bento-season__stat">
-                      Peak: <strong>{ys.peakYear}</strong> ({fmtCount(ys.peakYearCount)} obs)
+                      Peak {ys.peakYear}: <strong>{fmtCount(ys.peakYearCount)}</strong> obs
                     </span>
                     {recentPct !== null && (
                       <>
                         <span className="bento-season__divider">·</span>
                         <span className="bento-season__stat">
-                          <strong>{recentPct}%</strong> from last 10 yrs
+                          <strong>{recentPct}%</strong> in last decade
                         </span>
                       </>
                     )}
                   </div>
                 )}
               </div>
-              {topRecords.length > 0 && (
+              {howSegments.length > 0 && (
                 <div className="bento-season-how__right">
-                  <span className="bento-card__kicker">How we know</span>
-                  <ul className="bento-season-how__rows">
-                    {topRecords.map((item) => (
-                      <li key={item.key} className="bento-season-how__row">
-                        <span className="bento-season-how__pct">{fmtPct(item.share)}</span>
-                        <span className="bento-season-how__label">{item.label}</span>
-                      </li>
-                    ))}
-                    {restShare > 0.005 && (
-                      <li className="bento-season-how__row bento-season-how__row--rest">
-                        <span className="bento-season-how__pct">{fmtPct(restShare)}</span>
-                        <span className="bento-season-how__label">
-                          + {restRecords.length} other{restRecords.length === 1 ? '' : 's'}
-                        </span>
-                      </li>
-                    )}
-                  </ul>
+                  <span className="bento-card__kicker bento-card__kicker--evidence">Evidence mix</span>
+                  <div className="bento-how-stack">
+                    <div className="bento-how-stack__bar" aria-hidden="true">
+                      {howSegments.map((seg) => (
+                        <div
+                          key={seg.key}
+                          className={`bento-how-stack__seg bento-how-stack__seg--${seg.kind}`}
+                          style={{ flexGrow: Math.max(seg.share, 0.02) }}
+                        />
+                      ))}
+                    </div>
+                    <ul className="bento-how-stack__legend">
+                      {howSegments.map((seg) => (
+                        <li
+                          key={seg.key}
+                          className={`bento-how-stack__row bento-how-stack__row--${seg.kind}`}
+                        >
+                          <span className="bento-how-stack__pct">{fmtPct(seg.share)}</span>
+                          <span className="bento-how-stack__label">{seg.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>

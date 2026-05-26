@@ -115,6 +115,20 @@ export const fallbackTopSpecies: SpeciesCard[] = [
     imageUrl: 'https://placehold.co/320x220/c7d2fe/1f2937?text=Butterfly',
     highlight: 'Summer peak',
   },
+  {
+    id: 's7',
+    commonName: 'Common Frog',
+    scientificName: 'Rana temporaria',
+    imageUrl: 'https://placehold.co/320x220/a7f3d0/1f2937?text=Frog',
+    highlight: 'Wetland indicator',
+  },
+  {
+    id: 's8',
+    commonName: 'European Perch',
+    scientificName: 'Perca fluviatilis',
+    imageUrl: 'https://placehold.co/320x220/ddd6fe/1f2937?text=Perch',
+    highlight: 'Freshwater staple',
+  },
 ]
 
 export const fallbackSeasonality: number[] = [
