@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import CitySearch from '../components/CitySearch'
 import { useLensData, type LensData } from '../hooks/useLensData'
 import { packWithRetries, type BoxSpec, type Placement } from '../lib/gridPacker'
+import { syncShareToLocation } from '../lib/shareToken'
 import type { Place } from '../types/lens'
 import { ALL_IMAGE_SOURCES } from '../api/speciesImage'
 import {
@@ -25,16 +26,21 @@ import './BentoPoster.css'
 interface Props {
   selectedPlace: Place
   onPlaceChange: (place: Place) => void
+  /** Optional seed restored from a shared URL. */
+  initialSeed?: number
 }
 
 function BentoPoster({
   selectedPlace,
   onPlaceChange,
+  initialSeed,
 }: Props) {
   // Single seed for poster-level variation. Layout and data already consume it;
   // future style themes should derive from this same seed as well.
-  const [posterSeed, setPosterSeed] = useState(1)
-  const [layoutShuffleSeed, setLayoutShuffleSeed] = useState(1)
+  const [posterSeed, setPosterSeed] = useState(
+    initialSeed && Number.isFinite(initialSeed) ? initialSeed : 1,
+  )
+  const [shareCopied, setShareCopied] = useState(false)
   const GRID_W = POSTER_GRID_W
 
   const placeName = selectedPlace?.label?.split(',')[0]?.trim() ?? 'Pick a place'
@@ -67,7 +73,6 @@ function BentoPoster({
     if (!data.isReady) return
     if (committedSnapshot?.key === snapshotKey) return
     setCommittedSnapshot({ key: snapshotKey, data })
-    setLayoutShuffleSeed((s) => s + 1)
   }, [data, snapshotKey, committedSnapshot?.key])
 
   const displayData =
@@ -89,6 +94,25 @@ function BentoPoster({
   useEffect(() => {
     setLocks((prev) => (prev.size === 0 ? prev : new Map()))
   }, [selectedPlace?.id, effectiveSources.join(',')])
+
+  // Keep the address bar in sync with the current place + seed so the URL
+  // is always a shareable snapshot of what's on screen.
+  useEffect(() => {
+    if (!selectedPlace) return
+    syncShareToLocation(selectedPlace, posterSeed)
+  }, [selectedPlace, posterSeed])
+
+  const handleShare = async () => {
+    if (!selectedPlace) return
+    syncShareToLocation(selectedPlace, posterSeed)
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      setShareCopied(true)
+      window.setTimeout(() => setShareCopied(false), 1600)
+    } catch {
+      // Clipboard blocked (e.g. insecure context) — leave URL in address bar.
+    }
+  }
 
   const tiles = useMemo(() => {
     if (!displayData) return []
@@ -144,7 +168,7 @@ function BentoPoster({
     gridH: number
   } | null>(null)
   const { placements, gridH } = useMemo(() => {
-    const cacheKey = `${posterSeed}|${layoutShuffleSeed}|${GRID_W}|${tiles
+    const cacheKey = `${posterSeed}|${GRID_W}|${tiles
       .map((t) => t.id)
       .join(',')}`
     if (packCacheRef.current?.key === cacheKey) {
@@ -174,14 +198,14 @@ function BentoPoster({
         }
         return { id: t.id, w: t.w, h: t.h }
       })
-      const layoutSeed = posterSeed * 7919 + layoutShuffleSeed * 104729
+      const layoutSeed = posterSeed * 7919
       const r = packWithRetries({ width: GRID_W, height: h, boxes: specs, seed: layoutSeed }, 60)
       if (r) {
         packCacheRef.current = { key: cacheKey, placements: r.placements, gridH: h }
         return { placements: r.placements, gridH: h }
       }
     return { placements: [], gridH: POSTER_GRID_H }
-  }, [tiles, posterSeed, layoutShuffleSeed, GRID_W])
+  }, [tiles, posterSeed, GRID_W])
 
   const placementById = useMemo(() => {
     const m = new Map<string, (typeof placements)[number]>()
@@ -211,6 +235,14 @@ function BentoPoster({
           title="Regenerate layout and data"
         >
           ↻ Regenerate
+        </button>
+        <button
+          type="button"
+          className="bento-toolbar__btn"
+          onClick={handleShare}
+          title="Copy a shareable link to this exact poster"
+        >
+          {shareCopied ? '✓ Link copied' : '↗ Share'}
         </button>
       </div>
 
