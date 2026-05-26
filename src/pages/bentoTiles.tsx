@@ -22,6 +22,7 @@ import Globe from '../components/Globe'
 import { seededPick, seededShuffle } from '../hooks/lensData/shared'
 import { SPECIES_MINI_COUNT } from '../data/lensSelection'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
+import { QRCodeSVG } from 'qrcode.react'
 // NOTE: ~36 MB JSON; bundled into the main chunk for now. When this card
 // graduates from the prototype, switch to a slimmed runtime payload or a
 // dynamic import. The shape matches `precompute_comparison_sample.ipynb`.
@@ -72,6 +73,8 @@ export type CardBuildCtx = {
   /** Poster/content seed bumped by Regenerate; cards can key random picks to it. */
   contentSeed: number
   data: LensData
+  /** Current shareable URL — encodes place + seed. Used by the sources QR. */
+  shareUrl?: string
 }
 
 /** What a card's `build()` returns. Per-instance overrides are optional and
@@ -452,9 +455,9 @@ export const CARD_DEFS: CardDef[] = [
     type: 'thematicStrip',
     size: { w: 1, h: 1 },
     // One species per thematic card, rendered like a `speciesMini` with the
-    // theme kicker shown as a small ribbon over the image. Alternates the
+    // theme kicker shown in the text section below the photo. Alternates the
     // accent so a row of these stays visually varied.
-    className: 'bento-card bento-card--mini accent-gold',
+    className: 'bento-card bento-card--mini bento-card--thematic accent-gold',
     build: ({ data }) =>
       data.thematicStripCards
         .map((card, index) => {
@@ -465,7 +468,7 @@ export const CARD_DEFS: CardDef[] = [
             slotId: `thematic-${card.id}`,
             speciesIds: [sp.id],
             className:
-              'bento-card bento-card--mini ' +
+              'bento-card bento-card--mini bento-card--thematic ' +
               (index % 2 === 0 ? 'accent-gold' : 'accent-forest'),
             render: () => (
               <>
@@ -478,12 +481,12 @@ export const CARD_DEFS: CardDef[] = [
                 {sourceLabel(sp.imageSource) && (
                   <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
                 )}
-                <span className="bento-mini__ribbon">{card.kicker}</span>
                 <span className="bento-mini__name">{sp.commonName}</span>
                 <span className="bento-mini__sci">{sp.scientificName}</span>
                 {sp.popularity ? (
                   <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
                 ) : null}
+                <span className="bento-mini__ribbon">{card.kicker}</span>
               </>
             ),
           }
@@ -670,14 +673,14 @@ export const CARD_DEFS: CardDef[] = [
             {sourceLabel(sp.imageSource) && (
               <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
             )}
-            <span className="bento-mini__ribbon bento-mini__ribbon--danger">
-              At risk · {sp.iucnCategory}
-            </span>
             <span className="bento-mini__name">{sp.commonName}</span>
             <span className="bento-mini__sci">{sp.scientificName}</span>
             {sp.popularity ? (
               <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
             ) : null}
+            <span className="bento-mini__ribbon bento-mini__ribbon--danger">
+              At risk · {sp.iucnCategory}
+            </span>
           </>
         ),
       }))
@@ -742,19 +745,33 @@ export const CARD_DEFS: CardDef[] = [
     type: 'sources',
     size: { w: 2, h: 1 },
     pin: 'bottom-right',
-    className: 'bento-card accent-gold',
-    build: ({ data }) => [
+    className: 'bento-card accent-gold bento-sources',
+    build: ({ data, shareUrl }) => [
       {
         id: 'sources',
         slotId: 'sources',
         render: () => (
           <>
-            <span className="bento-card__kicker">Sources</span>
-            <p className="bento-card__sub">
-              <strong>GBIF</strong> · <strong>Lynxee</strong>
-            </p>
-            {data.datasetSummaries.length > 0 && (
-              <p className="bento-datasets">{data.datasetSummaries[0]?.title}</p>
+            <div className="bento-sources__text">
+              <span className="bento-card__kicker">Sources</span>
+              <p className="bento-card__sub">
+                <strong>GBIF</strong> · <strong>Lynxee</strong>
+              </p>
+              {data.datasetSummaries.length > 0 && (
+                <p className="bento-datasets">{data.datasetSummaries[0]?.title}</p>
+              )}
+            </div>
+            {shareUrl && (
+              <div className="bento-sources__qr" aria-label="Scan to open this poster">
+                <QRCodeSVG
+                  value={shareUrl}
+                  size={180}
+                  bgColor="transparent"
+                  fgColor="#1a1a1a"
+                  level="H"
+                  marginSize={0}
+                />
+              </div>
             )}
           </>
         ),
@@ -776,6 +793,8 @@ export interface BuildTilesArgs {
   data: LensData
   /** Regenerate seed used for tile-level random picks (species cards, etc.). */
   contentSeed: number
+  /** Current shareable URL (place + seed). Used by the sources QR. */
+  shareUrl?: string
 }
 
 /** Walk the card registry and produce concrete tiles for the current data. */

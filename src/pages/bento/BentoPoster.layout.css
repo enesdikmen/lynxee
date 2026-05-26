@@ -160,13 +160,13 @@ img[src=""] { visibility: hidden; }
   top: 6px;
   right: 6px;
   z-index: 4;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1.5px solid rgb(var(--color-ink) / 0.45);
   background: rgb(255 255 255 / 0.78);
   color: rgb(var(--color-ink));

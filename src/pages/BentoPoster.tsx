@@ -11,7 +11,7 @@ import CitySearch from '../components/CitySearch'
 import { useLensData, type LensData } from '../hooks/useLensData'
 import { packWithRetries, type BoxSpec, type Placement } from '../lib/gridPacker'
 import { printPosterToPdf } from '../lib/printPoster'
-import { syncShareToLocation } from '../lib/shareToken'
+import { encodeShare, syncShareToLocation } from '../lib/shareToken'
 import type { Place } from '../types/lens'
 import { ALL_IMAGE_SOURCES } from '../api/speciesImage'
 import {
@@ -126,12 +126,21 @@ function BentoPoster({
 
   const tiles = useMemo(() => {
     if (!displayData) return []
+    // Build the same share URL that `syncShareToLocation` writes to the
+    // address bar, so the sources-card QR always matches the visible state.
+    let shareUrl: string | undefined
+    if (typeof window !== 'undefined' && selectedPlace) {
+      const url = new URL(window.location.href)
+      url.searchParams.set('s', encodeShare(selectedPlace, posterSeed))
+      shareUrl = url.toString()
+    }
     const built = buildBentoTiles({
       placeName,
       latitude,
       longitude,
       data: displayData,
       contentSeed: posterSeed,
+      shareUrl,
     })
 
     // Apply locks: replace locked slots with their frozen snapshot, drop
@@ -163,7 +172,7 @@ function BentoPoster({
     }
 
     return padToRectangle(merged, GRID_W, POSTER_GRID_AREA)
-  }, [placeName, latitude, longitude, displayData, GRID_W, posterSeed, locks])
+  }, [placeName, latitude, longitude, displayData, GRID_W, posterSeed, locks, selectedPlace])
 
   // Pack the tiles into the fixed poster grid.
   //
@@ -305,7 +314,7 @@ function BentoPoster({
                       aria-label={isLocked ? 'Unlock card' : 'Lock card'}
                       aria-pressed={isLocked}
                     >
-                      <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" width="17" height="17">
                         {isLocked ? (
                           <path
                             fill="currentColor"

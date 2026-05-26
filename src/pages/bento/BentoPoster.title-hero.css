@@ -303,23 +303,24 @@
    (3/2). Do not re-introduce flex:1 here — that would re-couple the
    image height to the number of text rows below. */
 
-/* Small ribbon overlaying the image (used by thematicStrip + atRisk). */
+/* Small ribbon pinned to the bottom-right of mini cards. */
 .bento-mini__ribbon {
   position: absolute;
-  top: 6px;
-  left: 6px;
   right: 6px;
+  bottom: 6px;
   width: max-content;
   max-width: calc(100% - 12px);
   font-family: var(--font-display);
-  font-size: 0.58rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
   background: rgb(var(--color-ink));
   color: #fff;
+  border: 1.5px solid rgb(var(--color-ink));
   border-radius: 6px;
-  padding: 0.12rem 0.4rem;
-  z-index: 1;
+  padding: 0.12rem 0.42rem;
+  line-height: 1.2;
+  z-index: 5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -335,7 +336,7 @@
 .bento-image-source-badge {
   position: absolute;
   top: 6px;
-  right: 6px;
+  left: 6px;
   font-family: var(--font-display);
   font-size: 0.54rem;
   letter-spacing: 0.06em;
@@ -351,7 +352,7 @@
 
 .bento-image-source-badge--hero {
   top: 10px;
-  right: 10px;
+  left: 10px;
   font-size: 0.58rem;
   padding: 0.12rem 0.4rem;
 }

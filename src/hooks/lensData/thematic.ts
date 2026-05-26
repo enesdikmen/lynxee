@@ -210,7 +210,7 @@ export const useThematicLensData = (
       },
       {
         id: 'smallWonders',
-        kicker: '🐛 Small wonders',
+        kicker: '🐛 Small wonder',
         species: smallWondersQuery.data ?? [],
       },
       {
@@ -220,7 +220,7 @@ export const useThematicLensData = (
       },
       {
         id: 'nightCreatures',
-        kicker: '🌃 Night creatures',
+        kicker: '🌃 Night creature',
         species: nightCreaturesQuery.data ?? [],
       },
     ]
