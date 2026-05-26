@@ -7,11 +7,14 @@ import {
 } from '../../api/gbif'
 import { fallbackTopSpecies } from '../../data/lensFallbacks'
 import {
+  DEFAULT_PICK_FROM_TOP,
   HERO_SLOT_RULES,
+  MIN_COUNT_RATIO,
   type HeroSlotRule,
 } from '../../data/lensSelection'
 import type { Place, SpeciesCard } from '../../types/lens'
 import { placeGeoParams, seededPick } from './shared'
+import { speciesCardBase } from './speciesCards'
 
 type TopSpeciesPoolData = {
   slots: Array<{
@@ -48,10 +51,11 @@ export const useTopSpeciesData = (
         | null
       > => {
         for (const filter of slot.filters) {
+          const pick = slot.pickFromTop ?? DEFAULT_PICK_FROM_TOP
           const response = await fetchOccurrenceFacets({
             ...placeGeoParams(selectedPlace),
             facetFields: ['speciesKey'],
-            facetLimit: Math.max(slot.pickFromTop, 1),
+            facetLimit: pick,
             signal,
             ...filter,
           })
@@ -59,7 +63,7 @@ export const useTopSpeciesData = (
           const pool = (response.facets?.[0]?.counts ?? [])
             .map((c) => ({ speciesKey: Number(c.name), count: c.count }))
             .filter((c) => Number.isFinite(c.speciesKey))
-            .slice(0, Math.max(slot.pickFromTop, 1))
+            .slice(0, pick)
 
           if (pool.length > 0) return { slot, pool }
         }
@@ -90,19 +94,7 @@ export const useTopSpeciesData = (
 
           return {
             speciesKey,
-            cardBase: {
-              id: String(speciesKey),
-              commonName:
-                species.vernacularName ??
-                species.canonicalName ??
-                species.scientificName,
-              scientificName: species.scientificName,
-              canonicalName: species.canonicalName ?? species.scientificName,
-              imageUrl: '',
-              taxonLine: [species.kingdom, species.phylum, species.class]
-                .filter(Boolean)
-                .join(' · '),
-            },
+            cardBase: speciesCardBase(speciesKey, species),
             vernaculars: vernacularNames.results,
           }
         }),
@@ -127,7 +119,16 @@ export const useTopSpeciesData = (
             popularity: candidate.count,
           })
         }
-        return { slot, candidates }
+        // Keep only candidates with enough observations relative to the
+        // slot's top hit so sparse places don't surface irrelevant species.
+        const topCount = candidates[0]?.popularity ?? 0
+        const viable =
+          topCount > 0
+            ? candidates.filter(
+                (c) => (c.popularity ?? 0) >= topCount * MIN_COUNT_RATIO,
+              )
+            : candidates
+        return { slot, candidates: viable }
       })
 
       return { slots, vernacularsBySpecies }

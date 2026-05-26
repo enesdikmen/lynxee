@@ -55,7 +55,86 @@
   margin-top: 0.5rem;
 }
 
+/* ── Seasonality + How-we-know (2×1 combined card) ────── */
+.bento-card--season-how {
+  padding: 0.75rem 0.9rem;
+}
+.bento-season-how {
+  display: flex;
+  gap: 0.9rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.bento-season-how__left {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bento-season-how__right {
+  flex: 0 0 auto;
+  width: 7.5rem;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(var(--color-ink), 0.12);
+  padding-left: 0.8rem;
+}
+.bento-season-how__rows {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.bento-season-how__row {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.bento-season-how__pct {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  line-height: 1;
+  color: rgb(var(--color-ink));
+  text-align: right;
+}
+.bento-season-how__label {
+  font-size: 0.6rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: rgb(var(--color-ink));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bento-season-how__row--rest {
+  opacity: 0.55;
+}
+.bento-season-how__row--rest .bento-season-how__pct {
+  font-size: 0.7rem;
+}
+.bento-season-how__row--rest .bento-season-how__label {
+  font-size: 0.55rem;
+  font-weight: 500;
+}
+
 /* ── Seasonality dots ─────────────────────────────────── */
+.bento-season__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.bento-season__since {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: rgb(var(--color-ink-soft));
+  white-space: nowrap;
+}
 .bento-season {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -84,6 +163,28 @@
   font-size: 0.6rem;
   color: rgb(var(--color-ink-soft));
 }
+.bento-season__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+.bento-season__stat {
+  font-size: 0.58rem;
+  color: rgb(var(--color-ink-soft));
+  white-space: nowrap;
+}
+.bento-season__stat strong {
+  color: rgb(var(--color-ink));
+  font-weight: 700;
+}
+.bento-season__divider {
+  font-size: 0.58rem;
+  color: rgb(var(--color-ink-soft));
+  opacity: 0.5;
+}
+
 
 /* ── Conservation buckets (compact header + photo strip) ─ */
 .bento-card--iucn { gap: 0.25rem; }

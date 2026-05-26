@@ -36,11 +36,12 @@ export const dedupeSpeciesAcrossLenses = (data: LensData): LensData => {
   // 1. Top species (hero + minis): claim everything in the gallery.
   for (const sp of data.topSpeciesData) claimed.add(sp.id)
 
-  // 2. At-risk: filter the threatened list, claim the survivor that will
-  //    actually render (the first one).
+  // 2. At-risk: filter the threatened list, claim all survivors so no
+  //    downstream card duplicates them (2 are rendered, but the pool is
+  //    small so claiming all is safe).
   const threatenedSpecies = data.conservationSnapshot.threatenedSpecies
     .filter((sp) => !claimed.has(sp.id))
-  if (threatenedSpecies[0]) claimed.add(threatenedSpecies[0].id)
+  for (const sp of threatenedSpecies) claimed.add(sp.id)
 
   // 3. Thematic strips: keep only themes that still have a renderable
   //    species[0] after filtering, up to MAX_THEMATIC_STRIPS.

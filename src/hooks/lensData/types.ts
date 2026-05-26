@@ -16,8 +16,19 @@ export type RecordsBreakdownItem = {
   share: number
 }
 
+export type YearCount = { year: number; count: number }
+
+export type YearSummary = {
+  firstYear: number
+  peakYear: number
+  peakYearCount: number
+  /** Per-year observation counts, sorted chronologically. */
+  yearCounts: YearCount[]
+}
+
 export type LensData = {
   seasonalityData: number[]
+  yearSummary: YearSummary | null
   topSpeciesData: SpeciesCard[]
   thematicStripCards: ThematicStripCard[]
   conservationSnapshot: ConservationSnapshot

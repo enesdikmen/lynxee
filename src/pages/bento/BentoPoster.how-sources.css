@@ -112,6 +112,51 @@
    one or more rails (Recording intensity, Threatened share). Visually
    tuned for the darker `accent-ink` surface (gold accent on
    white-on-dark). */
+
+/* ── IUCN pills (inside dark sightings card) ──────────── */
+.bento-sightings__iucn {
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  margin-top: 0.45rem;
+}
+.bento-sightings__iucn-head {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.3rem;
+}
+.bento-sightings__iucn-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.bento-sightings__iucn-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.88);
+}
+.bento-sightings__iucn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bento-sightings__iucn-count {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  line-height: 1;
+  color: #fff;
+}
+.bento-sightings__iucn-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .bento-sightings__ranks {
   margin-top: auto;
   padding-top: 0.55rem;

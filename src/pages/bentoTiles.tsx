@@ -21,7 +21,7 @@ import type { ReactNode } from 'react'
 import type { useLensData } from '../hooks/useLensData'
 import type { Anchor } from '../lib/gridPacker'
 import Globe from '../components/Globe'
-import { seededPick } from '../hooks/lensData/shared'
+import { seededPick, seededShuffle } from '../hooks/lensData/shared'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
 // NOTE: ~36 MB JSON; bundled into the main chunk for now. When this card
 // graduates from the prototype, switch to a slimmed runtime payload or a
@@ -256,6 +256,18 @@ export const CARD_DEFS: CardDef[] = [
             .map((k) => ({ label: k.label, share: k.count / total }))
         : []
 
+      // IUCN buckets (merged from standalone card)
+      const snap = data.conservationSnapshot
+      const getIucn = (s: string) =>
+        snap.categoryBreakdown.find((c) => c.status === s)?.count ?? 0
+      const iucnBuckets = snap.totalAssessedSpecies > 0
+        ? [
+            { label: 'Doing well', count: getIucn('LC'), color: '#4ade80' },
+            { label: 'Watch list', count: getIucn('NT') + getIucn('DD'), color: '#facc15' },
+            { label: 'At risk', count: getIucn('VU') + getIucn('EN') + getIucn('CR'), color: '#f87171' },
+          ]
+        : []
+
       // Percentile context for the raw count: where does this place sit
       // against its peer cohort (cities or countries) from the precomputed
       // comparison sample? The 1×2 footprint gives room for two labelled
@@ -310,6 +322,20 @@ export const CARD_DEFS: CardDef[] = [
                     </li>
                   ))}
                 </ul>
+              )}
+              {iucnBuckets.length > 0 && (
+                <div className="bento-sightings__iucn">
+                  <span className="bento-sightings__iucn-head">IUCN Red List</span>
+                  <div className="bento-sightings__iucn-pills">
+                    {iucnBuckets.map((b) => (
+                      <span key={b.label} className="bento-sightings__iucn-pill">
+                        <span className="bento-sightings__iucn-dot" style={{ background: b.color }} />
+                        <span className="bento-sightings__iucn-count">{b.count}</span>
+                        <span className="bento-sightings__iucn-label">{b.label}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
               {ranks.length > 0 && (
                 <div className="bento-sightings__ranks">
@@ -462,61 +488,93 @@ export const CARD_DEFS: CardDef[] = [
   {
     type: 'seasonality',
     size: { w: 2, h: 1 },
-    className: 'bento-card accent-paper',
-    build: ({ data }) => [
-      {
-        id: 'seasonality',
-        render: () => (
-          <>
-            <span className="bento-card__kicker">When life is observed</span>
-            <div className="bento-season">
-              {data.seasonalityData.map((val, i) => {
-                const ratio = data.maxSeasonality > 0 ? val / data.maxSeasonality : 0
-                const size = Math.max(ratio * 38, 8)
-                return (
-                  <div key={`m-${i}`} className="bento-season__col">
-                    <div className="bento-season__bubble" style={{ width: size, height: size }} />
-                    <span className="bento-season__label">{MONTH[i]}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        ),
-      },
-    ],
-  },
-
-  {
-    type: 'iucn',
-    size: { w: 1, h: 1 },
-    className: 'bento-card bento-card--iucn accent-paper',
+    className: 'bento-card bento-card--season-how accent-paper',
     build: ({ data }) => {
-      const snap = data.conservationSnapshot
-      if (snap.totalAssessedSpecies <= 0) return []
-      const get = (s: string) =>
-        snap.categoryBreakdown.find((c) => c.status === s)?.count ?? 0
-      const buckets = [
-        { label: 'Doing well', count: get('LC'), color: '#4ade80' },
-        { label: 'Watch list', count: get('NT') + get('DD'), color: '#facc15' },
-        { label: 'At risk', count: get('VU') + get('EN') + get('CR'), color: '#f87171' },
-      ]
+      const ys = data.yearSummary
+      const fmtCount = (n: number) =>
+        n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
+          : n >= 1_000 ? `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`
+          : String(n)
+
+      // Compute % of observations from the last 10 years
+      const recentPct = (() => {
+        if (!ys || ys.yearCounts.length < 2) return null
+        const cutoff = new Date().getFullYear() - 9
+        const total = ys.yearCounts.reduce((s, e) => s + e.count, 0)
+        if (total === 0) return null
+        const recent = ys.yearCounts
+          .filter((e) => e.year >= cutoff)
+          .reduce((s, e) => s + e.count, 0)
+        return Math.round((recent / total) * 100)
+      })()
+
+      // How-we-know sources (merged from standalone card)
+      const topRecords = data.recordsBreakdown.slice(0, 2)
+      const restRecords = data.recordsBreakdown.slice(2)
+      const restShare = restRecords.reduce((s, r) => s + r.share, 0)
+
       return [
         {
-          id: 'iucn',
+          id: 'seasonality',
           render: () => (
-            <>
-              <span className="bento-card__kicker">IUCN Red List</span>
-              <div className="bento-iucn__buckets">
-                {buckets.map((b) => (
-                  <span key={b.label} className="bento-iucn__pill">
-                    <span className="bento-iucn__dot" style={{ background: b.color }} />
-                    <span className="bento-iucn__count">{b.count}</span>
-                    <span className="bento-iucn__label">{b.label}</span>
-                  </span>
-                ))}
+            <div className="bento-season-how">
+              <div className="bento-season-how__left">
+                <div className="bento-season__header">
+                  <span className="bento-card__kicker">When life is observed</span>
+                  {ys && (
+                    <span className="bento-season__since">Since {ys.firstYear}</span>
+                  )}
+                </div>
+                <div className="bento-season">
+                  {data.seasonalityData.map((val, i) => {
+                    const ratio = data.maxSeasonality > 0 ? val / data.maxSeasonality : 0
+                    const size = Math.max(ratio * 38, 8)
+                    return (
+                      <div key={`m-${i}`} className="bento-season__col">
+                        <div className="bento-season__bubble" style={{ width: size, height: size }} />
+                        <span className="bento-season__label">{MONTH[i]}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                {ys && (
+                  <div className="bento-season__footer">
+                    <span className="bento-season__stat">
+                      Peak: <strong>{ys.peakYear}</strong> ({fmtCount(ys.peakYearCount)} obs)
+                    </span>
+                    {recentPct !== null && (
+                      <>
+                        <span className="bento-season__divider">·</span>
+                        <span className="bento-season__stat">
+                          <strong>{recentPct}%</strong> from last 10 yrs
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            </>
+              {topRecords.length > 0 && (
+                <div className="bento-season-how__right">
+                  <span className="bento-card__kicker">How we know</span>
+                  <ul className="bento-season-how__rows">
+                    {topRecords.map((item) => (
+                      <li key={item.key} className="bento-season-how__row">
+                        <span className="bento-season-how__pct">{fmtPct(item.share)}</span>
+                        <span className="bento-season-how__label">{item.label}</span>
+                      </li>
+                    ))}
+                    {restShare > 0.005 && (
+                      <li className="bento-season-how__row bento-season-how__row--rest">
+                        <span className="bento-season-how__pct">{fmtPct(restShare)}</span>
+                        <span className="bento-season-how__label">
+                          + {restRecords.length} other{restRecords.length === 1 ? '' : 's'}
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           ),
         },
       ]
@@ -527,73 +585,36 @@ export const CARD_DEFS: CardDef[] = [
     type: 'atRisk',
     size: { w: 1, h: 1 },
     className: 'bento-card bento-card--mini bento-card--at-risk accent-paper',
-    build: ({ data }) => {
-      const sp = data.conservationSnapshot.threatenedSpecies[0]
-      if (!sp) return []
-      return [
-        {
-          id: 'at-risk',
-          render: () => (
-            <>
-              <img
-                src={sp.squareImageUrl ?? sp.imageUrl}
-                alt={sp.commonName}
-                className="bento-mini__img"
-                loading="lazy"
-              />
-              {sourceLabel(sp.imageSource) && (
-                <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
-              )}
-              <span className="bento-mini__ribbon bento-mini__ribbon--danger">
-                At risk · {sp.iucnCategory}
-              </span>
-              <span className="bento-mini__name">{sp.commonName}</span>
-              <span className="bento-mini__sci">{sp.scientificName}</span>
-            </>
-          ),
-        },
-      ]
-    },
-  },
-
-  {
-    type: 'howWeKnow',
-    size: { w: 1, h: 1 },
-    aspects: ['horizontal', 'vertical'],
-    className: 'bento-card bento-card--how accent-ink',
-    build: ({ data }) => {
-      // 1×1 has room for the top 2 sources only; the rest collapse into a
-      // single "+ N others" summary row.
-      const topRecords = data.recordsBreakdown.slice(0, 2)
-      if (topRecords.length === 0) return []
-      const restRecords = data.recordsBreakdown.slice(2)
-      const restShare = restRecords.reduce((s, r) => s + r.share, 0)
-      return [
-        {
-          id: 'how-we-know',
-          render: () => (
-            <>
-              <span className="bento-card__kicker">How we know this</span>
-              <ul className="bento-how__rows">
-                {topRecords.map((item) => (
-                  <li key={item.key} className="bento-how__row">
-                    <span className="bento-how__pct">{fmtPct(item.share)}</span>
-                    <span className="bento-how__label">{item.label}</span>
-                  </li>
-                ))}
-                {restShare > 0.005 && (
-                  <li className="bento-how__row bento-how__row--rest">
-                    <span className="bento-how__pct">{fmtPct(restShare)}</span>
-                    <span className="bento-how__label">
-                      + {restRecords.length} other source{restRecords.length === 1 ? '' : 's'}
-                    </span>
-                  </li>
-                )}
-              </ul>
-            </>
-          ),
-        },
-      ]
+    build: ({ data, contentSeed }) => {
+      const pool = data.conservationSnapshot.threatenedSpecies.filter(
+        (sp) => sp.imageUrl,
+      )
+      if (pool.length === 0) return []
+      const shuffled = seededShuffle(
+        pool,
+        `atRisk:${data.conservationSnapshot.threatenedSpecies[0]?.iucnCategory ?? 'x'}:${contentSeed}`,
+      )
+      return shuffled.slice(0, 2).map((sp, i) => ({
+        id: `at-risk-${i}`,
+        render: () => (
+          <>
+            <img
+              src={sp.squareImageUrl ?? sp.imageUrl}
+              alt={sp.commonName}
+              className="bento-mini__img"
+              loading="lazy"
+            />
+            {sourceLabel(sp.imageSource) && (
+              <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
+            )}
+            <span className="bento-mini__ribbon bento-mini__ribbon--danger">
+              At risk · {sp.iucnCategory}
+            </span>
+            <span className="bento-mini__name">{sp.commonName}</span>
+            <span className="bento-mini__sci">{sp.scientificName}</span>
+          </>
+        ),
+      }))
     },
   },
 

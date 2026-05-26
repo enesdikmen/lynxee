@@ -29,6 +29,7 @@ import type {
   LensData,
   RecordsBreakdownItem,
   UseLensDataOptions,
+  YearSummary,
 } from './lensData/types'
 
 export type { LensData, RecordsBreakdownItem, UseLensDataOptions } from './lensData/types'
@@ -49,11 +50,12 @@ export const useLensData = (
           : { latitude: 0, longitude: 0, radiusKm: 0 }),
         facetFields: [
           'month',
+          'year',
           'datasetKey',
           'kingdomKey',
           'basisOfRecord',
         ],
-        facetLimit: 60,
+        facetLimit: 300,
         signal,
       }),
     enabled: Boolean(selectedPlace),
@@ -79,6 +81,7 @@ export const useLensData = (
 
     return {
       month: getCounts('month'),
+      year: getCounts('year'),
       datasetKey: getCounts('datasetKey'),
       kingdomKey: getCounts('kingdomKey'),
       basisOfRecord: getCounts('basisOfRecord'),
@@ -98,6 +101,25 @@ export const useLensData = (
     return Array.from({ length: 12 }, (_, index) =>
       countsByMonth[index + 1] ?? 0,
     )
+  }, [facetsSummary])
+
+  const yearSummary = useMemo<YearSummary | null>(() => {
+    if (!facetsSummary?.year?.length) return null
+    const entries = facetsSummary.year
+      .map((item) => ({ year: Number(item.name), count: item.count }))
+      .filter((e) => Number.isFinite(e.year) && e.year > 0)
+      .sort((a, b) => a.year - b.year)
+    if (entries.length === 0) return null
+
+    const firstYear = entries[0].year
+    const peak = entries.reduce((best, e) => (e.count > best.count ? e : best), entries[0])
+
+    return {
+      firstYear,
+      peakYear: peak.year,
+      peakYearCount: peak.count,
+      yearCounts: entries,
+    }
   }, [facetsSummary])
 
   const { topSpeciesData, vernacularsBySpecies } = useTopSpeciesData(
@@ -212,6 +234,7 @@ export const useLensData = (
 
   return dedupeSpeciesAcrossLenses({
     seasonalityData,
+    yearSummary,
     topSpeciesData: imaged.topSpeciesData,
     thematicStripCards: imaged.thematicStripCards,
     conservationSnapshot: imaged.conservationSnapshot,

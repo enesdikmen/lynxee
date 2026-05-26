@@ -32,40 +32,37 @@ export type TaxonFilter = {
 export type HeroSlotRule = {
   id: string
   label: string
-  // Filters are tried in order until we get species picks.
+  /** Filters are tried in order until we get species picks. */
   filters: TaxonFilter[]
-  // Pick from top N species for this slot (seeded); 1 keeps deterministic top hit.
-  pickFromTop: number
+  /** Pick from top N species for this slot (seeded). Defaults to {@link DEFAULT_PICK_FROM_TOP}. */
+  pickFromTop?: number
 }
 
-// Central selection registry for the 6-slot gallery.
+/** How many top candidates to fetch per hero slot for seeded rotation. */
+export const DEFAULT_PICK_FROM_TOP = 3
+
+/**
+ * A candidate must have at least this fraction of the slot's top candidate's
+ * observation count to be eligible for seeded rotation.  Keeps sparse-place
+ * slots from surfacing near-zero-observation species.
+ */
+export const MIN_COUNT_RATIO = 0.3
+
 export const HERO_SLOT_RULES: HeroSlotRule[] = [
   {
     id: 'mammal',
     label: 'Mammal',
     filters: [{ classKey: 359 }, { classKey: 358 }, { classKey: 131 }],
-    pickFromTop: 3,
   },
-  { id: 'bird', label: 'Bird', filters: [{ classKey: 212 }], pickFromTop: 1 },
-  { id: 'insect', label: 'Insect', filters: [{ classKey: 216 }], pickFromTop: 1 },
-  {
-    id: 'flower',
-    label: 'Flowering plant',
-    filters: [{ classKey: 220 }],
-    pickFromTop: 1,
-  },
+  { id: 'bird', label: 'Bird', filters: [{ classKey: 212 }] },
+  { id: 'insect', label: 'Insect', filters: [{ classKey: 216 }] },
+  { id: 'flower', label: 'Flowering plant', filters: [{ classKey: 220 }] },
   {
     id: 'tree-fern',
     label: 'Tree or fern',
     filters: [{ classKey: 194 }, { classKey: 7228684 }, { classKey: 196 }],
-    pickFromTop: 1,
   },
-  {
-    id: 'fungus',
-    label: 'Fungus',
-    filters: [{ kingdomKey: 5 }],
-    pickFromTop: 1,
-  },
+  { id: 'fungus', label: 'Fungus', filters: [{ kingdomKey: 5 }] },
 ]
 
 export type InSeasonRule = {
