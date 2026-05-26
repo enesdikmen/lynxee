@@ -5,10 +5,10 @@
  * tight rectangle. Filler tiles pad the layout so cells stay square. The
  * regenerate button reshuffles by bumping a single poster seed.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CitySearch from '../components/CitySearch'
-import { useLensData } from '../hooks/useLensData'
+import { useLensData, type LensData } from '../hooks/useLensData'
 import { packWithRetries, type BoxSpec } from '../lib/gridPacker'
 import type { Place } from '../types/lens'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
@@ -28,7 +28,6 @@ interface Props {
   onPlaceChange: (place: Place) => void
   imageSourceConfig: ImageSourceConfig
   onImageSourceConfigChange: (next: ImageSourceConfig) => void
-  onOpenSandbox: () => void
 }
 
 function BentoPoster({
@@ -36,11 +35,11 @@ function BentoPoster({
   onPlaceChange,
   imageSourceConfig,
   onImageSourceConfigChange,
-  onOpenSandbox,
 }: Props) {
   // Single seed for poster-level variation. Layout and data already consume it;
   // future style themes should derive from this same seed as well.
   const [posterSeed, setPosterSeed] = useState(1)
+  const [layoutShuffleSeed, setLayoutShuffleSeed] = useState(1)
   const [aspect, setAspect] = useState<PosterAspect>('horizontal')
   const aspectCfg = POSTER_ASPECTS[aspect]
   const GRID_W = aspectCfg.gridW
@@ -62,12 +61,35 @@ function BentoPoster({
     contentSeed: posterSeed,
   })
 
+  // Freeze visual output to the last fully-ready snapshot for each place/source
+  // selection. This avoids partial card churn while async pieces settle.
+  const snapshotKey = useMemo(
+    () => `${selectedPlace?.id ?? 'none'}::${effectiveSources.join(',')}`,
+    [selectedPlace?.id, effectiveSources],
+  )
+  const [committedSnapshot, setCommittedSnapshot] = useState<{
+    key: string
+    data: LensData
+  } | null>(null)
+
+  useEffect(() => {
+    if (!data.isReady) return
+    if (committedSnapshot?.key === snapshotKey) return
+    setCommittedSnapshot({ key: snapshotKey, data })
+    setLayoutShuffleSeed((s) => s + 1)
+  }, [data, snapshotKey, committedSnapshot?.key])
+
+  const displayData =
+    committedSnapshot?.key === snapshotKey ? data : committedSnapshot?.data ?? null
+  const isLoadingSnapshot = !displayData || !data.isReady || committedSnapshot?.key !== snapshotKey
+
   const tiles = useMemo(() => {
+    if (!displayData) return []
     const built = buildBentoTiles({
       placeName,
       latitude,
       longitude,
-      data,
+      data: displayData,
       contentSeed: posterSeed,
       aspect,
     })
@@ -76,7 +98,7 @@ function BentoPoster({
     const targetArea =
       typeof aspectCfg.fixedH === 'number' ? GRID_W * aspectCfg.fixedH : undefined
     return padToRectangle(built, GRID_W, targetArea)
-  }, [placeName, latitude, longitude, data, aspect, aspectCfg.fixedH, GRID_W])
+  }, [placeName, latitude, longitude, displayData, aspect, aspectCfg.fixedH, GRID_W])
 
   // Pack the tiles. For flexible-height posters the area is a multiple of
   // GRID_W so the exact-height rectangle should always fit; we allow +2 rows
@@ -100,11 +122,12 @@ function BentoPoster({
         }
         return { id: t.id, w: t.w, h: t.h }
       })
-      const r = packWithRetries({ width: GRID_W, height: h, boxes: specs, seed: posterSeed }, 60)
+      const layoutSeed = posterSeed * 7919 + layoutShuffleSeed * 104729
+      const r = packWithRetries({ width: GRID_W, height: h, boxes: specs, seed: layoutSeed }, 60)
       if (r) return { placements: r.placements, gridH: h }
     }
     return { placements: [], gridH: startH }
-  }, [tiles, posterSeed, GRID_W, aspectCfg.fixedH])
+  }, [tiles, posterSeed, layoutShuffleSeed, GRID_W, aspectCfg.fixedH])
 
   const placementById = useMemo(() => {
     const m = new Map<string, (typeof placements)[number]>()
@@ -186,47 +209,49 @@ function BentoPoster({
             </button>
           ))}
         </span>
-        <button
-          type="button"
-          onClick={onOpenSandbox}
-          className="bento-toolbar__btn"
-          title="Open layout packer sandbox"
-        >
-          ⚙ Layout Lab
-        </button>
       </div>
 
-      <div
-        className={`bento-grid bento-grid--${aspect}`}
-        style={{
-          gridTemplateColumns: `repeat(${GRID_W}, 1fr)`,
-          gridTemplateRows: `repeat(${gridH}, 1fr)`,
-          aspectRatio: `${GRID_W} / ${gridH}`,
-        }}
-      >
-        <AnimatePresence>
-          {tiles.map((t) => {
-            const p = placementById.get(t.id)
-            if (!p) return null
-            return (
-              <motion.div
-                key={t.id}
-                layout
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.92 }}
-                transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-                className={t.className}
-                style={{
-                  gridColumn: `${p.x + 1} / span ${p.w}`,
-                  gridRow: `${p.y + 1} / span ${p.h}`,
-                }}
-              >
-                {t.render()}
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
+      <div className={`bento-grid-wrap${isLoadingSnapshot ? ' bento-grid-wrap--loading' : ''}`}>
+        <div
+          className={`bento-grid bento-grid--${aspect}`}
+          style={{
+            gridTemplateColumns: `repeat(${GRID_W}, 1fr)`,
+            gridTemplateRows: `repeat(${gridH}, 1fr)`,
+            aspectRatio: `${GRID_W} / ${gridH}`,
+          }}
+        >
+          <AnimatePresence>
+            {tiles.map((t) => {
+              const p = placementById.get(t.id)
+              if (!p) return null
+              return (
+                <motion.div
+                  key={t.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+                  className={t.className}
+                  style={{
+                    gridColumn: `${p.x + 1} / span ${p.w}`,
+                    gridRow: `${p.y + 1} / span ${p.h}`,
+                  }}
+                >
+                  {t.render()}
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+        </div>
+        {isLoadingSnapshot && (
+          <div className="bento-grid-loading" role="status" aria-live="polite">
+            <div className="bento-grid-loading__panel">
+              <span className="bento-grid-loading__dot" aria-hidden="true" />
+              <span>Loading full place snapshot…</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

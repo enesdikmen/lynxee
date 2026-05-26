@@ -34,6 +34,54 @@ interface NominatimSearchResult {
   }
 }
 
+const normalizeToken = (value?: string) =>
+  (value ?? '')
+    .trim()
+    .toLocaleLowerCase('en')
+    .replace(/\s+/g, ' ')
+
+const cityNameFromResult = (r: NominatimSearchResult) => {
+  const a = r.address ?? {}
+  return (
+    a.city ||
+    a.town ||
+    a.village ||
+    a.municipality ||
+    r.name ||
+    r.display_name.split(',')[0].trim()
+  )
+}
+
+const countryFromResult = (r: NominatimSearchResult) => {
+  const cc = (r.address?.country_code ?? '').toUpperCase()
+  return cc || normalizeToken(r.address?.country)
+}
+
+const isAdministrativeResult = (r: NominatimSearchResult) =>
+  r.class === 'boundary' || r.type === 'administrative'
+
+const dedupeWithAdministrativePreference = (rows: NominatimSearchResult[]) => {
+  const bestByKey = new Map<string, NominatimSearchResult>()
+
+  for (const row of rows) {
+    const key = `${normalizeToken(cityNameFromResult(row))}__${countryFromResult(row)}`
+    const existing = bestByKey.get(key)
+    if (!existing) {
+      bestByKey.set(key, row)
+      continue
+    }
+
+    // Keep one option per place label. If we have both "city" and
+    // "administrative" variants, prefer administrative to keep area sizing
+    // consistent with larger admin units.
+    if (isAdministrativeResult(row) && !isAdministrativeResult(existing)) {
+      bestByKey.set(key, row)
+    }
+  }
+
+  return Array.from(bestByKey.values())
+}
+
 export interface SearchCitiesOptions {
   signal?: AbortSignal
   limit?: number
@@ -62,13 +110,12 @@ export async function searchCities(
   if (!res.ok) throw new Error(`Nominatim ${res.status}`)
   const data = (await res.json()) as NominatimSearchResult[]
 
-  return data.map(toPlace)
+  return dedupeWithAdministrativePreference(data).slice(0, limit).map(toPlace)
 }
 
 function toPlace(r: NominatimSearchResult): Place {
   const a = r.address ?? {}
-  const cityName =
-    a.city || a.town || a.village || a.municipality || r.name || r.display_name.split(',')[0].trim()
+  const cityName = cityNameFromResult(r)
   const country = a.country ?? ''
   const cc = (a.country_code ?? '').toUpperCase()
   const label = cc ? `${cityName}, ${cc}` : cityName

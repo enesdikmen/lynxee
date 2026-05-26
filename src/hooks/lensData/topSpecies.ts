@@ -37,6 +37,7 @@ type TopSpeciesPoolData = {
 export type TopSpeciesResult = {
   topSpeciesData: SpeciesCard[]
   vernacularsBySpecies: TopSpeciesPoolData['vernacularsBySpecies']
+  isReady: boolean
 }
 
 export const useTopSpeciesData = (
@@ -230,5 +231,9 @@ export const useTopSpeciesData = (
   return {
     topSpeciesData,
     vernacularsBySpecies: topSpeciesPoolQuery.data?.vernacularsBySpecies ?? {},
+    isReady:
+      !selectedPlace ||
+      topSpeciesPoolQuery.isSuccess ||
+      topSpeciesPoolQuery.isError,
   }
 }

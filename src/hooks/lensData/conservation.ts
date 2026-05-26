@@ -9,6 +9,11 @@ import type { ConservationSnapshot, Place, ThreatenedSpecies } from '../../types
 import { placeGeoParams, seededPick } from './shared'
 import { speciesCardBase } from './speciesCards'
 
+type ConservationLensResult = {
+  snapshot: ConservationSnapshot
+  isReady: boolean
+}
+
 const THREATENED_CATS = ['CR', 'EN', 'VU'] as const
 const ALL_CATS = ['LC', 'NT', 'VU', 'EN', 'CR', 'DD'] as const
 const THREATENED_FACET_LIMIT = 5
@@ -25,7 +30,7 @@ type ThreatenedCandidate = {
 export const useConservationSnapshot = (
   selectedPlace: Place | undefined,
   contentSeed: number,
-): ConservationSnapshot => {
+): ConservationLensResult => {
   const speciesCountsQuery = useQuery({
     queryKey: ['iucnSpeciesCounts', selectedPlace?.id],
     queryFn: async ({ signal }) => {
@@ -107,7 +112,7 @@ export const useConservationSnapshot = (
     staleTime: 1000 * 60 * 30,
   })
 
-  return useMemo<ConservationSnapshot>(() => {
+  const snapshot = useMemo<ConservationSnapshot>(() => {
     if (!speciesCountsQuery.data?.length) return fallbackConservationSnapshot
 
     const categoryBreakdown = speciesCountsQuery.data.map((c) => ({
@@ -171,4 +176,12 @@ export const useConservationSnapshot = (
     selectedPlace?.id,
     contentSeed,
   ])
+
+  const isReady =
+    !selectedPlace ||
+    [speciesCountsQuery, threatenedSpeciesQuery].every(
+      (q) => q.isSuccess || q.isError,
+    )
+
+  return { snapshot, isReady }
 }

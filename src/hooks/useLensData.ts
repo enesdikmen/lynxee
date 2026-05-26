@@ -122,14 +122,21 @@ export const useLensData = (
     }
   }, [facetsSummary])
 
-  const { topSpeciesData, vernacularsBySpecies } = useTopSpeciesData(
+  const {
+    topSpeciesData,
+    vernacularsBySpecies,
+    isReady: isTopSpeciesReady,
+  } = useTopSpeciesData(selectedPlace, contentSeed)
+
+  const { thematicStripCards, isReady: isThematicReady } = useThematicLensData(
     selectedPlace,
     contentSeed,
   )
 
-  const { thematicStripCards } = useThematicLensData(selectedPlace, contentSeed)
-
-  const conservationSnapshot = useConservationSnapshot(selectedPlace, contentSeed)
+  const {
+    snapshot: conservationSnapshot,
+    isReady: isConservationReady,
+  } = useConservationSnapshot(selectedPlace, contentSeed)
 
   const heroSpeciesKey = topSpeciesData[0]?.id
     ? Number(topSpeciesData[0].id)
@@ -222,7 +229,10 @@ export const useLensData = (
     return buildRecordsBreakdown(facetsSummary?.basisOfRecord ?? [], totalRecords)
   }, [facetsSummary, totalRecords])
 
-  const liveSignatureSpecies = useLiveSignatureSpecies(selectedPlace)
+  const {
+    signatureSpeciesData: liveSignatureSpecies,
+    isReady: isSignatureReady,
+  } = useLiveSignatureSpecies(selectedPlace)
 
   const imaged = useLensImageOverlay({
     topSpeciesData,
@@ -232,7 +242,24 @@ export const useLensData = (
     imageSources,
   })
 
+  const isFacetsReady =
+    !selectedPlace || facetsQuery.isSuccess || facetsQuery.isError
+  const isTaxonLabelsReady =
+    kingdomKeys.length === 0 || taxonLabelsQuery.isSuccess || taxonLabelsQuery.isError
+  const isDatasetsReady =
+    datasetKeys.length === 0 || datasetQuery.isSuccess || datasetQuery.isError
+  const isReady =
+    isFacetsReady &&
+    isTopSpeciesReady &&
+    isThematicReady &&
+    isConservationReady &&
+    isTaxonLabelsReady &&
+    isDatasetsReady &&
+    isSignatureReady &&
+    imaged.isReady
+
   return dedupeSpeciesAcrossLenses({
+    isReady,
     seasonalityData,
     yearSummary,
     topSpeciesData: imaged.topSpeciesData,

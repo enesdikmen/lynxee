@@ -22,6 +22,7 @@ import { resolveSpeciesCards } from './speciesCards'
  */
 export type ThematicLensResult = {
   thematicStripCards: ThematicStripCard[]
+  isReady: boolean
 }
 
 export const useThematicLensData = (
@@ -239,5 +240,11 @@ export const useThematicLensData = (
     contentSeed,
   ])
 
-  return { thematicStripCards }
+  const isReady =
+    !selectedPlace ||
+    [inSeasonQuery, smallWondersQuery, brandNewQuery, nightCreaturesQuery].every(
+      (q) => q.isSuccess || q.isError,
+    )
+
+  return { thematicStripCards, isReady }
 }

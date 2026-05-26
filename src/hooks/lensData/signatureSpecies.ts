@@ -62,9 +62,14 @@ export type SignatureSpeciesCard = SpeciesCard & {
   globalCount: number
 }
 
+export type SignatureSpeciesResult = {
+  signatureSpeciesData: SignatureSpeciesCard[]
+  isReady: boolean
+}
+
 export const useLiveSignatureSpecies = (
   selectedPlace?: Place,
-): SignatureSpeciesCard[] => {
+): SignatureSpeciesResult => {
   const query = useQuery({
     queryKey: ['liveSignatureSpecies', selectedPlace?.id],
     queryFn: async ({ signal }): Promise<SignatureSpeciesCard[]> => {
@@ -194,5 +199,8 @@ export const useLiveSignatureSpecies = (
     staleTime: 1000 * 60 * 30,
   })
 
-  return query.data ?? []
+  return {
+    signatureSpeciesData: query.data ?? [],
+    isReady: !selectedPlace || query.isSuccess || query.isError,
+  }
 }

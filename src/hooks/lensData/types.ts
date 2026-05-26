@@ -27,6 +27,8 @@ export type YearSummary = {
 }
 
 export type LensData = {
+  /** True when all queries needed for a stable poster snapshot are settled. */
+  isReady: boolean
   seasonalityData: number[]
   yearSummary: YearSummary | null
   topSpeciesData: SpeciesCard[]

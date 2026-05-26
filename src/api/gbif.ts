@@ -75,6 +75,41 @@ const releaseGbifSlot = () => {
 	if (next) next()
 }
 
+// Metadata endpoints are highly reusable across lenses. Keep a small in-memory
+// cache and in-flight registry so concurrent hooks share one network request.
+const speciesCache = new Map<number, GbifSpecies>()
+const speciesInFlight = new Map<number, Promise<GbifSpecies>>()
+
+const vernacularCache = new Map<number, GbifVernacularNameResponse>()
+const vernacularInFlight = new Map<number, Promise<GbifVernacularNameResponse>>()
+
+const datasetCache = new Map<string, GbifDataset>()
+const datasetInFlight = new Map<string, Promise<GbifDataset>>()
+
+const raceWithSignal = <T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> => {
+	if (!signal) return promise
+	if (signal.aborted) return Promise.reject(createAbortError())
+
+	return new Promise<T>((resolve, reject) => {
+		const onAbort = () => {
+			signal.removeEventListener('abort', onAbort)
+			reject(createAbortError())
+		}
+
+		signal.addEventListener('abort', onAbort, { once: true })
+		promise.then(
+			(value) => {
+				signal.removeEventListener('abort', onAbort)
+				resolve(value)
+			},
+			(error) => {
+				signal.removeEventListener('abort', onAbort)
+				reject(error)
+			},
+		)
+	})
+}
+
 export type FacetField =
 	| 'month'
 	| 'year'
@@ -310,8 +345,24 @@ export const fetchOccurrenceFacets = async ({
 }
 
 export const fetchSpecies = async ({ speciesKey, signal }: SpeciesRequest) => {
+	const cached = speciesCache.get(speciesKey)
+	if (cached) return raceWithSignal(Promise.resolve(cached), signal)
+
+	const existing = speciesInFlight.get(speciesKey)
+	if (existing) return raceWithSignal(existing, signal)
+
 	const url = buildUrl(`/species/${speciesKey}`, {})
-	return fetchJson<GbifSpecies>(url, { signal })
+	const request = fetchJson<GbifSpecies>(url)
+		.then((result) => {
+			speciesCache.set(speciesKey, result)
+			return result
+		})
+		.finally(() => {
+			speciesInFlight.delete(speciesKey)
+		})
+
+	speciesInFlight.set(speciesKey, request)
+	return raceWithSignal(request, signal)
 }
 
 export const fetchSpeciesMedia = async ({
@@ -328,16 +379,48 @@ export const fetchSpeciesVernacularNames = async ({
 	speciesKey,
 	signal,
 }: SpeciesRequest) => {
+	const cached = vernacularCache.get(speciesKey)
+	if (cached) return raceWithSignal(Promise.resolve(cached), signal)
+
+	const existing = vernacularInFlight.get(speciesKey)
+	if (existing) return raceWithSignal(existing, signal)
+
 	const url = buildUrl(`/species/${speciesKey}/vernacularNames`, { limit: 200 })
-	return fetchJson<GbifVernacularNameResponse>(url, { signal })
+	const request = fetchJson<GbifVernacularNameResponse>(url)
+		.then((result) => {
+			vernacularCache.set(speciesKey, result)
+			return result
+		})
+		.finally(() => {
+			vernacularInFlight.delete(speciesKey)
+		})
+
+	vernacularInFlight.set(speciesKey, request)
+	return raceWithSignal(request, signal)
 }
 
 export const fetchDatasetMetadata = async ({
 	datasetKey,
 	signal,
 }: DatasetRequest) => {
+	const cached = datasetCache.get(datasetKey)
+	if (cached) return raceWithSignal(Promise.resolve(cached), signal)
+
+	const existing = datasetInFlight.get(datasetKey)
+	if (existing) return raceWithSignal(existing, signal)
+
 	const url = buildUrl(`/dataset/${datasetKey}`, {})
-	return fetchJson<GbifDataset>(url, { signal })
+	const request = fetchJson<GbifDataset>(url)
+		.then((result) => {
+			datasetCache.set(datasetKey, result)
+			return result
+		})
+		.finally(() => {
+			datasetInFlight.delete(datasetKey)
+		})
+
+	datasetInFlight.set(datasetKey, request)
+	return raceWithSignal(request, signal)
 }
 
 export { GBIF_BASE_URL }

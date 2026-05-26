@@ -21,6 +21,7 @@ export type UseLensImageOverlayResult = {
   thematicStripCards: ThematicStripCard[]
   conservationSnapshot: ConservationSnapshot
   signatureSpeciesData: SignatureSpeciesCard[]
+  isReady: boolean
 }
 
 export const useLensImageOverlay = (
@@ -130,10 +131,14 @@ export const useLensImageOverlay = (
     [signatureSpeciesData, applyImage],
   )
 
+  const isReady =
+    speciesForImaging.length === 0 || imageMapQuery.isSuccess || imageMapQuery.isError
+
   return {
     topSpeciesData: imagedTopSpecies,
     thematicStripCards: imagedThematicStripCards,
     conservationSnapshot: imagedConservationSnapshot,
     signatureSpeciesData: imagedSignatureSpecies,
+    isReady,
   }
 }
