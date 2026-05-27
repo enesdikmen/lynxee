@@ -38,15 +38,18 @@ export const useLensData = (
   selectedPlace?: Place,
   options: UseLensDataOptions = {},
 ): LensData => {
+  const enabled = options.enabled ?? true
+  const activePlace = enabled ? selectedPlace : undefined
   const imageSources = options.imageSources ?? ALL_IMAGE_SOURCES
+  const activeImageSources = enabled ? imageSources : []
   const contentSeed = options.contentSeed ?? 1
 
   const facetsQuery = useQuery({
-    queryKey: ['occurrenceFacets', selectedPlace?.id],
+    queryKey: ['occurrenceFacets', activePlace?.id],
     queryFn: ({ signal }) =>
       fetchOccurrenceFacets({
-        ...(selectedPlace
-          ? placeGeoParams(selectedPlace)
+        ...(activePlace
+          ? placeGeoParams(activePlace)
           : { latitude: 0, longitude: 0, radiusKm: 0 }),
         facetFields: [
           'month',
@@ -58,7 +61,7 @@ export const useLensData = (
         facetLimit: 300,
         signal,
       }),
-    enabled: Boolean(selectedPlace),
+    enabled: enabled && Boolean(activePlace),
     staleTime: 1000 * 60 * 10,
   })
 
@@ -126,17 +129,17 @@ export const useLensData = (
     topSpeciesData,
     vernacularsBySpecies,
     isReady: isTopSpeciesReady,
-  } = useTopSpeciesData(selectedPlace, contentSeed)
+  } = useTopSpeciesData(activePlace, contentSeed)
 
   const { thematicStripCards, isReady: isThematicReady } = useThematicLensData(
-    selectedPlace,
+    activePlace,
     contentSeed,
   )
 
   const {
     snapshot: conservationSnapshot,
     isReady: isConservationReady,
-  } = useConservationSnapshot(selectedPlace, contentSeed)
+  } = useConservationSnapshot(activePlace, contentSeed)
 
   const heroSpeciesKey = topSpeciesData[0]?.id
     ? Number(topSpeciesData[0].id)
@@ -232,23 +235,55 @@ export const useLensData = (
   const {
     signatureSpeciesData: liveSignatureSpecies,
     isReady: isSignatureReady,
-  } = useLiveSignatureSpecies(selectedPlace)
+  } = useLiveSignatureSpecies(activePlace)
 
-  const imaged = useLensImageOverlay({
+  const dedupedPools = useMemo(() => {
+    return dedupeSpeciesAcrossLenses({
+      isReady: false,
+      seasonalityData,
+      yearSummary,
+      topSpeciesData,
+      thematicStripCards,
+      conservationSnapshot,
+      kingdomBreakdown,
+      datasetSummaries,
+      totalRecords,
+      maxSeasonality,
+      multilingualNames,
+      recordsBreakdown,
+      signatureSpeciesData: liveSignatureSpecies,
+    })
+  }, [
+    seasonalityData,
+    yearSummary,
     topSpeciesData,
     thematicStripCards,
     conservationSnapshot,
-    signatureSpeciesData: liveSignatureSpecies,
-    imageSources,
+    kingdomBreakdown,
+    datasetSummaries,
+    totalRecords,
+    maxSeasonality,
+    multilingualNames,
+    recordsBreakdown,
+    liveSignatureSpecies,
+  ])
+
+  const imaged = useLensImageOverlay({
+    topSpeciesData: dedupedPools.topSpeciesData,
+    thematicStripCards: dedupedPools.thematicStripCards,
+    conservationSnapshot: dedupedPools.conservationSnapshot,
+    signatureSpeciesData: dedupedPools.signatureSpeciesData,
+    imageSources: activeImageSources,
   })
 
   const isFacetsReady =
-    !selectedPlace || facetsQuery.isSuccess || facetsQuery.isError
+    !activePlace || facetsQuery.isSuccess || facetsQuery.isError
   const isTaxonLabelsReady =
     kingdomKeys.length === 0 || taxonLabelsQuery.isSuccess || taxonLabelsQuery.isError
   const isDatasetsReady =
     datasetKeys.length === 0 || datasetQuery.isSuccess || datasetQuery.isError
   const isReady =
+    (!enabled ||
     isFacetsReady &&
     isTopSpeciesReady &&
     isThematicReady &&
@@ -256,21 +291,14 @@ export const useLensData = (
     isTaxonLabelsReady &&
     isDatasetsReady &&
     isSignatureReady &&
-    imaged.isReady
+    imaged.isReady)
 
-  return dedupeSpeciesAcrossLenses({
+  return {
+    ...dedupedPools,
     isReady,
-    seasonalityData,
-    yearSummary,
     topSpeciesData: imaged.topSpeciesData,
     thematicStripCards: imaged.thematicStripCards,
     conservationSnapshot: imaged.conservationSnapshot,
-    kingdomBreakdown,
-    datasetSummaries,
-    totalRecords,
-    maxSeasonality,
-    multilingualNames,
-    recordsBreakdown,
     signatureSpeciesData: imaged.signatureSpeciesData,
-  })
+  }
 }

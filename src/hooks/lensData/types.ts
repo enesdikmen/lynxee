@@ -51,4 +51,6 @@ export type LensData = {
 export type UseLensDataOptions = {
   imageSources?: ImageSource[]
   contentSeed?: number
+  /** Disable all network work for this hook instance. */
+  enabled?: boolean
 }

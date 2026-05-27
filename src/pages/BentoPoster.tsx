@@ -97,9 +97,11 @@ function BentoPoster({
     imageSources: effectiveSources,
     contentSeed: posterSeed,
   })
+  const isLockRestoreActive = pendingLocks !== null && restoreSeed !== null
   const lockData = useLensData(selectedPlace, {
     imageSources: effectiveSources,
     contentSeed: restoreSeed ?? posterSeed,
+    enabled: isLockRestoreActive,
   })
 
   // Freeze visual output to the last fully-ready snapshot per (place,
