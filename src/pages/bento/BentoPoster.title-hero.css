@@ -356,3 +356,25 @@
   font-size: 0.58rem;
   padding: 0.12rem 0.4rem;
 }
+
+/* Missing-image placeholder used when no source resolves. */
+.bento-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-top: 1.5px dashed rgba(var(--color-ink), 0.35);
+  border-bottom: 1.5px dashed rgba(var(--color-ink), 0.35);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)),
+    #e8dfd0;
+}
+
+.bento-img-placeholder__text {
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--color-ink), 0.7);
+  padding: 0 0.45rem;
+}

@@ -17,6 +17,7 @@ import type { Place } from '../types/lens'
 import { ALL_IMAGE_SOURCES } from '../api/speciesImage'
 import {
   buildBentoTiles,
+  buildThematicBackupTile,
   padToRectangle,
   POSTER_GRID_AREA,
   POSTER_GRID_H,
@@ -59,16 +60,15 @@ function BentoPoster({
 
   // ── Per-card lock feature ─────────────────────────────────────────────
   // A locked tile freezes its content (which species/image it shows) AND
-  // its grid position across Regenerate. The single-`lockSeed` invariant
-  // says: every lock currently in the map was captured at the SAME poster
-  // seed (`lockSeed`). Regenerate bumps `posterSeed` only; `lockSeed`
-  // stays put so locks keep their old content. If the user adds a new lock
-  // while `posterSeed !== lockSeed`, all existing locks "snap forward" to
-  // the new seed (their content updates to match what's currently on
-  // screen). This keeps the data layer cost bounded to two `useLensData`
-  // calls regardless of how many locks exist.
+  // its grid position across Regenerate. Lock/unlock itself is treated as
+  // metadata-only: the visible card content should not jump at click time.
+  // A just-unlocked card is held as a temporary visual override until the
+  // next Regenerate, then it rejoins normal seeded variation.
   type Lock = { tile: Tile; x: number; y: number; captureSeed: number }
   const [locks, setLocks] = useState<Map<string, Lock>>(new Map())
+  // Recently unlocked tiles stay visually frozen until the next Regenerate.
+  // This keeps lock/unlock actions from swapping species immediately.
+  const [unlockOverrides, setUnlockOverrides] = useState<Map<string, Lock>>(new Map())
   // `lockSeed` is the `posterSeed` snapshot every current lock was taken
   // at; `null` when the lock map is empty.
   const [lockSeed, setLockSeed] = useState<number | null>(
@@ -145,6 +145,7 @@ function BentoPoster({
     if (placeKeyRef.current === key) return
     placeKeyRef.current = key
     setLocks((prev) => (prev.size === 0 ? prev : new Map()))
+    setUnlockOverrides((prev) => (prev.size === 0 ? prev : new Map()))
     setLockSeed(null)
     setUserManagedLocks(false)
     setDidInitDefaultLocks(false)
@@ -298,12 +299,17 @@ function BentoPoster({
 
   const tiles = useMemo(() => {
     // Apply locks: replace locked slots with their frozen snapshot, drop
-    // unlocked tiles that would duplicate a locked species, and append
-    // any locked slots that aren't emitted by the fresh build.
+    // unlocked tiles that would duplicate a locked/override species, and
+    // append any locked/override slots that aren't emitted by the fresh
+    // build.
     const lockedSlotIds = new Set(locks.keys())
+    const overrideSlotIds = new Set(unlockOverrides.keys())
     const lockedSpeciesIds = new Set<string>()
     for (const lock of locks.values()) {
       for (const sid of lock.tile.speciesIds ?? []) lockedSpeciesIds.add(sid)
+    }
+    for (const override of unlockOverrides.values()) {
+      for (const sid of override.tile.speciesIds ?? []) lockedSpeciesIds.add(sid)
     }
     const seenSlots = new Set<string>()
     const merged: Tile[] = []
@@ -311,6 +317,12 @@ function BentoPoster({
       if (t.slotId && lockedSlotIds.has(t.slotId)) {
         const lock = locks.get(t.slotId)!
         merged.push({ ...lock.tile, pinXY: { x: lock.x, y: lock.y } })
+        seenSlots.add(t.slotId)
+        continue
+      }
+      if (t.slotId && overrideSlotIds.has(t.slotId)) {
+        const lock = unlockOverrides.get(t.slotId)!
+        merged.push({ ...lock.tile })
         seenSlots.add(t.slotId)
         continue
       }
@@ -324,11 +336,32 @@ function BentoPoster({
       if (seenSlots.has(slotId)) continue
       merged.push({ ...lock.tile, pinXY: { x: lock.x, y: lock.y } })
     }
+    for (const [slotId, lock] of unlockOverrides) {
+      if (seenSlots.has(slotId)) continue
+      merged.push({ ...lock.tile })
+    }
+
+    // Optional thematic fallback: if we are short by exactly one cell, use
+    // the third precomputed thematic candidate before inserting a filler.
+    const mergedArea = merged.reduce((sum, t) => sum + t.w * t.h, 0)
+    if (POSTER_GRID_AREA - mergedArea === 1 && displayData) {
+      const backup = buildThematicBackupTile(displayData)
+      if (backup) {
+        const hasSameSlot =
+          !!backup.slotId && merged.some((t) => t.slotId === backup.slotId)
+        const hasSameId = merged.some((t) => t.id === backup.id)
+        const collidesWithLockedSpecies =
+          !!backup.speciesIds?.some((id) => lockedSpeciesIds.has(id))
+        if (!hasSameSlot && !hasSameId && !collidesWithLockedSpecies) {
+          merged.push(backup)
+        }
+      }
+    }
 
     // Pad here (after locks) so the poster always has exactly
     // `POSTER_GRID_AREA` cells, no matter how many tiles locks added/dropped.
     return padToRectangle(merged, GRID_W, POSTER_GRID_AREA)
-  }, [baseTiles, locks, GRID_W])
+  }, [baseTiles, locks, unlockOverrides, GRID_W, displayData])
 
   // Pack the tiles into the fixed poster grid.
   //
@@ -392,31 +425,37 @@ function BentoPoster({
     if (!t.slotId) return
     const slotId = t.slotId
     setUserManagedLocks(true)
-    setLocks((prev) => {
-      const next = new Map(prev)
-      if (next.has(slotId)) {
+    const isLockedNow = locks.has(slotId)
+
+    // Unlock: keep the currently visible tile frozen until next Regenerate
+    // so unlock itself does not swap species/content.
+    if (isLockedNow) {
+      setUnlockOverrides((prev) => {
+        const next = new Map(prev)
+        next.set(slotId, { tile: t, x: p.x, y: p.y, captureSeed: posterSeed })
+        return next
+      })
+      setLocks((prev) => {
+        if (!prev.has(slotId)) return prev
+        const next = new Map(prev)
         next.delete(slotId)
         if (next.size === 0) setLockSeed(null)
         return next
-      }
-      // Adding a new lock. If `posterSeed` differs from the existing
-      // `lockSeed`, snap all existing locks forward — their tile is
-      // rebuilt from the *current* baseTiles so they show what the user
-      // sees now. The user explicitly chose to lock the current view, so
-      // this is the only honest interpretation.
-      if (lockSeed !== null && lockSeed !== posterSeed) {
-        for (const [sid, existing] of next) {
-          const fresh = baseTiles.find((b) => b.slotId === sid)
-          if (fresh) {
-            next.set(sid, { ...existing, tile: fresh, captureSeed: posterSeed })
-          } else {
-            // Slot no longer exists at the current seed → drop the lock.
-            next.delete(sid)
-          }
-        }
-      }
+      })
+      return
+    }
+
+    // Lock: clear any temporary override and freeze exactly what is visible.
+    setUnlockOverrides((prev) => {
+      if (!prev.has(slotId)) return prev
+      const next = new Map(prev)
+      next.delete(slotId)
+      return next
+    })
+    setLocks((prev) => {
+      const next = new Map(prev)
       next.set(slotId, { tile: t, x: p.x, y: p.y, captureSeed: posterSeed })
-      setLockSeed(posterSeed)
+      if (prev.size === 0) setLockSeed(posterSeed)
       return next
     })
   }
@@ -428,7 +467,10 @@ function BentoPoster({
         <button
           type="button"
           className="bento-toolbar__btn bento-toolbar__btn--primary"
-          onClick={() => setPosterSeed((s) => s + 1)}
+          onClick={() => {
+            setUnlockOverrides((prev) => (prev.size === 0 ? prev : new Map()))
+            setPosterSeed((s) => s + 1)
+          }}
           title="Regenerate layout and data"
         >
           ↻ Regenerate
@@ -467,20 +509,14 @@ function BentoPoster({
               if (!p) return null
               const isLocked = !!t.slotId && locks.has(t.slotId)
               const canLock = !!t.slotId && !t.className.includes('bento-card--filler')
-              return (
-                <motion.div
-                  key={t.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-                  className={t.className + (isLocked ? ' bento-card--locked' : '')}
-                  style={{
-                    gridColumn: `${p.x + 1} / span ${p.w}`,
-                    gridRow: `${p.y + 1} / span ${p.h}`,
-                  }}
-                >
+              const tileKey = t.slotId ? `slot-${t.slotId}` : `tile-${t.id}`
+              const className = t.className + (isLocked ? ' bento-card--locked' : '')
+              const style = {
+                gridColumn: `${p.x + 1} / span ${p.w}`,
+                gridRow: `${p.y + 1} / span ${p.h}`,
+              }
+              const cardBody = (
+                <>
                   {canLock && (
                     <button
                       type="button"
@@ -508,6 +544,25 @@ function BentoPoster({
                     </button>
                   )}
                   {t.render()}
+                </>
+              )
+
+              return (
+                <motion.div
+                  key={tileKey}
+                  layout={isLocked ? false : 'position'}
+                  initial={isLocked ? false : { opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={isLocked ? undefined : { opacity: 0, scale: 0.92 }}
+                  transition={
+                    isLocked
+                      ? { duration: 0 }
+                      : { type: 'spring', stiffness: 220, damping: 26 }
+                  }
+                  className={className}
+                  style={style}
+                >
+                  {cardBody}
                 </motion.div>
               )
             })}

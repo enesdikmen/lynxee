@@ -108,6 +108,45 @@ export type CardDef = {
   build: (ctx: CardBuildCtx) => TileInstance[]
 }
 
+const THEMATIC_PRIMARY_COUNT = 2
+const THEMATIC_BACKUP_INDEX = THEMATIC_PRIMARY_COUNT
+const THEMATIC_CARD_CLASS =
+  'bento-card bento-card--mini bento-card--thematic accent-gold'
+
+function toThematicTileInstance(
+  card: { id: string; kicker: string; species: CardBuildCtx['data']['thematicStripCards'][number]['species'] },
+  index: number,
+): TileInstance | null {
+  const sp = card.species[0]
+  if (!sp) return null
+  return {
+    id: `thematic-${card.id}`,
+    slotId: `thematic-${card.id}`,
+    speciesIds: [sp.id],
+    className:
+      'bento-card bento-card--mini bento-card--thematic ' +
+      (index % 2 === 0 ? 'accent-gold' : 'accent-forest'),
+    render: () => (
+      <>
+        {renderSpeciesImage({
+          src: sp.squareImageUrl ?? sp.imageUrl,
+          alt: sp.commonName,
+          className: 'bento-mini__img',
+        })}
+        {sourceLabel(sp.imageSource) && (
+          <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
+        )}
+        <span className="bento-mini__name">{sp.commonName}</span>
+        <span className="bento-mini__sci">{sp.scientificName}</span>
+        {sp.popularity ? (
+          <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
+        ) : null}
+        <span className="bento-mini__ribbon">{card.kicker}</span>
+      </>
+    ),
+  }
+}
+
 // ───────────────────────────────────────────────────────────────────────────
 // Render helpers shared by multiple cards.
 // ───────────────────────────────────────────────────────────────────────────
@@ -122,6 +161,33 @@ const fmtPct = (share: number) => {
 
 const sourceLabel = (source?: keyof typeof IMAGE_SOURCE_LABELS) =>
   source ? IMAGE_SOURCE_LABELS[source] : null
+
+type SpeciesImageProps = {
+  src?: string
+  alt: string
+  className: string
+  loading?: 'lazy' | 'eager'
+}
+
+const renderSpeciesImage = ({
+  src,
+  alt,
+  className,
+  loading = 'lazy',
+}: SpeciesImageProps) => {
+  if (src) {
+    return <img src={src} alt={alt} className={className} loading={loading} />
+  }
+  return (
+    <div
+      className={`${className} bento-img-placeholder`}
+      role="img"
+      aria-label={`${alt} image unavailable`}
+    >
+      <span className="bento-img-placeholder__text">Image unavailable</span>
+    </div>
+  )
+}
 
 // ───────────────────────────────────────────────────────────────────────────
 // Comparison precompute — lookup helpers for the "how this place compares"
@@ -405,7 +471,11 @@ export const CARD_DEFS: CardDef[] = [
                   {sourceLabel(hero.imageSource)}
                 </span>
               )}
-              <img src={hero.imageUrl} alt={hero.commonName} className="bento-hero__img" loading="lazy" />
+              {renderSpeciesImage({
+                src: hero.imageUrl,
+                alt: hero.commonName,
+                className: 'bento-hero__img',
+              })}
               <div className="bento-hero__body">
                 <span className="bento-card__kicker">Most observed species</span>
                 <h2 className="bento-hero__name">{hero.commonName}</h2>
@@ -435,7 +505,11 @@ export const CARD_DEFS: CardDef[] = [
         speciesIds: [sp.id],
         render: () => (
           <>
-            <img src={sp.imageUrl} alt={sp.commonName} className="bento-mini__img" loading="lazy" />
+            {renderSpeciesImage({
+              src: sp.imageUrl,
+              alt: sp.commonName,
+              className: 'bento-mini__img',
+            })}
             {sourceLabel(sp.imageSource) && (
               <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
             )}
@@ -456,40 +530,11 @@ export const CARD_DEFS: CardDef[] = [
     // One species per thematic card, rendered like a `speciesMini` with the
     // theme kicker shown in the text section below the photo. Alternates the
     // accent so a row of these stays visually varied.
-    className: 'bento-card bento-card--mini bento-card--thematic accent-gold',
+    className: THEMATIC_CARD_CLASS,
     build: ({ data }) =>
       data.thematicStripCards
-        .map((card, index) => {
-          const sp = card.species[0]
-          if (!sp) return null
-          return {
-            id: `thematic-${card.id}`,
-            slotId: `thematic-${card.id}`,
-            speciesIds: [sp.id],
-            className:
-              'bento-card bento-card--mini bento-card--thematic ' +
-              (index % 2 === 0 ? 'accent-gold' : 'accent-forest'),
-            render: () => (
-              <>
-                <img
-                  src={sp.squareImageUrl ?? sp.imageUrl}
-                  alt={sp.commonName}
-                  className="bento-mini__img"
-                  loading="lazy"
-                />
-                {sourceLabel(sp.imageSource) && (
-                  <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
-                )}
-                <span className="bento-mini__name">{sp.commonName}</span>
-                <span className="bento-mini__sci">{sp.scientificName}</span>
-                {sp.popularity ? (
-                  <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
-                ) : null}
-                <span className="bento-mini__ribbon">{card.kicker}</span>
-              </>
-            ),
-          }
-        })
+        .slice(0, THEMATIC_PRIMARY_COUNT)
+        .map((card, index) => toThematicTileInstance(card, index))
         .filter((x): x is NonNullable<typeof x> => x !== null),
   },
 
@@ -668,12 +713,11 @@ export const CARD_DEFS: CardDef[] = [
         speciesIds: [sp.id],
         render: () => (
           <>
-            <img
-              src={sp.squareImageUrl ?? sp.imageUrl}
-              alt={sp.commonName}
-              className="bento-mini__img"
-              loading="lazy"
-            />
+            {renderSpeciesImage({
+              src: sp.squareImageUrl ?? sp.imageUrl,
+              alt: sp.commonName,
+              className: 'bento-mini__img',
+            })}
             {sourceLabel(sp.imageSource) && (
               <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
             )}
@@ -726,12 +770,11 @@ export const CARD_DEFS: CardDef[] = [
           speciesIds: [sp.id],
           render: () => (
             <>
-              <img
-                src={sp.squareImageUrl ?? sp.imageUrl}
-                alt={sp.commonName}
-                className="bento-mini__img"
-                loading="lazy"
-              />
+              {renderSpeciesImage({
+                src: sp.squareImageUrl ?? sp.imageUrl,
+                alt: sp.commonName,
+                className: 'bento-mini__img',
+              })}
               {sourceLabel(sp.imageSource) && (
                 <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
               )}
@@ -834,6 +877,31 @@ export function buildBentoTiles(args: BuildTilesArgs): Tile[] {
     }
   }
   return tiles
+}
+
+/**
+ * Optional 1x1 fallback thematic tile.
+ *
+ * Uses the same precomputed thematic pool and rendering logic as the main
+ * thematic cards, but targets the next thematic candidate (index 2). The
+ * caller decides whether to append this tile (e.g. only when one cell is empty).
+ */
+export function buildThematicBackupTile(data: LensData): Tile | null {
+  const card = data.thematicStripCards[THEMATIC_BACKUP_INDEX]
+  if (!card) return null
+  const inst = toThematicTileInstance(card, THEMATIC_BACKUP_INDEX)
+  if (!inst) return null
+  return {
+    id: inst.id,
+    w: inst.size?.w ?? 1,
+    h: inst.size?.h ?? 1,
+    anchor: inst.anchor,
+    pin: inst.pin,
+    className: inst.className ?? THEMATIC_CARD_CLASS,
+    render: inst.render,
+    slotId: inst.slotId,
+    speciesIds: inst.speciesIds,
+  }
 }
 
 /** Pad with invisible 1×1 fillers. When `targetArea` is set, pad up to that

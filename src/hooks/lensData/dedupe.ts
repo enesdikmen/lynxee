@@ -16,7 +16,8 @@
  *   2. `threatenedSpecies`     — at-risk card (claims the survivor it renders)
  *   3. `thematicStripCards[*]` — themed strips, processed in array order;
  *                                first `MAX_THEMATIC_STRIPS` with non-empty
- *                                survivors are kept.
+ *                                survivors are kept (2 primary + 1 backup
+ *                                candidate for 1x1 hole-filling).
  *   4. `signatureSpeciesData`  — pool for the signature-species card.
  *                                Filtered against everything above so the
  *                                random pick never duplicates a species
@@ -28,7 +29,7 @@
  */
 import type { LensData } from './types'
 
-const MAX_THEMATIC_STRIPS = 2
+const MAX_THEMATIC_STRIPS = 3
 
 export const dedupeSpeciesAcrossLenses = (data: LensData): LensData => {
   const claimed = new Set<string>()
