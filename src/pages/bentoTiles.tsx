@@ -19,7 +19,7 @@ import type { ReactNode } from 'react'
 import type { useLensData } from '../hooks/useLensData'
 import type { Anchor } from '../lib/gridPacker'
 import Globe from '../components/Globe'
-import { seededPick, seededShuffle } from '../hooks/lensData/shared'
+import { seededShuffle } from '../hooks/lensData/shared'
 import { SPECIES_MINI_COUNT } from '../data/lensSelection'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
 import { QRCodeSVG } from 'qrcode.react'
@@ -219,7 +219,6 @@ export const CARD_DEFS: CardDef[] = [
   {
     type: 'title',
     size: { w: 2, h: 1 },
-    pin: 'top-left',
     className: 'bento-card bento-card--title accent-gold',
     build: ({ placeName, latitude, longitude }) => [
       {
@@ -650,15 +649,20 @@ export const CARD_DEFS: CardDef[] = [
     size: { w: 1, h: 1 },
     className: 'bento-card bento-card--mini bento-card--at-risk accent-paper',
     build: ({ data, contentSeed }) => {
-      const pool = data.conservationSnapshot.threatenedSpecies.filter(
-        (sp) => sp.imageUrl,
+      // Shuffle the *unfiltered* pool first so the order is deterministic
+      // across reloads (only depends on data + seed). Then keep the
+      // image-bearing ones. If a species' image fetch happens to fail on
+      // one load, the slot is filled by the next deterministic candidate
+      // instead of the whole pick reshuffling.
+      const fullPool = data.conservationSnapshot.threatenedSpecies
+      if (fullPool.length === 0) return []
+      const ordered = seededShuffle(
+        fullPool,
+        `atRisk:${fullPool[0]?.iucnCategory ?? 'x'}:${contentSeed}`,
       )
-      if (pool.length === 0) return []
-      const shuffled = seededShuffle(
-        pool,
-        `atRisk:${data.conservationSnapshot.threatenedSpecies[0]?.iucnCategory ?? 'x'}:${contentSeed}`,
-      )
-      return shuffled.slice(0, 2).map((sp, i) => ({
+      const picks = ordered.filter((sp) => sp.imageUrl).slice(0, 2)
+      if (picks.length === 0) return []
+      return picks.map((sp, i) => ({
         id: `at-risk-${i}`,
         slotId: `at-risk-${i}`,
         speciesIds: [sp.id],
@@ -701,12 +705,17 @@ export const CARD_DEFS: CardDef[] = [
     className:
       'bento-card bento-card--mini bento-card--signature accent-forest',
     build: ({ data, placeName, latitude, longitude, contentSeed }) => {
-      const pool = data.signatureSpeciesData.filter((sp) => sp.imageUrl)
-      if (pool.length === 0) return []
-      const sp = seededPick(
-        pool,
+      // Deterministic order over the *unfiltered* pool, then take the first
+      // candidate that actually has an image. Keeps the pick stable across
+      // reloads even when image-fetch success varies between requests.
+      const fullPool = data.signatureSpeciesData
+      if (fullPool.length === 0) return []
+      const ordered = seededShuffle(
+        fullPool,
         `signature:${placeName}:${latitude ?? ''}:${longitude ?? ''}:${contentSeed}`,
       )
+      const sp = ordered.find((s) => s.imageUrl)
+      if (!sp) return []
       const r = sp.overRepresentationRatio
       const ratioLabel =
         r >= 10 ? `${Math.round(r)}×` : `${r.toFixed(1)}×`
@@ -744,7 +753,6 @@ export const CARD_DEFS: CardDef[] = [
   {
     type: 'sources',
     size: { w: 2, h: 1 },
-    pin: 'bottom-right',
     className: 'bento-card accent-gold bento-sources',
     build: ({ data, shareUrl }) => [
       {

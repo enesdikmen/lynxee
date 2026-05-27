@@ -18,6 +18,26 @@ import { places } from '../data/lensFallbacks'
 
 export type ShareState = { place: Place; seed: number }
 
+/** One lock entry as it travels through the URL. The `tile` itself is
+ *  rebuilt at runtime from `captureSeed`, so only this minimum is stored. */
+export type LockEntry = {
+  slotId: string
+  x: number
+  y: number
+  /** `posterSeed` value at the moment of locking. Used to reproduce the
+   *  exact content snapshot when the URL is reopened. */
+  captureSeed: number
+}
+
+/** Decoded lock list with the shared lock seed. `present=false` means the
+ *  URL did not contain a `l=` param at all (apply defaults). `present=true`
+ *  with an empty list means the user explicitly cleared all locks. */
+export type LockListState = {
+  present: boolean
+  lockSeed: number | null
+  locks: LockEntry[]
+}
+
 const SCALE = 10000
 const RADIUS_SCALE = 10
 
@@ -190,14 +210,90 @@ export function readShareFromLocation(): ShareState | null {
 }
 
 /**
- * Update the `?s=...` param in the address bar without adding to history.
- * Safe to call frequently — it diff-checks before touching history.
+ * Encode the lock list as a single compact `l=` param.
+ *
+ * Format: `<lockSeed36>;<slotId>_<x36>_<y36>,<slotId>_<x36>_<y36>,...`
+ * - lockSeed36 is always present (base36). When there are no locks it is
+ *   the literal `0` and the rest of the string is empty.
+ * - slot ids only contain `[a-zA-Z0-9-]` so they are URL-safe verbatim.
+ * - Field separator `_`, lock separator `,`.
  */
-export function syncShareToLocation(place: Place, seed: number): void {
+export function encodeLocks(
+  lockSeed: number | null,
+  locks: LockEntry[],
+): string {
+  const seed = lockSeed && Number.isFinite(lockSeed) ? Math.max(1, Math.trunc(lockSeed)) : 0
+  const head = seed.toString(36)
+  if (locks.length === 0) return `${head};`
+  const parts = locks.map(
+    (l) =>
+      `${l.slotId}_${Math.max(0, Math.trunc(l.x)).toString(36)}_${Math.max(
+        0,
+        Math.trunc(l.y),
+      ).toString(36)}`,
+  )
+  return `${head};${parts.join(',')}`
+}
+
+function decodeLocks(raw: string): LockListState {
+  const semi = raw.indexOf(';')
+  if (semi < 0) return { present: true, lockSeed: null, locks: [] }
+  const headRaw = raw.slice(0, semi)
+  const tail = raw.slice(semi + 1)
+  const seedNum = Number.parseInt(headRaw, 36)
+  const lockSeed =
+    Number.isFinite(seedNum) && seedNum > 0 ? seedNum : null
+  if (!tail) return { present: true, lockSeed, locks: [] }
+  const locks: LockEntry[] = []
+  for (const part of tail.split(',')) {
+    const fields = part.split('_')
+    if (fields.length !== 3) continue
+    const slotId = fields[0]
+    if (!/^[A-Za-z0-9-]+$/.test(slotId)) continue
+    const x = Number.parseInt(fields[1], 36)
+    const y = Number.parseInt(fields[2], 36)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+    if (lockSeed === null) continue
+    locks.push({ slotId, x, y, captureSeed: lockSeed })
+  }
+  return { present: true, lockSeed, locks }
+}
+
+/** Read `l=` from the current URL. */
+export function readLocksFromLocation(): LockListState {
+  if (typeof window === 'undefined') return { present: false, lockSeed: null, locks: [] }
+  const raw = new URL(window.location.href).searchParams.get('l')
+  if (raw === null) return { present: false, lockSeed: null, locks: [] }
+  return decodeLocks(raw)
+}
+
+/**
+ * Update the `?s=...` and `?l=...` params in the address bar without
+ * pushing history. Pass `lockState=null` to omit `l=` entirely (caller
+ * has no opinion / before defaults applied). Pass a state object with an
+ * empty list to record "explicitly no locks".
+ */
+export function syncShareToLocation(
+  place: Place,
+  seed: number,
+  lockState?: { lockSeed: number | null; locks: LockEntry[] } | null,
+): void {
   if (typeof window === 'undefined') return
   const url = new URL(window.location.href)
   const token = encodeShare(place, seed)
-  if (url.searchParams.get('s') === token) return
+  // lockState === undefined/null → caller has no opinion, leave `l=` as-is.
+  // lockState provided → write `l=` (possibly empty list, indicating
+  // "user has explicitly cleared the defaults").
+  const lToken = lockState ? encodeLocks(lockState.lockSeed, lockState.locks) : null
+
+  const curSToken = url.searchParams.get('s')
+  const curLToken = url.searchParams.get('l')
+  if (curSToken === token && (curLToken ?? null) === lToken) return
+
   url.searchParams.set('s', token)
+  if (lToken !== null) url.searchParams.set('l', lToken)
+  else url.searchParams.delete('l')
+  // Clean up the legacy unlock-mask param if a previous version wrote it.
+  url.searchParams.delete('u')
   window.history.replaceState(null, '', url.toString())
 }

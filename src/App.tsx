@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import BentoPoster from './pages/BentoPoster'
 import { places } from './data/lensFallbacks'
-import { canonicalizePlace, readShareFromLocation } from './lib/shareToken'
+import {
+  canonicalizePlace,
+  readLocksFromLocation,
+  readShareFromLocation,
+} from './lib/shareToken'
 import type { Place } from './types/lens'
 
 const initialShare = readShareFromLocation()
+const initialLocks = readLocksFromLocation()
 
 function App() {
   const [selectedPlace, setSelectedPlace] = useState<Place>(
@@ -22,6 +27,7 @@ function App() {
         selectedPlace={selectedPlace}
         onPlaceChange={handlePlaceChange}
         initialSeed={initialShare?.seed}
+        initialLocks={initialLocks}
       />
     </div>
   )
