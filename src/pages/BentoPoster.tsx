@@ -116,15 +116,18 @@ function BentoPoster({
     key: string
     data: LensData
   } | null>(null)
+  const wasDataReadyRef = useRef(false)
 
   useEffect(() => {
-    if (!data.isReady) return
-    if (committedSnapshot?.key === snapshotKey) return
-    setCommittedSnapshot({ key: snapshotKey, data })
+    const becameReady = data.isReady && !wasDataReadyRef.current
+    const keyChanged = committedSnapshot?.key !== snapshotKey
+    if (data.isReady && (becameReady || keyChanged)) {
+      setCommittedSnapshot({ key: snapshotKey, data })
+    }
+    wasDataReadyRef.current = data.isReady
   }, [data, snapshotKey, committedSnapshot?.key])
 
-  const displayData =
-    committedSnapshot?.key === snapshotKey ? data : committedSnapshot?.data ?? null
+  const displayData = data.isReady ? data : committedSnapshot?.data ?? null
   // Only show the loading overlay while waiting on the *first* ready
   // snapshot for the current place/sources. Regenerate keeps `snapshotKey`
   // unchanged so tiles update in place as new species images stream in.

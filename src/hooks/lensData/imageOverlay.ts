@@ -95,6 +95,9 @@ export const useLensImageOverlay = (
       return map
     },
     enabled: speciesForImaging.length > 0,
+    // Keep already-resolved URLs visible while a new species-set key
+    // fetches so unchanged cards don't flash placeholders on Regenerate.
+    placeholderData: (previousData) => previousData,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
   })
@@ -126,6 +129,7 @@ export const useLensImageOverlay = (
 
   useEffect(() => {
     if (!imageMapQuery.isSuccess) return
+    if (imageMapQuery.isPlaceholderData) return
     if (imageSources.length === 0 || speciesForImaging.length === 0) return
     const MAX_RETRIES = 3
     const DELAYS_MS = [600, 1500, 3500]
@@ -180,7 +184,9 @@ export const useLensImageOverlay = (
   )
 
   const isReady =
-    speciesForImaging.length === 0 || imageMapQuery.isSuccess || imageMapQuery.isError
+    speciesForImaging.length === 0 ||
+    (imageMapQuery.isSuccess && !imageMapQuery.isPlaceholderData) ||
+    imageMapQuery.isError
 
   return {
     topSpeciesData: imagedTopSpecies,
