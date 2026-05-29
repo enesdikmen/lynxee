@@ -19,7 +19,6 @@ import type {
 import { useConservationSnapshot } from './lensData/conservation'
 import { dedupeSpeciesAcrossLenses } from './lensData/dedupe'
 import { useLensImageOverlay } from './lensData/imageOverlay'
-import { pickMultilingualNames } from './lensData/multilingual'
 import { buildRecordsBreakdown } from './lensData/recordsBreakdown'
 import { placeGeoParams } from './lensData/shared'
 import { useThematicLensData } from './lensData/thematic'
@@ -127,7 +126,6 @@ export const useLensData = (
 
   const {
     topSpeciesData,
-    vernacularsBySpecies,
     isReady: isTopSpeciesReady,
   } = useTopSpeciesData(activePlace, contentSeed)
 
@@ -140,14 +138,6 @@ export const useLensData = (
     snapshot: conservationSnapshot,
     isReady: isConservationReady,
   } = useConservationSnapshot(activePlace, contentSeed)
-
-  const heroSpeciesKey = topSpeciesData[0]?.id
-    ? Number(topSpeciesData[0].id)
-    : undefined
-
-  const multilingualNames = useMemo(() => {
-    return pickMultilingualNames(vernacularsBySpecies, heroSpeciesKey)
-  }, [heroSpeciesKey, vernacularsBySpecies])
 
   const kingdomKeys = useMemo(
     () =>
@@ -249,7 +239,6 @@ export const useLensData = (
       datasetSummaries,
       totalRecords,
       maxSeasonality,
-      multilingualNames,
       recordsBreakdown,
       signatureSpeciesData: liveSignatureSpecies,
     })
@@ -263,7 +252,6 @@ export const useLensData = (
     datasetSummaries,
     totalRecords,
     maxSeasonality,
-    multilingualNames,
     recordsBreakdown,
     liveSignatureSpecies,
   ])

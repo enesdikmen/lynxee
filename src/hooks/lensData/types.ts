@@ -38,7 +38,6 @@ export type LensData = {
   datasetSummaries: DatasetSummary[]
   totalRecords: number
   maxSeasonality: number
-  multilingualNames: { language: string; name: string }[]
   recordsBreakdown: RecordsBreakdownItem[]
   /** Live-computed signature species (over-represented vs global baseline).
    *  A small pool (after cross-lens dedupe) of candidates ranked by

@@ -80,9 +80,6 @@ const releaseGbifSlot = () => {
 const speciesCache = new Map<number, GbifSpecies>()
 const speciesInFlight = new Map<number, Promise<GbifSpecies>>()
 
-const vernacularCache = new Map<number, GbifVernacularNameResponse>()
-const vernacularInFlight = new Map<number, Promise<GbifVernacularNameResponse>>()
-
 const datasetCache = new Map<string, GbifDataset>()
 const datasetInFlight = new Map<string, Promise<GbifDataset>>()
 
@@ -171,21 +168,6 @@ export interface GbifMediaResponse {
 	limit: number
 	endOfRecords: boolean
 	results: GbifMediaItem[]
-}
-
-export interface GbifVernacularName {
-	vernacularName: string
-	language?: string
-	country?: string
-	source?: string
-	preferred?: boolean
-}
-
-export interface GbifVernacularNameResponse {
-	offset: number
-	limit: number
-	endOfRecords: boolean
-	results: GbifVernacularName[]
 }
 
 export interface GbifDataset {
@@ -373,30 +355,6 @@ export const fetchSpeciesMedia = async ({
 }: SpeciesMediaRequest) => {
 	const url = buildUrl(`/species/${speciesKey}/media`, { limit, offset })
 	return fetchJson<GbifMediaResponse>(url, { signal })
-}
-
-export const fetchSpeciesVernacularNames = async ({
-	speciesKey,
-	signal,
-}: SpeciesRequest) => {
-	const cached = vernacularCache.get(speciesKey)
-	if (cached) return raceWithSignal(Promise.resolve(cached), signal)
-
-	const existing = vernacularInFlight.get(speciesKey)
-	if (existing) return raceWithSignal(existing, signal)
-
-	const url = buildUrl(`/species/${speciesKey}/vernacularNames`, { limit: 200 })
-	const request = fetchJson<GbifVernacularNameResponse>(url)
-		.then((result) => {
-			vernacularCache.set(speciesKey, result)
-			return result
-		})
-		.finally(() => {
-			vernacularInFlight.delete(speciesKey)
-		})
-
-	vernacularInFlight.set(speciesKey, request)
-	return raceWithSignal(request, signal)
 }
 
 export const fetchDatasetMetadata = async ({

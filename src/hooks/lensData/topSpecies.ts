@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import {
   fetchOccurrenceFacets,
   fetchSpecies,
-  fetchSpeciesVernacularNames,
 } from '../../api/gbif'
 import { fallbackTopSpecies } from '../../data/lensFallbacks'
 import {
@@ -28,15 +27,10 @@ type TopSpeciesPoolData = {
     slot: HeroSlotRule
     candidates: SpeciesCard[]
   }>
-  vernacularsBySpecies: Record<
-    number,
-    Awaited<ReturnType<typeof fetchSpeciesVernacularNames>>['results']
-  >
 }
 
 export type TopSpeciesResult = {
   topSpeciesData: SpeciesCard[]
-  vernacularsBySpecies: TopSpeciesPoolData['vernacularsBySpecies']
   isReady: boolean
 }
 
@@ -47,7 +41,7 @@ export const useTopSpeciesData = (
   const topSpeciesPoolQuery = useQuery({
     queryKey: ['topSpeciesPool', selectedPlace?.id],
     queryFn: async ({ signal }): Promise<TopSpeciesPoolData> => {
-      if (!selectedPlace) return { slots: [], extraMiniSlots: [], vernacularsBySpecies: {} }
+      if (!selectedPlace) return { slots: [], extraMiniSlots: [] }
 
       const getPoolForSlot = async (
         slot: HeroSlotRule,
@@ -104,25 +98,19 @@ export const useTopSpeciesData = (
 
       const speciesInfo = await Promise.all(
         uniqueSpeciesKeys.map(async (speciesKey) => {
-          const [species, vernacularNames] = await Promise.all([
-            fetchSpecies({ speciesKey, signal }),
-            fetchSpeciesVernacularNames({ speciesKey, signal }),
-          ])
+          const species = await fetchSpecies({ speciesKey, signal })
 
           return {
             speciesKey,
             cardBase: speciesCardBase(speciesKey, species),
-            vernaculars: vernacularNames.results,
           }
         }),
       )
 
       const speciesByKey = new Map<number, (typeof speciesInfo)[number]['cardBase']>()
-      const vernacularsBySpecies: TopSpeciesPoolData['vernacularsBySpecies'] = {}
 
       for (const info of speciesInfo) {
         speciesByKey.set(info.speciesKey, info.cardBase)
-        vernacularsBySpecies[info.speciesKey] = info.vernaculars
       }
 
       const buildCandidates = (
@@ -160,7 +148,7 @@ export const useTopSpeciesData = (
       const slots = buildCandidates(slotPools)
       const extraMiniSlots = buildCandidates(extraMiniSlotPools)
 
-      return { slots, extraMiniSlots, vernacularsBySpecies }
+      return { slots, extraMiniSlots }
     },
     enabled: Boolean(selectedPlace),
     staleTime: Infinity,
@@ -237,7 +225,6 @@ export const useTopSpeciesData = (
 
   return {
     topSpeciesData,
-    vernacularsBySpecies: topSpeciesPoolQuery.data?.vernacularsBySpecies ?? {},
     isReady:
       !selectedPlace ||
       topSpeciesPoolQuery.isSuccess ||
