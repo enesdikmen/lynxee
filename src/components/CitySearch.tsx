@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { searchCities } from '../api/nominatim'
+import { getUiText, type UiText } from '../i18n/uiText'
 import type { Place } from '../types/lens'
 import './CitySearch.css'
 
@@ -13,9 +14,17 @@ interface Props {
   selected?: Place
   onSelect: (place: Place) => void
   placeholder?: string
+  language?: string
+  text?: UiText['citySearch']
 }
 
-export default function CitySearch({ selected, onSelect, placeholder = 'Search a city…' }: Props) {
+export default function CitySearch({
+  selected,
+  onSelect,
+  placeholder,
+  language = 'en',
+  text = getUiText(language).citySearch,
+}: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Place[]>([])
   const [open, setOpen] = useState(false)
@@ -37,7 +46,7 @@ export default function CitySearch({ selected, onSelect, placeholder = 'Search a
       setLoading(true)
       setError(false)
       try {
-        const places = await searchCities(q, { signal: ctrl.signal })
+        const places = await searchCities(q, { signal: ctrl.signal, language })
         setResults(places)
       } catch (err) {
         if ((err as Error).name !== 'AbortError') setError(true)
@@ -49,7 +58,7 @@ export default function CitySearch({ selected, onSelect, placeholder = 'Search a
       clearTimeout(t)
       ctrl.abort()
     }
-  }, [query])
+  }, [language, query])
 
   // Close dropdown on outside click.
   useEffect(() => {
@@ -67,7 +76,7 @@ export default function CitySearch({ selected, onSelect, placeholder = 'Search a
     setOpen(false)
   }
 
-  const buttonLabel = selected?.label ?? 'Pick a city'
+  const buttonLabel = selected?.label ?? text.pickCity
 
   return (
     <div className="city-search" ref={wrapRef}>
@@ -80,15 +89,15 @@ export default function CitySearch({ selected, onSelect, placeholder = 'Search a
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
-        placeholder={selected ? buttonLabel : placeholder}
-        aria-label="Search a city"
+        placeholder={selected ? buttonLabel : placeholder ?? text.placeholder}
+        aria-label={text.ariaLabel}
       />
       {open && query.trim().length >= 2 && (
         <div className="city-search__dropdown" role="listbox">
-          {loading && <div className="city-search__hint">Searching…</div>}
-          {error && <div className="city-search__hint city-search__hint--err">Search failed</div>}
+          {loading && <div className="city-search__hint">{text.searching}</div>}
+          {error && <div className="city-search__hint city-search__hint--err">{text.failed}</div>}
           {!loading && !error && results.length === 0 && (
-            <div className="city-search__hint">No matches</div>
+            <div className="city-search__hint">{text.noMatches}</div>
           )}
           {!loading &&
             !error &&

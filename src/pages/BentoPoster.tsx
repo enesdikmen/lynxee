@@ -12,6 +12,12 @@ import { useLensData, type LensData } from '../hooks/useLensData'
 import { packWithRetries, type BoxSpec, type Placement } from '../lib/gridPacker'
 import { printPosterToPdf } from '../lib/printPoster'
 import {
+  getUiText,
+  normalizeUiLanguage,
+  UI_LANGUAGES,
+  type UiLanguage,
+} from '../i18n/uiText'
+import {
   encodeLocks,
   encodeShare,
   decodeLocks,
@@ -42,16 +48,6 @@ interface Props {
   initialLanguage?: string
 }
 
-const COMMON_NAME_LANGUAGES = [
-  { code: 'en', label: 'EN' },
-  { code: 'fr', label: 'FR' },
-  { code: 'es', label: 'ES' },
-  { code: 'tr', label: 'TR' },
-  { code: 'de', label: 'DE' },
-  { code: 'it', label: 'IT' },
-  { code: 'pt', label: 'PT' },
-] as const
-
 function BentoPoster({
   selectedPlace,
   onPlaceChange,
@@ -64,12 +60,10 @@ function BentoPoster({
   const [posterSeed, setPosterSeed] = useState(
     initialSeed && Number.isFinite(initialSeed) ? initialSeed : 1,
   )
-  const [commonNameLanguage, setCommonNameLanguage] = useState(() => {
-    const normalized = (initialLanguage ?? 'en').trim().toLowerCase()
-    return COMMON_NAME_LANGUAGES.some((option) => option.code === normalized)
-      ? normalized
-      : 'en'
-  })
+  const [commonNameLanguage, setCommonNameLanguage] = useState<UiLanguage>(() =>
+    normalizeUiLanguage(initialLanguage),
+  )
+  const uiText = getUiText(commonNameLanguage)
   const [shareCopied, setShareCopied] = useState(false)
   const GRID_W = POSTER_GRID_W
 
@@ -284,13 +278,15 @@ function BentoPoster({
       data: snapshot,
       contentSeed: seed,
       shareUrl,
+      language: commonNameLanguage,
+      uiText,
     })
   }
 
   const baseTiles = useMemo(
     () => buildTilesAt(displayData, posterSeed),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [placeName, latitude, longitude, displayData, posterSeed, selectedPlace],
+    [placeName, latitude, longitude, displayData, posterSeed, selectedPlace, commonNameLanguage, uiText],
   )
 
   // Default locks: title top-left, sources bottom-right.
@@ -352,8 +348,10 @@ function BentoPoster({
       data: lockData,
       contentSeed: restoreSeed,
       shareUrl: restoreShareUrl,
+      language: commonNameLanguage,
+      uiText,
       }),
-      ...buildThematicBackupTiles(lockData),
+      ...buildThematicBackupTiles(lockData, commonNameLanguage, uiText),
     ]
     const resolved = new Map<string, Lock>()
     const remaining: LockEntry[] = []
@@ -465,7 +463,7 @@ function BentoPoster({
         for (const sid of tile.speciesIds ?? []) occupiedSpeciesIds.add(sid)
       }
 
-      for (const backup of buildThematicBackupTiles(displayData)) {
+      for (const backup of buildThematicBackupTiles(displayData, commonNameLanguage, uiText)) {
         const area = backup.w * backup.h
         if (area > missingArea) continue
         const hasSameSlot = !!backup.slotId && occupiedSlotIds.has(backup.slotId)
@@ -486,7 +484,7 @@ function BentoPoster({
     // Pad here (after locks) so the poster always has exactly
     // `POSTER_GRID_AREA` cells, no matter how many tiles locks added/dropped.
     return padToRectangle(merged, GRID_W, POSTER_GRID_AREA)
-  }, [baseTiles, locks, unlockOverrides, GRID_W, displayData])
+  }, [baseTiles, locks, unlockOverrides, GRID_W, displayData, commonNameLanguage, uiText])
 
   // Pack the tiles into the fixed poster grid.
   //
@@ -586,16 +584,21 @@ function BentoPoster({
   return (
     <div className="bento-shell">
       <div className="bento-toolbar">
-        <CitySearch selected={selectedPlace} onSelect={onPlaceChange} />
+        <CitySearch
+          selected={selectedPlace}
+          onSelect={onPlaceChange}
+          language={commonNameLanguage}
+          text={uiText.citySearch}
+        />
         <label className="bento-toolbar__field">
-          <span className="bento-toolbar__field-label">Language</span>
+          <span className="bento-toolbar__field-label">{uiText.toolbar.language}</span>
           <select
             className="bento-toolbar__select"
             value={commonNameLanguage}
-            onChange={(event) => setCommonNameLanguage(event.target.value)}
-            aria-label="Common names language"
+            onChange={(event) => setCommonNameLanguage(normalizeUiLanguage(event.target.value))}
+            aria-label={uiText.toolbar.languageAria}
           >
-            {COMMON_NAME_LANGUAGES.map((option) => (
+            {UI_LANGUAGES.map((option) => (
               <option key={option.code} value={option.code}>
                 {option.label}
               </option>
@@ -609,26 +612,26 @@ function BentoPoster({
             setUnlockOverrides((prev) => (prev.size === 0 ? prev : new Map()))
             setPosterSeed((s) => s + 1)
           }}
-          title="Regenerate layout and data"
+          title={uiText.toolbar.regenerateTitle}
         >
-          ↻ Regenerate
+          ↻ {uiText.toolbar.regenerate}
         </button>
         <button
           type="button"
           className="bento-toolbar__btn"
           onClick={handleShare}
-          title="Copy a shareable link to this exact poster"
+          title={uiText.toolbar.shareTitle}
         >
-          {shareCopied ? '✓ Link copied' : '↗ Share'}
+          {shareCopied ? `✓ ${uiText.toolbar.shareCopied}` : `↗ ${uiText.toolbar.share}`}
         </button>
         <button
           type="button"
           className="bento-toolbar__btn"
           onClick={handleDownloadPdf}
           disabled={isLoadingSnapshot}
-          title="Open the browser print dialog — choose ‘Save as PDF’"
+          title={uiText.toolbar.pdfTitle}
         >
-          ⤓ PDF
+          ⤓ {uiText.toolbar.pdf}
         </button>
       </div>
 
@@ -662,8 +665,8 @@ function BentoPoster({
                         'bento-lock-btn' + (isLocked ? ' bento-lock-btn--on' : '')
                       }
                       onClick={() => toggleLock(t, { x: p.x, y: p.y })}
-                      title={isLocked ? 'Unlock card' : 'Lock card content and position'}
-                      aria-label={isLocked ? 'Unlock card' : 'Lock card'}
+                      title={isLocked ? uiText.toolbar.unlockCardTitle : uiText.toolbar.lockCardTitle}
+                      aria-label={isLocked ? uiText.toolbar.unlockCard : uiText.toolbar.lockCard}
                       aria-pressed={isLocked}
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true" width="17" height="17">
@@ -710,7 +713,7 @@ function BentoPoster({
           <div className="bento-grid-loading" role="status" aria-live="polite">
             <div className="bento-grid-loading__panel">
               <span className="bento-grid-loading__dot" aria-hidden="true" />
-              <span>Loading full place snapshot…</span>
+              <span>{uiText.toolbar.loadingSnapshot}</span>
             </div>
           </div>
         )}

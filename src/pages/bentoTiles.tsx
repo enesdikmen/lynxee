@@ -19,6 +19,7 @@ import type { ReactNode } from 'react'
 import type { useLensData } from '../hooks/useLensData'
 import type { Anchor } from '../lib/gridPacker'
 import Globe from '../components/Globe'
+import type { UiLanguage, UiText } from '../i18n/uiText'
 import { seededShuffle } from '../hooks/lensData/shared'
 import { SPECIES_MINI_COUNT } from '../data/lensSelection'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
@@ -70,6 +71,8 @@ export type CardBuildCtx = {
   placeName: string
   latitude?: number
   longitude?: number
+  language: UiLanguage
+  uiText: UiText
   /** Poster/content seed bumped by Regenerate; cards can key random picks to it. */
   contentSeed: number
   data: LensData
@@ -115,9 +118,26 @@ const THEMATIC_CARD_CLASS =
 function toThematicTileInstance(
   card: { id: string; kicker: string; species: CardBuildCtx['data']['thematicStripCards'][number]['species'] },
   index: number,
+  language: UiLanguage,
+  uiText: UiText,
 ): TileInstance | null {
   const sp = card.species[0]
   if (!sp) return null
+  const monthLabel = new Intl.DateTimeFormat(language, { month: 'long' }).format(new Date(2000, new Date().getMonth(), 1))
+  const thematicLabel = (() => {
+    switch (card.id) {
+      case 'inSeason':
+        return uiText.poster.thematic.inSeason(monthLabel)
+      case 'smallWonders':
+        return uiText.poster.thematic.smallWonder
+      case 'brandNew':
+        return uiText.poster.thematic.brandNewHere
+      case 'nightCreatures':
+        return uiText.poster.thematic.nightCreature
+      default:
+        return card.kicker
+    }
+  })()
   return {
     id: `thematic-${card.id}`,
     slotId: `thematic-${card.id}`,
@@ -131,6 +151,7 @@ function toThematicTileInstance(
           src: sp.squareImageUrl ?? sp.imageUrl,
           alt: sp.commonName,
           className: 'bento-mini__img',
+          uiText,
         })}
         {sourceLabel(sp.imageSource) && (
           <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
@@ -138,9 +159,9 @@ function toThematicTileInstance(
         <span className="bento-mini__name">{sp.commonName}</span>
         <span className="bento-mini__sci">{sp.scientificName}</span>
         {sp.popularity ? (
-          <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
+          <span className="bento-mini__count">{sp.popularity.toLocaleString(language)}</span>
         ) : null}
-        <span className="bento-mini__ribbon">{card.kicker}</span>
+        <span className="bento-mini__ribbon">{thematicLabel}</span>
       </>
     ),
   }
@@ -165,6 +186,7 @@ type SpeciesImageProps = {
   src?: string
   alt: string
   className: string
+  uiText: UiText
   loading?: 'lazy' | 'eager'
 }
 
@@ -173,6 +195,7 @@ const renderSpeciesImage = ({
   alt,
   className,
   loading = 'lazy',
+  uiText,
 }: SpeciesImageProps) => {
   if (src) {
     return <img src={src} alt={alt} className={className} loading={loading} />
@@ -181,9 +204,9 @@ const renderSpeciesImage = ({
     <div
       className={`${className} bento-img-placeholder`}
       role="img"
-      aria-label={`${alt} image unavailable`}
+      aria-label={uiText.poster.imageUnavailableAria(alt)}
     >
-      <span className="bento-img-placeholder__text">Image unavailable</span>
+      <span className="bento-img-placeholder__text">{uiText.poster.imageUnavailable}</span>
     </div>
   )
 }
@@ -285,7 +308,7 @@ export const CARD_DEFS: CardDef[] = [
     type: 'title',
     size: { w: 2, h: 1 },
     className: 'bento-card bento-card--title accent-gold',
-    build: ({ placeName, latitude, longitude }) => [
+    build: ({ placeName, latitude, longitude, uiText }) => [
       {
         id: 'title',
         slotId: 'title',
@@ -297,7 +320,7 @@ export const CARD_DEFS: CardDef[] = [
             <div className="bento-title__text">
               <h1 className="bento-title">
                 <span className="bento-title__place">{placeName}</span>
-                <span className="bento-title__sub">Biodiversity Portrait</span>
+                <span className="bento-title__sub">{uiText.poster.portraitTitle}</span>
               </h1>
             </div>
           </div>
@@ -310,7 +333,7 @@ export const CARD_DEFS: CardDef[] = [
     type: 'sightings',
     size: { w: 1, h: 2 },
     className: 'bento-card bento-card--sightings accent-ink',
-    build: ({ data, latitude, longitude }) => {
+    build: ({ data, latitude, longitude, language, uiText }) => {
       // Show the headline number plus the top 3 kingdoms as compact %
       // chips so users see the *composition* of those sightings, not just
       // the raw count. Falls back gracefully if breakdown is empty.
@@ -328,9 +351,9 @@ export const CARD_DEFS: CardDef[] = [
         snap.categoryBreakdown.find((c) => c.status === s)?.count ?? 0
       const iucnBuckets = snap.totalAssessedSpecies > 0
         ? [
-            { label: 'Doing well', count: getIucn('LC'), color: '#4ade80' },
-            { label: 'Watch list', count: getIucn('NT') + getIucn('DD'), color: '#facc15' },
-            { label: 'At risk', count: getIucn('VU') + getIucn('EN') + getIucn('CR'), color: '#f87171' },
+            { label: uiText.poster.doingWell, count: getIucn('LC'), color: '#4ade80' },
+            { label: uiText.poster.watchList, count: getIucn('NT') + getIucn('DD'), color: '#facc15' },
+            { label: uiText.poster.atRisk, count: getIucn('VU') + getIucn('EN') + getIucn('CR'), color: '#f87171' },
           ]
         : []
 
@@ -349,26 +372,16 @@ export const CARD_DEFS: CardDef[] = [
       // pcts.uniqueSpecies }` row to `ranks` below.
       const cmpRow = findComparisonRow(latitude, longitude)
       const pcts = cmpRow?.percentiles ?? null
-      const cohortLabel = pcts?.cohort === 'city' ? 'cities' : 'countries'
+      const cohortLabel = pcts?.cohort === 'city' ? uiText.poster.cities : uiText.poster.countries
       const cohortSize = pcts?.cohortSize
       const ranks = pcts
         ? [
-            { key: 'records', label: 'Recording intensity', pct: pcts.recordsPerKm2 },
-            { key: 'threat',  label: 'Threatened share',    pct: pcts.threatenedShare },
+            { key: 'records', label: uiText.poster.recordingIntensity, pct: pcts.recordsPerKm2 },
+            { key: 'threat',  label: uiText.poster.threatenedShare,    pct: pcts.threatenedShare },
           ].filter((r): r is { key: string; label: string; pct: number } =>
             typeof r.pct === 'number' && Number.isFinite(r.pct),
           )
         : []
-      const ordinal = (n: number) => {
-        const v = n % 100
-        if (v >= 11 && v <= 13) return `${n}th`
-        switch (n % 10) {
-          case 1: return `${n}st`
-          case 2: return `${n}nd`
-          case 3: return `${n}rd`
-          default: return `${n}th`
-        }
-      }
 
       return [
         {
@@ -376,9 +389,9 @@ export const CARD_DEFS: CardDef[] = [
           slotId: 'sightings',
           render: () => (
             <>
-              <span className="bento-card__kicker">Sightings on GBIF</span>
+              <span className="bento-card__kicker">{uiText.poster.sightingsOnGbif}</span>
               <span className="bento-sightings__num">
-                {data.totalRecords ? data.totalRecords.toLocaleString() : '—'}
+                {data.totalRecords ? data.totalRecords.toLocaleString(language) : '—'}
               </span>
               {topKingdoms.length > 0 && (
                 <ul className="bento-sightings__breakdown">
@@ -392,7 +405,7 @@ export const CARD_DEFS: CardDef[] = [
               )}
               {iucnBuckets.length > 0 && (
                 <div className="bento-sightings__iucn">
-                  <span className="bento-sightings__iucn-head">IUCN Red List</span>
+                  <span className="bento-sightings__iucn-head">{uiText.poster.iucnRedList}</span>
                   <div className="bento-sightings__iucn-pills">
                     {iucnBuckets.map((b) => (
                       <span key={b.label} className="bento-sightings__iucn-pill">
@@ -407,10 +420,10 @@ export const CARD_DEFS: CardDef[] = [
               {ranks.length > 0 && (
                 <div className="bento-sightings__ranks">
                   <p className="bento-sightings__ranks-head">
-                    How this place compares
+                    {uiText.poster.comparisonTitle}
                     {typeof cohortSize === 'number' && (
                       <span className="bento-sightings__ranks-sub">
-                        {' '}· vs {cohortSize.toLocaleString()} {cohortLabel}
+                        {' '}· {uiText.poster.comparedWith(cohortSize.toLocaleString(language), cohortLabel)}
                       </span>
                     )}
                   </p>
@@ -422,7 +435,7 @@ export const CARD_DEFS: CardDef[] = [
                           <div className="bento-sightings__rank-head">
                             <span className="bento-sightings__rank-label">{r.label}</span>
                             <span className="bento-sightings__rank-pct">
-                              {ordinal(Math.max(1, Math.round(pctVal)))} pct
+                              {uiText.poster.percentile(Math.max(1, Math.round(pctVal)))}
                             </span>
                           </div>
                           <div
@@ -431,7 +444,7 @@ export const CARD_DEFS: CardDef[] = [
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-valuenow={Math.round(pctVal)}
-                            aria-label={`${r.label} percentile`}
+                            aria-label={uiText.poster.percentileAria(r.label)}
                           >
                             <span
                               className="bento-sightings__bar-fill"
@@ -455,7 +468,7 @@ export const CARD_DEFS: CardDef[] = [
     type: 'hero',
     size: { w: 2, h: 2 },
     className: 'bento-card bento-card--hero accent-forest',
-    build: ({ data }) => {
+    build: ({ data, language, uiText }) => {
       const hero = data.topSpeciesData[0]
       if (!hero) return []
       return [
@@ -474,15 +487,16 @@ export const CARD_DEFS: CardDef[] = [
                 src: hero.imageUrl,
                 alt: hero.commonName,
                 className: 'bento-hero__img',
+                uiText,
               })}
               <div className="bento-hero__body">
-                <span className="bento-card__kicker">Most observed species</span>
+                <span className="bento-card__kicker">{uiText.poster.mostObservedSpecies}</span>
                 <h2 className="bento-hero__name">{hero.commonName}</h2>
                 <p className="bento-hero__sci">{hero.scientificName}</p>
                 {hero.taxonLine && <span className="bento-hero__taxon">{hero.taxonLine}</span>}
                 {hero.popularity ? (
                   <span className="bento-hero__count">
-                    {hero.popularity.toLocaleString()} observations
+                    {uiText.poster.observations(hero.popularity.toLocaleString(language))}
                   </span>
                 ) : null}
               </div>
@@ -497,7 +511,7 @@ export const CARD_DEFS: CardDef[] = [
     type: 'speciesMini',
     size: { w: 1, h: 1 },
     className: 'bento-card bento-card--mini accent-paper',
-    build: ({ data }) => {
+    build: ({ data, language, uiText }) => {
       return data.topSpeciesData.slice(1, 1 + SPECIES_MINI_COUNT).map((sp, idx) => ({
         id: `sp-${sp.id}`,
         slotId: `mini-${idx}`,
@@ -508,6 +522,7 @@ export const CARD_DEFS: CardDef[] = [
               src: sp.imageUrl,
               alt: sp.commonName,
               className: 'bento-mini__img',
+              uiText,
             })}
             {sourceLabel(sp.imageSource) && (
               <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
@@ -515,7 +530,7 @@ export const CARD_DEFS: CardDef[] = [
             <span className="bento-mini__name">{sp.commonName}</span>
             <span className="bento-mini__sci">{sp.scientificName}</span>
             {sp.popularity ? (
-              <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
+              <span className="bento-mini__count">{sp.popularity.toLocaleString(language)}</span>
             ) : null}
           </>
         ),
@@ -530,10 +545,10 @@ export const CARD_DEFS: CardDef[] = [
     // theme kicker shown in the text section below the photo. Alternates the
     // accent so a row of these stays visually varied.
     className: THEMATIC_CARD_CLASS,
-    build: ({ data }) =>
+    build: ({ data, language, uiText }) =>
       data.thematicStripCards
         .slice(0, THEMATIC_PRIMARY_COUNT)
-        .map((card, index) => toThematicTileInstance(card, index))
+        .map((card, index) => toThematicTileInstance(card, index, language, uiText))
         .filter((x): x is NonNullable<typeof x> => x !== null),
   },
 
@@ -541,12 +556,18 @@ export const CARD_DEFS: CardDef[] = [
     type: 'seasonality',
     size: { w: 2, h: 1 },
     className: 'bento-card bento-card--season-how accent-paper',
-    build: ({ data }) => {
+    build: ({ data, language, uiText }) => {
       const ys = data.yearSummary
       const fmtCount = (n: number) =>
         n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
           : n >= 1_000 ? `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`
           : String(n)
+      const monthLabels = Array.from({ length: 12 }, (_, i) =>
+        new Intl.DateTimeFormat(language, { month: 'short' })
+          .format(new Date(2000, i, 1))
+          .slice(0, 1)
+          .toUpperCase(),
+      )
 
       // Compute % of observations from the last 10 years
       const recentPct = (() => {
@@ -575,22 +596,7 @@ export const CARD_DEFS: CardDef[] = [
       const howSegments: HowSeg[] = [
         ...topRecords.map((r, i) => ({
           key: r.key,
-          label: (() => {
-            switch (r.key) {
-              case 'HUMAN_OBSERVATION':
-                return 'Citizen science'
-              case 'PRESERVED_SPECIMEN':
-                return 'Museum + herbarium'
-              case 'MATERIAL_SAMPLE':
-                return 'Field samples'
-              case 'MACHINE_OBSERVATION':
-                return 'Cameras + sensors'
-              case 'OBSERVATION':
-                return 'Field observation'
-              default:
-                return r.label
-            }
-          })(),
+          label: uiText.poster.evidenceLabels[r.key] ?? r.label,
           share: r.share,
           kind: (i === 0 ? 'primary' : 'secondary') as HowSeg['kind'],
         })),
@@ -598,7 +604,7 @@ export const CARD_DEFS: CardDef[] = [
           ? [
               {
                 key: '_rest',
-                label: `${restRecords.length} other source${restRecords.length === 1 ? '' : 's'}`,
+                label: uiText.poster.otherSources(restRecords.length),
                 share: restShare,
                 kind: 'rest' as const,
               },
@@ -614,26 +620,29 @@ export const CARD_DEFS: CardDef[] = [
             <div className="bento-season-how">
               <div className="bento-season-how__left">
                 <div className="bento-season__header">
-                  <span className="bento-card__kicker bento-card__kicker--season">Seasonality</span>
+                  <span className="bento-card__kicker bento-card__kicker--season">
+                    {uiText.poster.seasonality}
+                  </span>
                   {ys && (
                     <span className="bento-season__since">
-                      Records since {ys.firstYear}
+                      {uiText.poster.recordsSince(ys.firstYear)}
                     </span>
                   )}
                 </div>
-                <div className="bento-season-bars" aria-label="Monthly observations">
+                <div className="bento-season-bars" aria-label={uiText.poster.monthlyObservations}>
                   {data.seasonalityData.map((val, i) => {
                     const ratio = data.maxSeasonality > 0 ? val / data.maxSeasonality : 0
+                    const monthLabel = monthLabels[i] ?? MONTH[i]
                     return (
                       <div key={`m-${i}`} className="bento-season-bars__col">
                         <div className="bento-season-bars__track">
                           <div
                             className="bento-season-bars__bar"
                             style={{ height: `${Math.max(ratio * 100, 3)}%` }}
-                            title={`${MONTH[i]} · ${fmtCount(val)}`}
+                            title={`${monthLabel} · ${fmtCount(val)}`}
                           />
                         </div>
-                        <span className="bento-season-bars__label">{MONTH[i]}</span>
+                        <span className="bento-season-bars__label">{monthLabel}</span>
                       </div>
                     )
                   })}
@@ -641,13 +650,13 @@ export const CARD_DEFS: CardDef[] = [
                 {ys && (
                   <div className="bento-season__footer">
                     <span className="bento-season__stat">
-                      Peak {ys.peakYear}: <strong>{fmtCount(ys.peakYearCount)}</strong> obs
+                      {uiText.poster.peakYear(ys.peakYear, fmtCount(ys.peakYearCount))}
                     </span>
                     {recentPct !== null && (
                       <>
                         <span className="bento-season__divider">·</span>
                         <span className="bento-season__stat">
-                          <strong>{recentPct}%</strong> in last decade
+                          {uiText.poster.inLastDecade(recentPct)}
                         </span>
                       </>
                     )}
@@ -656,7 +665,9 @@ export const CARD_DEFS: CardDef[] = [
               </div>
               {howSegments.length > 0 && (
                 <div className="bento-season-how__right">
-                  <span className="bento-card__kicker bento-card__kicker--evidence">Evidence mix</span>
+                  <span className="bento-card__kicker bento-card__kicker--evidence">
+                    {uiText.poster.evidenceMix}
+                  </span>
                   <div className="bento-how-stack">
                     <div className="bento-how-stack__bar" aria-hidden="true">
                       {howSegments.map((seg) => (
@@ -692,7 +703,7 @@ export const CARD_DEFS: CardDef[] = [
     type: 'atRisk',
     size: { w: 1, h: 1 },
     className: 'bento-card bento-card--mini bento-card--at-risk accent-paper',
-    build: ({ data, contentSeed }) => {
+    build: ({ data, contentSeed, language, uiText }) => {
       // Shuffle the *unfiltered* pool first so the order is deterministic
       // across reloads (only depends on data + seed). Then keep the
       // image-bearing ones. If a species' image fetch happens to fail on
@@ -716,6 +727,7 @@ export const CARD_DEFS: CardDef[] = [
               src: sp.squareImageUrl ?? sp.imageUrl,
               alt: sp.commonName,
               className: 'bento-mini__img',
+              uiText,
             })}
             {sourceLabel(sp.imageSource) && (
               <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
@@ -723,10 +735,10 @@ export const CARD_DEFS: CardDef[] = [
             <span className="bento-mini__name">{sp.commonName}</span>
             <span className="bento-mini__sci">{sp.scientificName}</span>
             {sp.popularity ? (
-              <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
+              <span className="bento-mini__count">{sp.popularity.toLocaleString(language)}</span>
             ) : null}
             <span className="bento-mini__ribbon bento-mini__ribbon--danger">
-              At risk · {sp.iucnCategory}
+              {uiText.poster.atRiskRibbon(sp.iucnCategory)}
             </span>
           </>
         ),
@@ -747,7 +759,7 @@ export const CARD_DEFS: CardDef[] = [
     size: { w: 1, h: 1 },
     className:
       'bento-card bento-card--mini bento-card--signature accent-forest',
-    build: ({ data, placeName, latitude, longitude, contentSeed }) => {
+    build: ({ data, placeName, latitude, longitude, contentSeed, language, uiText }) => {
       // Pick deterministically from the seeded shuffle. We intentionally
       // do NOT filter on `imageUrl` here — image resolution is
       // best-effort and can vary between tab loads (network blips, source
@@ -778,17 +790,18 @@ export const CARD_DEFS: CardDef[] = [
                 src: sp.squareImageUrl ?? sp.imageUrl,
                 alt: sp.commonName,
                 className: 'bento-mini__img',
+                uiText,
               })}
               {sourceLabel(sp.imageSource) && (
                 <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
               )}
               <span className="bento-mini__ribbon bento-mini__ribbon--signature">
-                Signature · {ratioLabel}
+                {uiText.poster.signatureRibbon(ratioLabel)}
               </span>
               <span className="bento-mini__name">{sp.commonName}</span>
               <span className="bento-mini__sci">{sp.scientificName}</span>
               {sp.popularity ? (
-                <span className="bento-mini__count">{sp.popularity.toLocaleString()}</span>
+                <span className="bento-mini__count">{sp.popularity.toLocaleString(language)}</span>
               ) : null}
             </>
           ),
@@ -801,14 +814,14 @@ export const CARD_DEFS: CardDef[] = [
     type: 'sources',
     size: { w: 2, h: 1 },
     className: 'bento-card accent-gold bento-sources',
-    build: ({ data, shareUrl }) => [
+    build: ({ data, shareUrl, uiText }) => [
       {
         id: 'sources',
         slotId: 'sources',
         render: () => (
           <>
             <div className="bento-sources__text">
-              <span className="bento-card__kicker">Sources</span>
+              <span className="bento-card__kicker">{uiText.poster.sources}</span>
               <p className="bento-card__sub">
                 <strong>GBIF</strong> · <strong>Lynxee</strong>
               </p>
@@ -817,7 +830,7 @@ export const CARD_DEFS: CardDef[] = [
               )}
             </div>
             {shareUrl && (
-              <div className="bento-sources__qr" aria-label="Scan to open this poster">
+              <div className="bento-sources__qr" aria-label={uiText.poster.scanQr}>
                 <QRCodeSVG
                   value={shareUrl}
                   size={180}
@@ -845,6 +858,8 @@ export interface BuildTilesArgs {
   latitude?: number
   /** Longitude of the selected place (degrees). Used by the title-tile globe. */
   longitude?: number
+  language: UiLanguage
+  uiText: UiText
   data: LensData
   /** Regenerate seed used for tile-level random picks (species cards, etc.). */
   contentSeed: number
@@ -891,10 +906,16 @@ export function buildBentoTiles(args: BuildTilesArgs): Tile[] {
  * The caller decides how many of these to append when post-lock merges
  * create 1x1 gaps.
  */
-export function buildThematicBackupTiles(data: LensData): Tile[] {
+export function buildThematicBackupTiles(
+  data: LensData,
+  language: UiLanguage,
+  uiText: UiText,
+): Tile[] {
   return data.thematicStripCards
     .slice(THEMATIC_PRIMARY_COUNT)
-    .map((card, offset) => toThematicTileInstance(card, THEMATIC_PRIMARY_COUNT + offset))
+    .map((card, offset) =>
+      toThematicTileInstance(card, THEMATIC_PRIMARY_COUNT + offset, language, uiText),
+    )
     .filter((inst): inst is NonNullable<typeof inst> => inst !== null)
     .map((inst) => ({
       id: inst.id,
