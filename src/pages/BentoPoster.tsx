@@ -28,6 +28,7 @@ import type { Place } from '../types/lens'
 import { ALL_IMAGE_SOURCES } from '../api/speciesImage'
 import {
   buildBentoTiles,
+  buildSpeciesBackupTiles,
   buildThematicBackupTiles,
   padToRectangle,
   POSTER_GRID_AREA,
@@ -463,21 +464,37 @@ function BentoPoster({
         for (const sid of tile.speciesIds ?? []) occupiedSpeciesIds.add(sid)
       }
 
-      for (const backup of buildThematicBackupTiles(displayData, commonNameLanguage, uiText)) {
-        const area = backup.w * backup.h
-        if (area > missingArea) continue
-        const hasSameSlot = !!backup.slotId && occupiedSlotIds.has(backup.slotId)
-        const hasSameId = occupiedIds.has(backup.id)
-        const collidesWithVisibleSpecies =
-          !!backup.speciesIds?.some((id) => occupiedSpeciesIds.has(id))
-        if (hasSameSlot || hasSameId || collidesWithVisibleSpecies) continue
+      const tryAppendBackups = (backups: Tile[]) => {
+        for (const backup of backups) {
+          if (missingArea <= 0) break
+          const area = backup.w * backup.h
+          if (area > missingArea) continue
+          const hasSameSlot = !!backup.slotId && occupiedSlotIds.has(backup.slotId)
+          const hasSameId = occupiedIds.has(backup.id)
+          const collidesWithVisibleSpecies =
+            !!backup.speciesIds?.some((id) => occupiedSpeciesIds.has(id))
+          if (hasSameSlot || hasSameId || collidesWithVisibleSpecies) continue
 
-        merged.push(backup)
-        occupiedIds.add(backup.id)
-        if (backup.slotId) occupiedSlotIds.add(backup.slotId)
-        for (const sid of backup.speciesIds ?? []) occupiedSpeciesIds.add(sid)
-        missingArea -= area
-        if (missingArea <= 0) break
+          merged.push(backup)
+          occupiedIds.add(backup.id)
+          if (backup.slotId) occupiedSlotIds.add(backup.slotId)
+          for (const sid of backup.speciesIds ?? []) occupiedSpeciesIds.add(sid)
+          missingArea -= area
+        }
+      }
+
+      // 1) Try thematic backups (extra themes that survived dedup).
+      tryAppendBackups(
+        buildThematicBackupTiles(displayData, commonNameLanguage, uiText),
+      )
+      // 2) Then unused threatened/signature species — covers cases where
+      //    atRisk/signature builds emitted fewer tiles than expected (e.g.
+      //    sparse threatened pool) or where lock collisions dropped a
+      //    tile and no thematic backup was free of conflicts.
+      if (missingArea > 0) {
+        tryAppendBackups(
+          buildSpeciesBackupTiles(displayData, commonNameLanguage, uiText),
+        )
       }
     }
 

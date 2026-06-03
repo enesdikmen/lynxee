@@ -705,17 +705,19 @@ export const CARD_DEFS: CardDef[] = [
     className: 'bento-card bento-card--mini bento-card--at-risk accent-paper',
     build: ({ data, contentSeed, language, uiText }) => {
       // Shuffle the *unfiltered* pool first so the order is deterministic
-      // across reloads (only depends on data + seed). Then keep the
-      // image-bearing ones. If a species' image fetch happens to fail on
-      // one load, the slot is filled by the next deterministic candidate
-      // instead of the whole pick reshuffling.
+      // across reloads (only depends on data + seed). We intentionally do
+      // NOT filter by `imageUrl` here — image resolution is best-effort
+      // and lands asynchronously via background retries. Filtering would
+      // shrink the tile count when an image hasn't loaded yet, leaving
+      // empty grid cells. The placeholder in `renderSpeciesImage` covers
+      // the brief gap; the real image swaps in once it resolves.
       const fullPool = data.conservationSnapshot.threatenedSpecies
       if (fullPool.length === 0) return []
       const ordered = seededShuffle(
         fullPool,
         `atRisk:${fullPool[0]?.iucnCategory ?? 'x'}:${contentSeed}`,
       )
-      const picks = ordered.filter((sp) => sp.imageUrl).slice(0, 2)
+      const picks = ordered.slice(0, 2)
       if (picks.length === 0) return []
       return picks.map((sp, i) => ({
         id: `at-risk-${i}`,
@@ -928,6 +930,69 @@ export function buildThematicBackupTiles(
       slotId: inst.slotId,
       speciesIds: inst.speciesIds,
     }))
+}
+
+/**
+ * Optional 1x1 fallback species tiles.
+ *
+ * Drawn from unused threatened species (after the 2 primary at-risk slots)
+ * and unused signature species (after the 1 primary signature slot). The
+ * caller decides how many to append when post-lock merges or build-time
+ * dropouts leave 1x1 gaps. Rendered as plain species mini cards (no
+ * ribbon) so they read as "noteworthy species" without claiming a
+ * specialised slot identity.
+ */
+export function buildSpeciesBackupTiles(
+  data: LensData,
+  language: UiLanguage,
+  uiText: UiText,
+): Tile[] {
+  const tiles: Tile[] = []
+  const seen = new Set<string>()
+
+  const pushSpeciesTile = (
+    sp: { id: string; commonName: string; scientificName: string; imageUrl?: string; squareImageUrl?: string; imageSource?: keyof typeof IMAGE_SOURCE_LABELS; popularity?: number },
+    slotId: string,
+  ) => {
+    if (seen.has(sp.id)) return
+    seen.add(sp.id)
+    tiles.push({
+      id: slotId,
+      slotId,
+      speciesIds: [sp.id],
+      w: 1,
+      h: 1,
+      className: 'bento-card bento-card--mini accent-paper',
+      render: () => (
+        <>
+          {renderSpeciesImage({
+            src: sp.squareImageUrl ?? sp.imageUrl,
+            alt: sp.commonName,
+            className: 'bento-mini__img',
+            uiText,
+          })}
+          {sourceLabel(sp.imageSource) && (
+            <span className="bento-image-source-badge">{sourceLabel(sp.imageSource)}</span>
+          )}
+          <span className="bento-mini__name">{sp.commonName}</span>
+          <span className="bento-mini__sci">{sp.scientificName}</span>
+          {sp.popularity ? (
+            <span className="bento-mini__count">{sp.popularity.toLocaleString(language)}</span>
+          ) : null}
+        </>
+      ),
+    })
+  }
+
+  // Threatened species past the 2 atRisk primaries.
+  data.conservationSnapshot.threatenedSpecies.slice(2).forEach((sp, i) => {
+    pushSpeciesTile(sp, `species-backup-threatened-${i}`)
+  })
+  // Signature species past the 1 signature primary.
+  data.signatureSpeciesData.slice(1).forEach((sp, i) => {
+    pushSpeciesTile(sp, `species-backup-signature-${i}`)
+  })
+  return tiles
 }
 
 /** Pad with invisible 1×1 fillers. When `targetArea` is set, pad up to that
