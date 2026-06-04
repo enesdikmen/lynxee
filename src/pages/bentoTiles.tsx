@@ -619,16 +619,13 @@ export const CARD_DEFS: CardDef[] = [
           render: () => (
             <div className="bento-season-how">
               <div className="bento-season-how__left">
-                <div className="bento-season__header">
-                  <span className="bento-card__kicker bento-card__kicker--season">
-                    {uiText.poster.seasonality}
-                  </span>
-                  {ys && (
+                {ys && (
+                  <div className="bento-season__topmeta">
                     <span className="bento-season__since">
                       {uiText.poster.recordsSince(ys.firstYear)}
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="bento-season-bars" aria-label={uiText.poster.monthlyObservations}>
                   {data.seasonalityData.map((val, i) => {
                     const ratio = data.maxSeasonality > 0 ? val / data.maxSeasonality : 0
@@ -649,16 +646,13 @@ export const CARD_DEFS: CardDef[] = [
                 </div>
                 {ys && (
                   <div className="bento-season__footer">
-                    <span className="bento-season__stat">
+                    <span className="bento-season__chip">
                       {uiText.poster.peakYear(ys.peakYear, fmtCount(ys.peakYearCount))}
                     </span>
                     {recentPct !== null && (
-                      <>
-                        <span className="bento-season__divider">·</span>
-                        <span className="bento-season__stat">
-                          {uiText.poster.inLastDecade(recentPct)}
-                        </span>
-                      </>
+                      <span className="bento-season__chip">
+                        {uiText.poster.inLastDecade(recentPct)}
+                      </span>
                     )}
                   </div>
                 )}
@@ -668,28 +662,27 @@ export const CARD_DEFS: CardDef[] = [
                   <span className="bento-card__kicker bento-card__kicker--evidence">
                     {uiText.poster.evidenceMix}
                   </span>
-                  <div className="bento-how-stack">
-                    <div className="bento-how-stack__bar" aria-hidden="true">
-                      {howSegments.map((seg) => (
-                        <div
-                          key={seg.key}
-                          className={`bento-how-stack__seg bento-how-stack__seg--${seg.kind}`}
-                          style={{ flexGrow: Math.max(seg.share, 0.02) }}
-                        />
-                      ))}
-                    </div>
-                    <ul className="bento-how-stack__legend">
-                      {howSegments.map((seg) => (
-                        <li
-                          key={seg.key}
-                          className={`bento-how-stack__row bento-how-stack__row--${seg.kind}`}
-                        >
-                          <span className="bento-how-stack__pct">{fmtPct(seg.share)}</span>
-                          <span className="bento-how-stack__label">{seg.label}</span>
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="bento-evidence__bar" aria-hidden="true">
+                    {howSegments.map((seg) => (
+                      <span
+                        key={seg.key}
+                        className={`bento-evidence__seg bento-evidence__seg--${seg.kind}`}
+                        style={{ flexGrow: Math.max(seg.share, 0.02) }}
+                      />
+                    ))}
                   </div>
+                  <ul className="bento-evidence">
+                    {howSegments.map((seg) => (
+                      <li
+                        key={seg.key}
+                        className={`bento-evidence__row bento-evidence__row--${seg.kind}`}
+                      >
+                        <span className="bento-evidence__dot" aria-hidden="true" />
+                        <span className="bento-evidence__pct">{fmtPct(seg.share)}</span>
+                        <span className="bento-evidence__label">{seg.label}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
