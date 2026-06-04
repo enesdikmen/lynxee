@@ -1006,6 +1006,17 @@ export function buildSpeciesBackupTiles(
   data.signatureSpeciesData.slice(1).forEach((sp, i) => {
     pushSpeciesTile(sp, `species-backup-signature-${i}`)
   })
+  // Secondary species inside each thematic strip (every strip renders only
+  // its [0]). These are real, already image-resolved, dedup-cleared species
+  // that would otherwise go unused. They give the gap-filler a pool deep
+  // enough to always cover the 1–2 cell shortfall that appears when
+  // cross-lens dedup drains the thematic/atRisk/signature slots — the
+  // root cause of the stray empty tiles on species-rich places.
+  data.thematicStripCards.forEach((card) => {
+    card.species.slice(1).forEach((sp, i) => {
+      pushSpeciesTile(sp, `species-backup-thematic-${card.id}-${i}`)
+    })
+  })
   return tiles
 }
 
