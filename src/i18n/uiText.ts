@@ -49,7 +49,7 @@ export type UiText = {
     recordingIntensity: string
     threatenedShare: string
     percentile: (rank: number) => string
-    percentileAria: (label: string) => string
+    percentileAria: (label: string, rank: number) => string
     mostObservedSpecies: string
     observations: (count: string) => string
     imageUnavailable: string
@@ -65,6 +65,7 @@ export type UiText = {
     atRiskRibbon: (category: string) => string
     signatureRibbon: (ratio: string) => string
     sources: string
+    dataFrom: string
     scanQr: string
     thematic: {
       inSeason: (month: string) => string
@@ -123,20 +124,8 @@ const englishText: UiText = {
     comparedWith: (count, cohort) => `vs ${count} ${cohort}`,
     recordingIntensity: 'Recording intensity',
     threatenedShare: 'Threatened share',
-    percentile: (rank) => {
-      const value = rank % 100
-      const suffix = value >= 11 && value <= 13
-        ? 'th'
-        : rank % 10 === 1
-          ? 'st'
-          : rank % 10 === 2
-            ? 'nd'
-            : rank % 10 === 3
-              ? 'rd'
-              : 'th'
-      return `${rank}${suffix} pct`
-    },
-    percentileAria: (label) => `${label} percentile`,
+    percentile: (rank) => `Above ${rank}%`,
+    percentileAria: (label, rank) => `${label} is above ${rank}% of similar places`,
     mostObservedSpecies: 'Most observed species',
     observations: (count) => `${count} observations`,
     imageUnavailable: 'Image unavailable',
@@ -158,6 +147,7 @@ const englishText: UiText = {
     atRiskRibbon: (category) => `At risk - ${category}`,
     signatureRibbon: (ratio) => `Signature - ${ratio}`,
     sources: 'Sources',
+    dataFrom: 'Data from',
     scanQr: 'Scan to open this poster',
     thematic: {
       inSeason: (month) => `In season - ${month}`,
@@ -207,8 +197,8 @@ const frenchText: UiText = {
     comparedWith: (count, cohort) => `vs ${count} ${cohort}`,
     recordingIntensity: 'Intensite de collecte',
     threatenedShare: 'Part menacee',
-    percentile: (rank) => `${rank}e pct`,
-    percentileAria: (label) => `Percentile ${label}`,
+    percentile: (rank) => `Au-dessus ${rank}%`,
+    percentileAria: (label, rank) => `${label} est au-dessus de ${rank}% des lieux similaires`,
     mostObservedSpecies: 'Espece la plus observee',
     observations: (count) => `${count} observations`,
     imageUnavailable: 'Image indisponible',
@@ -230,6 +220,7 @@ const frenchText: UiText = {
     atRiskRibbon: (category) => `Menace - ${category}`,
     signatureRibbon: (ratio) => `Signature - ${ratio}`,
     sources: 'Sources',
+    dataFrom: 'Donnees de',
     scanQr: 'Scanner pour ouvrir cette affiche',
     thematic: {
       inSeason: (month) => `De saison - ${month}`,
@@ -279,8 +270,8 @@ const spanishText: UiText = {
     comparedWith: (count, cohort) => `frente a ${count} ${cohort}`,
     recordingIntensity: 'Intensidad de registro',
     threatenedShare: 'Proporcion amenazada',
-    percentile: (rank) => `pct ${rank}`,
-    percentileAria: (label) => `Percentil de ${label}`,
+    percentile: (rank) => `Por encima ${rank}%`,
+    percentileAria: (label, rank) => `${label} esta por encima del ${rank}% de lugares similares`,
     mostObservedSpecies: 'Especie mas observada',
     observations: (count) => `${count} observaciones`,
     imageUnavailable: 'Imagen no disponible',
@@ -302,6 +293,7 @@ const spanishText: UiText = {
     atRiskRibbon: (category) => `En riesgo - ${category}`,
     signatureRibbon: (ratio) => `Firma - ${ratio}`,
     sources: 'Fuentes',
+    dataFrom: 'Datos de',
     scanQr: 'Escanear para abrir este poster',
     thematic: {
       inSeason: (month) => `En temporada - ${month}`,
@@ -351,8 +343,8 @@ const turkishText: UiText = {
     comparedWith: (count, cohort) => `${count} ${cohort} ile karsilastirma`,
     recordingIntensity: 'Kayit yogunlugu',
     threatenedShare: 'Tehdit altindaki pay',
-    percentile: (rank) => `${rank}. yuzdelik`,
-    percentileAria: (label) => `${label} yuzdeligi`,
+    percentile: (rank) => `%${rank} ustunde`,
+    percentileAria: (label, rank) => `${label}, benzer yerlerin %${rank} ustunde`,
     mostObservedSpecies: 'En cok gozlenen tur',
     observations: (count) => `${count} gozlem`,
     imageUnavailable: 'Gorsel yok',
@@ -374,6 +366,7 @@ const turkishText: UiText = {
     atRiskRibbon: (category) => `Risk altinda - ${category}`,
     signatureRibbon: (ratio) => `Imza - ${ratio}`,
     sources: 'Kaynaklar',
+    dataFrom: 'Veri kaynagi',
     scanQr: 'Bu posteri acmak icin tara',
     thematic: {
       inSeason: (month) => `Sezonda - ${month}`,
@@ -423,8 +416,8 @@ const germanText: UiText = {
     comparedWith: (count, cohort) => `vs ${count} ${cohort}`,
     recordingIntensity: 'Erfassungsintensitat',
     threatenedShare: 'Anteil gefahrdeter Arten',
-    percentile: (rank) => `${rank}. Perz.`,
-    percentileAria: (label) => `${label} Perzentil`,
+    percentile: (rank) => `Uber ${rank}%`,
+    percentileAria: (label, rank) => `${label} liegt uber ${rank}% vergleichbarer Orte`,
     mostObservedSpecies: 'Am haufigsten beobachtete Art',
     observations: (count) => `${count} Beobachtungen`,
     imageUnavailable: 'Bild nicht verfugbar',
@@ -446,6 +439,7 @@ const germanText: UiText = {
     atRiskRibbon: (category) => `Gefahrdet - ${category}`,
     signatureRibbon: (ratio) => `Signatur - ${ratio}`,
     sources: 'Quellen',
+    dataFrom: 'Daten von',
     scanQr: 'Scannen, um dieses Poster zu offnen',
     thematic: {
       inSeason: (month) => `Saison - ${month}`,
@@ -495,8 +489,8 @@ const italianText: UiText = {
     comparedWith: (count, cohort) => `rispetto a ${count} ${cohort}`,
     recordingIntensity: 'Intensita di registrazione',
     threatenedShare: 'Quota minacciata',
-    percentile: (rank) => `${rank}o pct`,
-    percentileAria: (label) => `Percentile ${label}`,
+    percentile: (rank) => `Sopra ${rank}%`,
+    percentileAria: (label, rank) => `${label} e sopra il ${rank}% dei luoghi simili`,
     mostObservedSpecies: 'Specie piu osservata',
     observations: (count) => `${count} osservazioni`,
     imageUnavailable: 'Immagine non disponibile',
@@ -518,6 +512,7 @@ const italianText: UiText = {
     atRiskRibbon: (category) => `A rischio - ${category}`,
     signatureRibbon: (ratio) => `Firma - ${ratio}`,
     sources: 'Fonti',
+    dataFrom: 'Dati da',
     scanQr: 'Scansiona per aprire questo poster',
     thematic: {
       inSeason: (month) => `Di stagione - ${month}`,
@@ -567,8 +562,8 @@ const portugueseText: UiText = {
     comparedWith: (count, cohort) => `comparado com ${count} ${cohort}`,
     recordingIntensity: 'Intensidade de registro',
     threatenedShare: 'Proporcao ameacada',
-    percentile: (rank) => `pct ${rank}`,
-    percentileAria: (label) => `Percentil de ${label}`,
+    percentile: (rank) => `Acima ${rank}%`,
+    percentileAria: (label, rank) => `${label} esta acima de ${rank}% de lugares semelhantes`,
     mostObservedSpecies: 'Especie mais observada',
     observations: (count) => `${count} observacoes`,
     imageUnavailable: 'Imagem indisponivel',
@@ -590,6 +585,7 @@ const portugueseText: UiText = {
     atRiskRibbon: (category) => `Em risco - ${category}`,
     signatureRibbon: (ratio) => `Assinatura - ${ratio}`,
     sources: 'Fontes',
+    dataFrom: 'Dados de',
     scanQr: 'Escaneie para abrir este poster',
     thematic: {
       inSeason: (month) => `Na temporada - ${month}`,

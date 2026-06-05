@@ -444,7 +444,10 @@ export const CARD_DEFS: CardDef[] = [
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-valuenow={Math.round(pctVal)}
-                            aria-label={uiText.poster.percentileAria(r.label)}
+                            aria-label={uiText.poster.percentileAria(
+                              r.label,
+                              Math.max(1, Math.round(pctVal)),
+                            )}
                           >
                             <span
                               className="bento-sightings__bar-fill"
@@ -490,7 +493,6 @@ export const CARD_DEFS: CardDef[] = [
                 uiText,
               })}
               <div className="bento-hero__body">
-                <span className="bento-card__kicker">{uiText.poster.mostObservedSpecies}</span>
                 <h2 className="bento-hero__name">{hero.commonName}</h2>
                 <p className="bento-hero__sci">{hero.scientificName}</p>
                 {hero.taxonLine && <span className="bento-hero__taxon">{hero.taxonLine}</span>}
@@ -818,7 +820,7 @@ export const CARD_DEFS: CardDef[] = [
           render: () => (
             <>
               <div className="bento-sources__text">
-                <span className="bento-card__kicker">Powered by</span>
+                <span className="bento-card__kicker">{uiText.poster.dataFrom}</span>
                 <a
                   className="bento-sources__logo-link"
                   href="https://www.gbif.org/dataset/search"
