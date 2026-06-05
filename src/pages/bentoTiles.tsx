@@ -130,8 +130,6 @@ function toThematicTileInstance(
         return uiText.poster.thematic.inSeason(monthLabel)
       case 'smallWonders':
         return uiText.poster.thematic.smallWonder
-      case 'brandNew':
-        return uiText.poster.thematic.brandNewHere
       case 'nightCreatures':
         return uiText.poster.thematic.nightCreature
       default:

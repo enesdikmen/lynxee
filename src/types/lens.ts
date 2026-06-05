@@ -38,7 +38,7 @@ export type SpeciesCard = {
 }
 
 export type ThematicStripCard = {
-  id: 'inSeason' | 'smallWonders' | 'brandNew' | 'nightCreatures'
+  id: 'inSeason' | 'smallWonders' | 'nightCreatures'
   kicker: string
   species: SpeciesCard[]
 }

@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchOccurrenceFacets } from '../../api/gbif'
 import {
-  BRAND_NEW_RULE,
   IN_SEASON_RULE,
+  MIN_COUNT_RATIO,
   NIGHT_CREATURES_RULE,
   SMALL_WONDERS_RULE,
 } from '../../data/lensSelection'
@@ -17,12 +17,27 @@ import { resolveSpeciesCards, type SpeciesPick } from './speciesCards'
  * candidate when [0] is already claimed by a higher-priority card. The
  * renderer (`bentoTiles.tsx`) only shows `species[0]`.
  *
- * We return all 4 themes in a deterministic shuffled order; dedup picks
+ * We return all 3 themes in a deterministic shuffled order; dedup picks
  * the first 2 that still have surviving candidates after filtering.
  */
 export type ThematicLensResult = {
   thematicStripCards: ThematicStripCard[]
   isReady: boolean
+}
+
+const rotateThematicSpecies = (
+  species: SpeciesCard[],
+  seedKey: string,
+): SpeciesCard[] => {
+  const topCount = species[0]?.popularity ?? 0
+  const viable = species
+    .slice(0, 3)
+    .filter(
+      (sp, index) =>
+        index < 2 ||
+        (topCount > 0 && (sp.popularity ?? 0) >= topCount * MIN_COUNT_RATIO),
+    )
+  return seededShuffle(viable, seedKey)
 }
 
 export const useThematicLensData = (
@@ -31,7 +46,6 @@ export const useThematicLensData = (
   commonNameLanguage: string,
 ): ThematicLensResult => {
   const currentMonth = new Date().getMonth() + 1
-  const currentYear = new Date().getFullYear()
 
   const resolveMergedStrip = async (
     sources: { label: string; filter: Record<string, number | undefined> }[],
@@ -119,79 +133,6 @@ export const useThematicLensData = (
     staleTime: 1000 * 60 * 30,
   })
 
-  const recentStartYear = currentYear - BRAND_NEW_RULE.recentYearsWindow + 1
-  const brandNewQuery = useQuery({
-    queryKey: [
-      'lensBrandNew',
-      selectedPlace?.id,
-      recentStartYear,
-      currentYear,
-    ],
-    queryFn: async ({ signal }): Promise<SpeciesPick[]> => {
-      if (!selectedPlace) return []
-
-      const response = await fetchOccurrenceFacets({
-        ...placeGeoParams(selectedPlace),
-        facetFields: ['speciesKey'],
-        facetLimit: BRAND_NEW_RULE.candidateLimit,
-        year: `${recentStartYear},${currentYear}`,
-        signal,
-      })
-
-      const candidates = (response.facets?.[0]?.counts ?? [])
-        .map((c) => ({ speciesKey: Number(c.name), count: c.count }))
-        .filter((c) => Number.isFinite(c.speciesKey))
-        .sort((a, b) => b.count - a.count || a.speciesKey - b.speciesKey)
-
-      const checkedCandidates = candidates.slice(0, BRAND_NEW_RULE.maxYearChecks)
-      const validated: Array<{ speciesKey: number; count: number; earliestYear: number }> = []
-
-      for (const candidate of checkedCandidates) {
-        const yearsResponse = await fetchOccurrenceFacets({
-          ...placeGeoParams(selectedPlace),
-          speciesKey: candidate.speciesKey,
-          facetFields: ['year'],
-          facetLimit: BRAND_NEW_RULE.yearFacetLimit,
-          signal,
-        })
-
-        const years = (yearsResponse.facets?.[0]?.counts ?? [])
-          .map((c) => Number(c.name))
-          .filter((year) => Number.isFinite(year))
-          .sort((a, b) => a - b)
-
-        const earliestYear = years[0]
-        if (!earliestYear || earliestYear < recentStartYear) continue
-
-        validated.push({
-          speciesKey: candidate.speciesKey,
-          count: candidate.count,
-          earliestYear,
-        })
-
-        if (validated.length >= BRAND_NEW_RULE.stripSize) break
-      }
-
-      const picks = validated
-        .sort(
-          (a, b) =>
-            b.earliestYear - a.earliestYear ||
-            b.count - a.count ||
-            a.speciesKey - b.speciesKey,
-        )
-        .slice(0, BRAND_NEW_RULE.stripSize)
-        .map((item) => ({
-          speciesKey: item.speciesKey,
-          count: item.count,
-          highlight: `First local GBIF year ${item.earliestYear}`,
-        }))
-
-      return picks
-    },
-    enabled: Boolean(selectedPlace),
-    staleTime: 1000 * 60 * 30,
-  })
-
   const nightCreaturesQuery = useQuery({
     queryKey: ['lensNightCreatures', selectedPlace?.id],
     queryFn: async ({ signal }): Promise<SpeciesPick[]> => {
@@ -210,13 +151,11 @@ export const useThematicLensData = (
     () => [
       { id: 'inSeason' as const, picks: inSeasonQuery.data ?? [] },
       { id: 'smallWonders' as const, picks: smallWondersQuery.data ?? [] },
-      { id: 'brandNew' as const, picks: brandNewQuery.data ?? [] },
       { id: 'nightCreatures' as const, picks: nightCreaturesQuery.data ?? [] },
     ],
     [
       inSeasonQuery.data,
       smallWondersQuery.data,
-      brandNewQuery.data,
       nightCreaturesQuery.data,
     ],
   )
@@ -264,22 +203,26 @@ export const useThematicLensData = (
       {
         id: 'inSeason',
         kicker: `🌸 In season · ${monthLabel}`,
-        species: thematicCardsQuery.data?.inSeason ?? [],
+        species: rotateThematicSpecies(
+          thematicCardsQuery.data?.inSeason ?? [],
+          `${selectedPlace?.id ?? 'none'}:thematic-species:inSeason:${contentSeed}`,
+        ),
       },
       {
         id: 'smallWonders',
         kicker: '🐛 Small wonder',
-        species: thematicCardsQuery.data?.smallWonders ?? [],
-      },
-      {
-        id: 'brandNew',
-        kicker: '📸 Brand new here',
-        species: thematicCardsQuery.data?.brandNew ?? [],
+        species: rotateThematicSpecies(
+          thematicCardsQuery.data?.smallWonders ?? [],
+          `${selectedPlace?.id ?? 'none'}:thematic-species:smallWonders:${contentSeed}`,
+        ),
       },
       {
         id: 'nightCreatures',
         kicker: '🌃 Night creature',
-        species: thematicCardsQuery.data?.nightCreatures ?? [],
+        species: rotateThematicSpecies(
+          thematicCardsQuery.data?.nightCreatures ?? [],
+          `${selectedPlace?.id ?? 'none'}:thematic-species:nightCreatures:${contentSeed}`,
+        ),
       },
     ]
     // Deterministic shuffle per place + seed; dedup picks the first two
@@ -298,7 +241,6 @@ export const useThematicLensData = (
   const arePickQueriesReady = [
     inSeasonQuery,
     smallWondersQuery,
-    brandNewQuery,
     nightCreaturesQuery,
   ].every((q) => q.isSuccess || q.isError)
   const hasThematicPicks = thematicPickGroups.some((group) => group.picks.length > 0)

@@ -70,9 +70,7 @@ export type UiText = {
     thematic: {
       inSeason: (month: string) => string
       smallWonder: string
-      brandNewHere: string
       nightCreature: string
-      firstLocalGbifYear: (year: number) => string
     }
   }
 }
@@ -152,9 +150,7 @@ const englishText: UiText = {
     thematic: {
       inSeason: (month) => `In season - ${month}`,
       smallWonder: 'Small wonder',
-      brandNewHere: 'Brand new here',
       nightCreature: 'Night creature',
-      firstLocalGbifYear: (year) => `First local GBIF year ${year}`,
     },
   },
 }
@@ -225,9 +221,7 @@ const frenchText: UiText = {
     thematic: {
       inSeason: (month) => `De saison - ${month}`,
       smallWonder: 'Petite merveille',
-      brandNewHere: 'Nouveau ici',
       nightCreature: 'Creature nocturne',
-      firstLocalGbifYear: (year) => `Premiere annee GBIF locale ${year}`,
     },
   },
 }
@@ -298,9 +292,7 @@ const spanishText: UiText = {
     thematic: {
       inSeason: (month) => `En temporada - ${month}`,
       smallWonder: 'Pequena maravilla',
-      brandNewHere: 'Nuevo aqui',
       nightCreature: 'Criatura nocturna',
-      firstLocalGbifYear: (year) => `Primer ano local en GBIF ${year}`,
     },
   },
 }
@@ -371,9 +363,7 @@ const turkishText: UiText = {
     thematic: {
       inSeason: (month) => `Sezonda - ${month}`,
       smallWonder: 'Kucuk mucize',
-      brandNewHere: 'Burada yeni',
       nightCreature: 'Gece canlisi',
-      firstLocalGbifYear: (year) => `Ilk yerel GBIF yili ${year}`,
     },
   },
 }
@@ -444,9 +434,7 @@ const germanText: UiText = {
     thematic: {
       inSeason: (month) => `Saison - ${month}`,
       smallWonder: 'Kleines Wunder',
-      brandNewHere: 'Neu hier',
       nightCreature: 'Nachtaktive Art',
-      firstLocalGbifYear: (year) => `Erstes lokales GBIF-Jahr ${year}`,
     },
   },
 }
@@ -517,9 +505,7 @@ const italianText: UiText = {
     thematic: {
       inSeason: (month) => `Di stagione - ${month}`,
       smallWonder: 'Piccola meraviglia',
-      brandNewHere: 'Nuovo qui',
       nightCreature: 'Creatura notturna',
-      firstLocalGbifYear: (year) => `Primo anno GBIF locale ${year}`,
     },
   },
 }
@@ -590,9 +576,7 @@ const portugueseText: UiText = {
     thematic: {
       inSeason: (month) => `Na temporada - ${month}`,
       smallWonder: 'Pequena maravilha',
-      brandNewHere: 'Novo aqui',
       nightCreature: 'Criatura noturna',
-      firstLocalGbifYear: (year) => `Primeiro ano local no GBIF ${year}`,
     },
   },
 }

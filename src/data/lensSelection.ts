@@ -125,23 +125,6 @@ export const SMALL_WONDERS_RULE: SmallWondersRule = {
   ],
 }
 
-export type BrandNewRule = {
-  candidateLimit: number
-  maxYearChecks: number
-  yearFacetLimit: number
-  stripSize: number
-  recentYearsWindow: number
-}
-
-export const BRAND_NEW_RULE: BrandNewRule = {
-  // Keep this modest: each candidate may trigger an additional year-facet call.
-  candidateLimit: 8,
-  maxYearChecks: 6,
-  yearFacetLimit: 250,
-  stripSize: 3,
-  recentYearsWindow: 5,
-}
-
 export type NightCreaturesRule = {
   facetLimit: number
   stripSize: number
@@ -153,9 +136,16 @@ export const NIGHT_CREATURES_RULE: NightCreaturesRule = {
   stripSize: 3,
   sources: [
     { label: 'Bat', filter: { orderKey: 734 } },
-    { label: 'Owl', filter: { familyKey: 9348 } },
+    { label: 'Owl', filter: { orderKey: 1450 } },
+    { label: 'Nightjar', filter: { familyKey: 5225 } },
+    { label: 'Frogmouth', filter: { familyKey: 9337 } },
+    { label: 'Potoo', filter: { familyKey: 9324 } },
+    { label: 'Oilbird', filter: { familyKey: 9346 } },
     { label: 'Moth', filter: { familyKey: 7015 } },
     { label: 'Moth', filter: { familyKey: 6950 } },
     { label: 'Moth', filter: { familyKey: 4532185 } },
+    { label: 'Hawk moth', filter: { familyKey: 8868 } },
+    { label: 'Moth', filter: { familyKey: 8841 } },
+    { label: 'Firefly', filter: { familyKey: 4737 } },
   ],
 }
