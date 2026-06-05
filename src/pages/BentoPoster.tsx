@@ -775,7 +775,7 @@ function BentoPoster({
         </div>
         {isLoadingSnapshot && (
           <div className="bento-grid-loading" role="status" aria-live="polite">
-            <Loader size={60} label={uiText.toolbar.loadingSnapshot} />
+            <Loader size={112} label={uiText.toolbar.loadingSnapshot} />
           </div>
         )}
       </div>

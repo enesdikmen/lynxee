@@ -158,88 +158,34 @@ img[src=""] { visibility: hidden; }
   color: rgb(var(--color-ink));
 }
 
-/* ── Walking Lynx loader ─────────────────────────────── */
+/* Loading bee */
 .lynx-loader {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.55rem;
+  justify-content: center;
+  gap: 0.7rem;
+  text-align: center;
 }
 .lynx-loader__track {
   position: relative;
-  overflow: hidden;
-}
-.lynx-loader__walker {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  will-change: transform;
-}
-.lynx-loader__svg {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
   filter: drop-shadow(2px 3px 0 rgb(var(--color-ink) / 0.18));
+}
+.lynx-loader__track svg {
+  display: block;
 }
 .lynx-loader__label {
   font-family: var(--font-display);
-  font-size: 0.62rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgb(var(--color-ink-soft));
-}
-
-/* Walk cycle — driven by CSS so it keeps running independently of the
-   across-frame travel handled by Framer Motion. */
-.lynx-bob {
-  transform-box: fill-box;
-  transform-origin: center bottom;
-  animation: lynx-bob 0.34s ease-in-out infinite;
-}
-.lynx-leg {
-  transform-box: fill-box;
-  transform-origin: top center;
-}
-.lynx-leg--a { animation: lynx-step-a 0.68s ease-in-out infinite; }
-.lynx-leg--b { animation: lynx-step-b 0.68s ease-in-out infinite; }
-.lynx-tail {
-  transform-box: fill-box;
-  transform-origin: right bottom;
-  animation: lynx-tail 1.1s ease-in-out infinite;
-}
-.lynx-head {
-  transform-box: fill-box;
-  transform-origin: left bottom;
-  animation: lynx-head 0.68s ease-in-out infinite;
-}
-
-@keyframes lynx-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2.2px); }
-}
-@keyframes lynx-step-a {
-  0%, 100% { transform: rotate(22deg); }
-  50% { transform: rotate(-20deg); }
-}
-@keyframes lynx-step-b {
-  0%, 100% { transform: rotate(-20deg); }
-  50% { transform: rotate(22deg); }
-}
-@keyframes lynx-tail {
-  0%, 100% { transform: rotate(-7deg); }
-  50% { transform: rotate(9deg); }
-}
-@keyframes lynx-head {
-  0%, 100% { transform: rotate(-1.5deg); }
-  50% { transform: rotate(1.5deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lynx-loader__walker,
-  .lynx-bob,
-  .lynx-leg,
-  .lynx-tail,
-  .lynx-head {
-    animation: none !important;
-  }
+  max-width: min(26rem, 82vw);
 }
 @media (max-width: 700px) {
   /* On phones, drop the strict aspect ratio — let cards grow as tall as
