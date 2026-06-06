@@ -63,6 +63,7 @@ export type IucnBucket = {
   status: string
   label: string
   count: number
+  isCapped?: boolean
 }
 
 export type ThreatenedSpecies = SpeciesCard & {

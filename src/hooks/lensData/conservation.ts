@@ -16,6 +16,7 @@ type ConservationLensResult = {
 
 const THREATENED_CATS = ['CR', 'EN', 'VU'] as const
 const ALL_CATS = ['LC', 'NT', 'VU', 'EN', 'CR', 'DD'] as const
+const IUCN_SPECIES_COUNT_FACET_LIMIT = 40000
 const THREATENED_FACET_LIMIT = 5
 const THREATENED_PICK_FROM_TOP_PER_GROUP = 3
 
@@ -43,7 +44,7 @@ export const useConservationSnapshot = (
           const response = await fetchOccurrenceFacets({
             ...placeGeoParams(selectedPlace),
             facetFields: ['speciesKey'],
-            facetLimit: 500,
+            facetLimit: IUCN_SPECIES_COUNT_FACET_LIMIT,
             iucnRedListCategory: cat,
             signal,
           })
@@ -52,6 +53,7 @@ export const useConservationSnapshot = (
             status: cat,
             label: IUCN_LABELS[cat] ?? cat,
             speciesCount,
+            isCapped: speciesCount >= IUCN_SPECIES_COUNT_FACET_LIMIT,
           }
         }),
       )
@@ -145,6 +147,7 @@ export const useConservationSnapshot = (
       status: c.status,
       label: c.label,
       count: c.speciesCount,
+      isCapped: c.isCapped,
     }))
 
     const totalAssessedSpecies = categoryBreakdown.reduce(

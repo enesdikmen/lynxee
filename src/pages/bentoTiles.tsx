@@ -397,11 +397,23 @@ export const CARD_DEFS: CardDef[] = [
       const snap = data.conservationSnapshot
       const getIucn = (s: string) =>
         snap.categoryBreakdown.find((c) => c.status === s)?.count ?? 0
+      const isIucnCapped = (s: string) =>
+        snap.categoryBreakdown.find((c) => c.status === s)?.isCapped ?? false
+      const makeIucnBucket = (
+        label: string,
+        statuses: string[],
+        color: string,
+      ) => ({
+        label,
+        count: statuses.reduce((sum, status) => sum + getIucn(status), 0),
+        isCapped: statuses.some(isIucnCapped),
+        color,
+      })
       const iucnBuckets = snap.totalAssessedSpecies > 0
         ? [
-            { label: uiText.poster.doingWell, count: getIucn('LC'), color: '#4ade80' },
-            { label: uiText.poster.watchList, count: getIucn('NT') + getIucn('DD'), color: '#facc15' },
-            { label: uiText.poster.atRisk, count: getIucn('VU') + getIucn('EN') + getIucn('CR'), color: '#f87171' },
+            makeIucnBucket(uiText.poster.doingWell, ['LC'], '#4ade80'),
+            makeIucnBucket(uiText.poster.watchList, ['NT', 'DD'], '#facc15'),
+            makeIucnBucket(uiText.poster.atRisk, ['VU', 'EN', 'CR'], '#f87171'),
           ]
         : []
 
@@ -458,7 +470,9 @@ export const CARD_DEFS: CardDef[] = [
                     {iucnBuckets.map((b) => (
                       <span key={b.label} className="bento-sightings__iucn-pill">
                         <span className="bento-sightings__iucn-dot" style={{ background: b.color }} />
-                        <span className="bento-sightings__iucn-count">{b.count}</span>
+                        <span className="bento-sightings__iucn-count">
+                          {b.count.toLocaleString(language)}{b.isCapped ? '+' : ''}
+                        </span>
                         <span className="bento-sightings__iucn-label">{b.label}</span>
                       </span>
                     ))}

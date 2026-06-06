@@ -204,6 +204,7 @@ export interface OccurrenceFacetRequest extends RequestOptions {
 	countryCode?: string
 	facetFields: FacetField[]
 	facetLimit?: number
+	facetOffset?: number
 	classKey?: number | number[]
 	kingdomKey?: number | number[]
 	orderKey?: number | number[]
@@ -322,6 +323,7 @@ export const fetchOccurrenceFacets = async ({
 	countryCode,
 	facetFields,
 	facetLimit = 10,
+	facetOffset,
 	classKey,
 	kingdomKey,
 	orderKey,
@@ -357,6 +359,7 @@ export const fetchOccurrenceFacets = async ({
 		year,
 		facet: facetFields,
 		facetLimit,
+		facetOffset,
 	})
 
 	const now = Date.now()
