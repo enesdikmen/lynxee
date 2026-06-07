@@ -20,7 +20,7 @@
   object-position: 50% 30%;
   border-radius: 8px;
   border: 2px solid rgb(var(--color-ink));
-  background: #fff;
+  background: rgb(var(--color-surface));
 }
 .bento-strip__name {
   display: block;
@@ -43,7 +43,7 @@
   font-size: 0.55rem;
   letter-spacing: 0.06em;
   background: rgb(var(--color-accent));
-  color: #fff;
+  color: rgb(var(--color-on-dark));
   border: 1.5px solid rgb(var(--color-ink));
   border-radius: 6px;
   padding: 0.05rem 0.3rem;
@@ -51,7 +51,7 @@
 }
 .bento-card__kicker--danger {
   background: rgb(var(--color-accent));
-  color: #fff;
+  color: rgb(var(--color-on-dark));
   margin-top: 0.5rem;
 }
 
@@ -77,7 +77,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-left: 1px solid rgba(var(--color-ink), 0.14);
+  border-left: 1px solid rgb(var(--color-ink) / 0.14);
   padding-left: 0.85rem;
 }
 .bento-card__kicker--evidence {
@@ -96,7 +96,7 @@
   font-size: 0.52rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(var(--color-ink-soft), 0.8);
+  color: rgb(var(--color-ink-soft) / 0.8);
   white-space: nowrap;
 }
 
@@ -121,7 +121,7 @@
   min-height: 46px;
   display: flex;
   align-items: flex-end;
-  border-bottom: 1.5px solid rgba(var(--color-ink), 0.55);
+  border-bottom: 1.5px solid rgb(var(--color-ink) / 0.55);
 }
 .bento-season-bars__bar {
   width: 100%;
@@ -155,8 +155,8 @@
   font-size: 0.58rem;
   line-height: 1;
   color: rgb(var(--color-ink));
-  background: rgba(var(--color-ink), 0.06);
-  border: 1px solid rgba(var(--color-ink), 0.18);
+  background: rgb(var(--color-ink) / 0.06);
+  border: 1px solid rgb(var(--color-ink) / 0.18);
   border-radius: 999px;
   padding: 0.24rem 0.52rem;
   white-space: nowrap;
@@ -186,8 +186,8 @@
 .bento-evidence__seg--rest {
   background: repeating-linear-gradient(
     45deg,
-    rgba(20, 18, 28, 0.45) 0 3px,
-    rgba(20, 18, 28, 0.12) 3px 6px
+    rgb(var(--color-ink) / 0.45) 0 3px,
+    rgb(var(--color-ink) / 0.12) 3px 6px
   );
 }
 .bento-evidence {
@@ -217,8 +217,8 @@
 .bento-evidence__row--rest .bento-evidence__dot {
   background: repeating-linear-gradient(
     45deg,
-    rgba(20, 18, 28, 0.45) 0 2px,
-    rgba(20, 18, 28, 0.12) 2px 4px
+    rgb(var(--color-ink) / 0.45) 0 2px,
+    rgb(var(--color-ink) / 0.12) 2px 4px
   );
 }
 .bento-evidence__pct {
@@ -275,7 +275,7 @@
   font-size: 0.62rem;
   line-height: 1;
   color: rgb(var(--color-ink));
-  background: rgba(0, 0, 0, 0.04);
+  background: rgb(var(--color-overlay-dark) / 0.04);
   border-radius: 999px;
   padding: 0.15rem 0.45rem 0.15rem 0.32rem;
 }

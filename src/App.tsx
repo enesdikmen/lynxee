@@ -7,12 +7,43 @@ import {
   readLanguageFromLocation,
   readLocksFromLocation,
   readShareFromLocation,
+  readThemeFromLocation,
 } from './lib/shareToken'
 import type { Place } from './types/lens'
 
 type AppView = 'poster' | 'about'
+type AppTheme = 'playful' | 'canopy' | 'orchid' | 'jungle'
+type AppThemeOption = { id: AppTheme; label: string; swatch: string }
 
 const brandLogoSrc = `${import.meta.env.BASE_URL}logo.svg`
+const THEME_STORAGE_KEY = 'bee-around-theme'
+const THEME_CLASS_BY_ID: Record<AppTheme, string> = {
+  playful: 'theme-playful',
+  canopy: 'theme-canopy',
+  orchid: 'theme-orchid',
+  jungle: 'theme-jungle',
+}
+const THEME_OPTIONS: AppThemeOption[] = [
+  { id: 'playful', label: 'Original', swatch: 'rgb(251 191 36)' },
+  { id: 'canopy', label: 'Aqua', swatch: 'rgb(24 198 196)' },
+  { id: 'orchid', label: 'Berry', swatch: 'rgb(236 64 138)' },
+  { id: 'jungle', label: 'Jungle', swatch: 'rgb(64 214 78)' },
+]
+
+const isAppTheme = (value: string | null): value is AppTheme =>
+  value === 'playful' || value === 'canopy' || value === 'orchid' || value === 'jungle'
+
+const readThemeFromStorage = (): AppTheme => {
+  if (typeof window === 'undefined') return 'playful'
+  const themeFromUrl = readThemeFromLocation()
+  if (isAppTheme(themeFromUrl)) return themeFromUrl
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+    return isAppTheme(stored) ? stored : 'playful'
+  } catch {
+    return 'playful'
+  }
+}
 
 const readViewFromLocation = (): AppView =>
   typeof window !== 'undefined' && window.location.hash === '#about'
@@ -34,6 +65,7 @@ function App() {
     initialShare?.place ?? defaultPlace,
   )
   const [view, setView] = useState<AppView>(readViewFromLocation)
+  const [theme, setTheme] = useState<AppTheme>(readThemeFromStorage)
 
   // Always canonicalize so the sharer's `place.id`/`label` match what a
   // receiver will reconstruct from the URL — this keeps seeded RNG keys
@@ -50,6 +82,15 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+    } catch {
+      // Ignore storage errors; theme still applies for current session.
+    }
+  }, [theme])
+
   const showView = (nextView: AppView) => {
     if (nextView === 'about') {
       if (window.location.hash !== '#about') window.location.hash = 'about'
@@ -64,7 +105,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell theme-playful text-ink">
+    <div className={`app-shell ${THEME_CLASS_BY_ID[theme]} text-ink`}>
       <header className="app-header">
         <button type="button" className="app-brand" onClick={() => showView('poster')}>
           <span
@@ -83,6 +124,9 @@ function App() {
           <BentoPoster
             selectedPlace={selectedPlace}
             onPlaceChange={handlePlaceChange}
+            theme={theme}
+            themeOptions={THEME_OPTIONS}
+            onThemeChange={setTheme}
             initialSeed={initialShare?.seed}
             initialLocks={initialLocks}
             initialLanguage={initialLanguage ?? undefined}

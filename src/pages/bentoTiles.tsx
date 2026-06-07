@@ -436,9 +436,9 @@ export const CARD_DEFS: CardDef[] = [
       })
       const iucnBuckets = snap.totalAssessedSpecies > 0
         ? [
-            makeIucnBucket(uiText.poster.doingWell, ['LC'], '#4ade80'),
-            makeIucnBucket(uiText.poster.watchList, ['NT', 'DD'], '#facc15'),
-            makeIucnBucket(uiText.poster.atRisk, ['VU', 'EN', 'CR'], '#f87171'),
+            makeIucnBucket(uiText.poster.doingWell, ['LC'], 'rgb(var(--color-state-success))'),
+            makeIucnBucket(uiText.poster.watchList, ['NT', 'DD'], 'rgb(var(--color-state-warning))'),
+            makeIucnBucket(uiText.poster.atRisk, ['VU', 'EN', 'CR'], 'rgb(var(--color-state-danger))'),
           ]
         : []
 
@@ -940,7 +940,7 @@ export const CARD_DEFS: CardDef[] = [
                     value={shareUrl}
                     size={160}
                     bgColor="transparent"
-                    fgColor="#1a1a1a"
+                    fgColor="rgb(var(--color-ink))"
                     level="L"
                     marginSize={0}
                   />

@@ -249,6 +249,14 @@ export function readLanguageFromLocation(): string | null {
   return raw.trim().toLowerCase()
 }
 
+/** Read the `theme` param from the current URL, if any. */
+export function readThemeFromLocation(): string | null {
+  if (typeof window === 'undefined') return null
+  const raw = new URL(window.location.href).searchParams.get('theme')
+  if (!raw) return null
+  return raw.trim().toLowerCase()
+}
+
 /**
  * Encode the lock list as a single compact `l=` param.
  *
@@ -314,7 +322,8 @@ export function readLocksFromLocation(): LockListState {
 }
 
 /**
- * Update the `?s=...` and `?l=...` params in the address bar without
+ * Update the `?s=...`, `?l=...`, `?lang=...`, and `?theme=...` params
+ * in the address bar without
  * pushing history. Pass `lockState=null`/`undefined` to omit `l=`
  * entirely (caller has no opinion / before defaults applied). Pass a
  * state object with an empty list to record "explicitly no locks".
@@ -324,26 +333,31 @@ export function syncShareToLocation(
   seed: number,
   lockState?: { locks: LockEntry[] } | null,
   language = 'en',
+  theme = 'playful',
 ): void {
   if (typeof window === 'undefined') return
   const url = new URL(window.location.href)
   const token = encodeShare(place, seed)
   const lToken = lockState ? encodeLocks(lockState.locks) : null
   const langToken = language.trim().toLowerCase() || 'en'
+  const themeToken = theme.trim().toLowerCase() || 'playful'
 
   const curSToken = url.searchParams.get('s')
   const curLToken = url.searchParams.get('l')
   const curLangToken = (url.searchParams.get('lang') ?? 'en').trim().toLowerCase()
+  const curThemeToken = (url.searchParams.get('theme') ?? 'playful').trim().toLowerCase()
   if (
     curSToken === token &&
     (curLToken ?? null) === lToken &&
-    curLangToken === langToken
+    curLangToken === langToken &&
+    curThemeToken === themeToken
   ) return
 
   url.searchParams.set('s', token)
   if (lToken !== null) url.searchParams.set('l', lToken)
   else url.searchParams.delete('l')
   url.searchParams.set('lang', langToken)
+  url.searchParams.set('theme', themeToken)
   // Clean up the legacy unlock-mask param if a previous version wrote it.
   url.searchParams.delete('u')
   window.history.replaceState(null, '', url.toString())

@@ -39,9 +39,14 @@ import {
 } from './bentoTiles'
 import './BentoPoster.css'
 
+type PosterThemeId = 'playful' | 'canopy' | 'orchid' | 'jungle'
+
 interface Props {
   selectedPlace: Place
   onPlaceChange: (place: Place) => void
+  theme: PosterThemeId
+  themeOptions: Array<{ id: PosterThemeId; label: string; swatch: string }>
+  onThemeChange: (theme: PosterThemeId) => void
   onShowAbout?: () => void
   /** Optional seed restored from a shared URL. */
   initialSeed?: number
@@ -54,6 +59,9 @@ interface Props {
 function BentoPoster({
   selectedPlace,
   onPlaceChange,
+  theme,
+  themeOptions,
+  onThemeChange,
   onShowAbout,
   initialSeed,
   initialLocks,
@@ -67,11 +75,20 @@ function BentoPoster({
   const [commonNameLanguage, setCommonNameLanguage] = useState<UiLanguage>(() =>
     normalizeUiLanguage(initialLanguage),
   )
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false)
   const uiText = getUiText(commonNameLanguage)
   const GRID_W = POSTER_GRID_W
+  const themeMenuRef = useRef<HTMLDivElement | null>(null)
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
+  const closeThemeMenu = () => setIsThemeMenuOpen(false)
   const closeLanguageMenu = () => setIsLanguageMenuOpen(false)
+  const activeThemeOption =
+    themeOptions.find((option) => option.id === theme) ?? themeOptions[0]
+  const selectTheme = (nextTheme: PosterThemeId) => {
+    onThemeChange(nextTheme)
+    closeThemeMenu()
+  }
   const selectLanguage = (language: UiLanguage) => {
     setCommonNameLanguage(language)
     closeLanguageMenu()
@@ -175,16 +192,21 @@ function BentoPoster({
   }, [commonNameLanguage, locks, pendingLocks])
 
   useEffect(() => {
-    if (!isLanguageMenuOpen) return
+    if (!isLanguageMenuOpen && !isThemeMenuOpen) return
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!languageMenuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node
+      const isInsideLanguageMenu = languageMenuRef.current?.contains(target)
+      const isInsideThemeMenu = themeMenuRef.current?.contains(target)
+      if (!isInsideLanguageMenu && !isInsideThemeMenu) {
+        closeThemeMenu()
         closeLanguageMenu()
       }
     }
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        closeThemeMenu()
         closeLanguageMenu()
       }
     }
@@ -195,7 +217,7 @@ function BentoPoster({
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [isLanguageMenuOpen])
+  }, [isLanguageMenuOpen, isThemeMenuOpen])
 
   const displayData = data.isReady ? data : committedSnapshot?.data ?? null
   // Only show the loading overlay while waiting on the *first* ready
@@ -245,7 +267,13 @@ function BentoPoster({
     if (!selectedPlace) return
     if (pendingLocks !== null) return
     const lockState = userManagedLocks ? { locks: currentLockEntries } : null
-    syncShareToLocation(selectedPlace, posterSeed, lockState, commonNameLanguage)
+    syncShareToLocation(
+      selectedPlace,
+      posterSeed,
+      lockState,
+      commonNameLanguage,
+      theme,
+    )
 
     // Dev assertion: paste → decode → state → encode is a fixed point.
     if (import.meta.env.DEV && lockState) {
@@ -266,6 +294,7 @@ function BentoPoster({
     userManagedLocks,
     pendingLocks,
     commonNameLanguage,
+    theme,
   ])
 
   const handleDownloadPdf = () => {
@@ -675,6 +704,49 @@ function BentoPoster({
             </svg>
           </button>
         )}
+        <div className="bento-toolbar__menu" ref={themeMenuRef}>
+          <button
+            type="button"
+            className="bento-toolbar__icon-btn bento-toolbar__icon-btn--theme"
+            title="Theme"
+            aria-label="Theme"
+            aria-haspopup="menu"
+            aria-expanded={isThemeMenuOpen}
+            onClick={() =>
+              setIsThemeMenuOpen((open) => {
+                const next = !open
+                if (next) closeLanguageMenu()
+                return next
+              })
+            }
+            style={{ '--theme-swatch': activeThemeOption?.swatch } as React.CSSProperties}
+          >
+            <span className="bento-toolbar__theme-trigger-swatch" aria-hidden="true" />
+          </button>
+          {isThemeMenuOpen && (
+            <div className="bento-toolbar__theme-popover" role="menu" aria-label="Theme">
+              {themeOptions.map((option) => {
+                const isActive = option.id === theme
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isActive}
+                    aria-label={option.label}
+                    title={option.label}
+                    className={
+                      'bento-toolbar__theme-option' +
+                      (isActive ? ' bento-toolbar__theme-option--active' : '')
+                    }
+                    style={{ '--swatch': option.swatch } as React.CSSProperties}
+                    onClick={() => selectTheme(option.id)}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </div>
         <div className="bento-toolbar__menu" ref={languageMenuRef}>
           <button
             type="button"
@@ -683,7 +755,13 @@ function BentoPoster({
             aria-label={uiText.toolbar.languageAria}
             aria-haspopup="menu"
             aria-expanded={isLanguageMenuOpen}
-            onClick={() => setIsLanguageMenuOpen((open) => !open)}
+            onClick={() =>
+              setIsLanguageMenuOpen((open) => {
+                const next = !open
+                if (next) closeThemeMenu()
+                return next
+              })
+            }
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7">
               <circle cx="12" cy="12" r="8.5" />
