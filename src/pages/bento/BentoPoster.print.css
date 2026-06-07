@@ -197,7 +197,7 @@
   .bento-sightings__pct,
   .bento-sightings__iucn-count,
   .bento-sightings__rank-pct {
-    font-size: 1.35rem !important;
+    font-size: 1.5rem !important;
   }
 
   .bento-sightings__label,
@@ -205,7 +205,7 @@
   .bento-sightings__iucn-pill,
   .bento-sightings__rank-label,
   .bento-sightings__ranks-head {
-    font-size: 1rem !important;
+    font-size: 1.12rem !important;
   }
 
   .bento-strip__name,
@@ -283,20 +283,20 @@
 
   .bento-sightings__ranks {
     margin-top: 1.4rem !important;
-    padding-top: 0.9rem !important;
-    gap: 0.8rem !important;
+    padding-top: 1rem !important;
+    gap: 0.95rem !important;
   }
 
   .bento-sightings__rank-list {
-    gap: 0.8rem !important;
+    gap: 0.95rem !important;
   }
 
   .bento-sightings__rank {
-    gap: 0.42rem !important;
+    gap: 0.5rem !important;
   }
 
   .bento-sightings__bar {
-    height: 0.62rem !important;
+    height: 0.72rem !important;
   }
 
   .bento-card--season-how {
@@ -361,11 +361,35 @@
   }
 
   .bento-sources__text {
-    gap: 0.45rem !important;
+    gap: 0.08rem !important;
+  }
+
+  .bento-sources__brand {
+    gap: 0.7rem !important;
+  }
+
+  .bento-sources__brand-logo {
+    width: 3rem !important;
+    height: 3rem !important;
+  }
+
+  .bento-sources__brand-name {
+    font-size: 1.8rem !important;
+  }
+
+  .bento-sources__separator {
+    width: min(72%, 11rem) !important;
+    height: 0.18rem !important;
+    margin: 0.85rem 0 0.65rem !important;
+  }
+
+  .bento-sources .bento-card__kicker {
+    margin: 0 !important;
   }
 
   .bento-sources__logo-link {
     width: min(100%, 18.5rem) !important;
+    margin: 0 !important;
   }
 
   .bento-sources__qr svg {
@@ -377,6 +401,7 @@
   }
 
   .bento-sources__line {
+    margin: 0 !important;
     font-size: 1.45rem !important;
     line-height: 1.08 !important;
     font-weight: 800 !important;

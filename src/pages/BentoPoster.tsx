@@ -42,6 +42,7 @@ import './BentoPoster.css'
 interface Props {
   selectedPlace: Place
   onPlaceChange: (place: Place) => void
+  onShowAbout?: () => void
   /** Optional seed restored from a shared URL. */
   initialSeed?: number
   /** Optional lock list restored from URL (`l=` param). */
@@ -53,6 +54,7 @@ interface Props {
 function BentoPoster({
   selectedPlace,
   onPlaceChange,
+  onShowAbout,
   initialSeed,
   initialLocks,
   initialLanguage,
@@ -657,6 +659,21 @@ function BentoPoster({
         >
           ⤓ {uiText.toolbar.pdf}
         </button>
+        {onShowAbout && (
+          <button
+            type="button"
+            className="bento-toolbar__icon-btn"
+            title="About / Method"
+            aria-label="About / Method"
+            onClick={onShowAbout}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9">
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M12 10.5v5.25" strokeLinecap="round" />
+              <path d="M12 7.25h.01" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
         <div className="bento-toolbar__menu" ref={languageMenuRef}>
           <button
             type="button"

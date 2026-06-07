@@ -868,6 +868,7 @@ export const CARD_DEFS: CardDef[] = [
     size: { w: 2, h: 1 },
     className: 'bento-card accent-gold bento-sources',
     build: ({ shareUrl, uiText }) => {
+      const brandLogoSrc = `${import.meta.env.BASE_URL}logo.svg`
       const gbifLogoSrc = `${import.meta.env.BASE_URL}gbif-logo.png`
       return [
         {
@@ -876,6 +877,17 @@ export const CARD_DEFS: CardDef[] = [
           render: () => (
             <>
               <div className="bento-sources__text">
+                <div className="bento-sources__brand" aria-label="Bee Around">
+                  <img
+                    src={brandLogoSrc}
+                    alt=""
+                    className="bento-sources__brand-logo"
+                    loading="eager"
+                    decoding="async"
+                  />
+                  <span className="bento-sources__brand-name">Bee Around</span>
+                </div>
+                <span className="bento-sources__separator" aria-hidden="true" />
                 <span className="bento-card__kicker">{uiText.poster.dataFrom}</span>
                 <a
                   className="bento-sources__logo-link"
