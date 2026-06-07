@@ -79,9 +79,7 @@ function App() {
       </header>
 
       <main className="app-main">
-        {view === 'about' ? (
-          <AboutPage onBack={() => showView('poster')} />
-        ) : (
+        <section className={`app-view${view === 'poster' ? '' : ' app-view--hidden'}`} aria-hidden={view !== 'poster'}>
           <BentoPoster
             selectedPlace={selectedPlace}
             onPlaceChange={handlePlaceChange}
@@ -90,7 +88,10 @@ function App() {
             initialLanguage={initialLanguage ?? undefined}
             onShowAbout={() => showView('about')}
           />
-        )}
+        </section>
+        <section className={`app-view${view === 'about' ? '' : ' app-view--hidden'}`} aria-hidden={view !== 'about'}>
+          <AboutPage onBack={() => showView('poster')} />
+        </section>
       </main>
     </div>
   )

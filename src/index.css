@@ -110,6 +110,14 @@ textarea {
   min-height: 100vh;
 }
 
+.app-view {
+  min-height: 100vh;
+}
+
+.app-view--hidden {
+  display: none;
+}
+
 .about-page {
   min-height: 100vh;
   padding: clamp(5rem, 8vw, 6.25rem) clamp(1rem, 3vw, 2rem) clamp(1.25rem, 3vw, 2rem);
@@ -118,13 +126,18 @@ textarea {
     #d9cfc2;
 }
 
+.about-content {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
 .about-back-btn {
   appearance: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.45rem;
   width: max-content;
-  margin: 0 auto 0.85rem;
+  margin: 0 0 0.85rem;
   padding: 0.65rem 0.9rem 0.65rem 0.75rem;
   border: 2px solid rgb(var(--color-ink));
   border-radius: 12px;

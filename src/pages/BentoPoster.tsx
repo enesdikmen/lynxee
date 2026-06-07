@@ -594,6 +594,7 @@ function BentoPoster({
   }, [placements])
 
   const toggleLock = (t: Tile, p: { x: number; y: number }) => {
+    if (isLoadingSnapshot) return
     if (!t.slotId) return
     const slotId = t.slotId
     setUserManagedLocks(true)
