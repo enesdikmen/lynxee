@@ -137,10 +137,10 @@
   gap: 0;
 }
 .bento-card--species-pattern {
-  --species-pattern-size: 25.5px 25.5px;
+  --species-pattern-size: 44px 44px;
   --species-pattern-wash: linear-gradient(
-    rgb(var(--color-surface-soft) / 0.88),
-    rgb(var(--color-surface-soft) / 0.88)
+    rgb(var(--color-surface-soft) / 0.94),
+    rgb(var(--color-surface-soft) / 0.94)
   );
   background-color: rgb(var(--color-surface-soft));
   background-image: var(--species-pattern-wash), var(--species-pattern);
@@ -176,7 +176,7 @@
   background-color: rgb(var(--color-surface-soft));
   background-image: var(--species-pattern-wash), var(--species-pattern);
   background-repeat: repeat;
-  background-size: auto, 34.5px 34.5px;
+  background-size: auto, 62px 62px;
 }
 .bento-hero__name {
   font-family: var(--font-display);
@@ -214,6 +214,10 @@
 .bento-card--mini {
   padding: 0;
   gap: 0;
+}
+.bento-card--mini.bento-card--species-pattern {
+  --species-pattern-size: 34px 34px;
+  background-position: 0 0, 8px 100%;
 }
 .bento-mini__img {
   width: 100%;
