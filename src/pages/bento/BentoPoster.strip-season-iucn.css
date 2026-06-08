@@ -371,3 +371,117 @@
   font-size: 1rem;
   min-width: 1.8rem;
 }
+
+@media (max-width: 900px) {
+  .bento-card--season-how {
+    padding: 0.62rem 0.72rem 0.58rem;
+  }
+
+  .bento-season-how {
+    gap: 0.58rem;
+  }
+
+  .bento-season-how__right {
+    width: 7.15rem;
+    padding-left: 0.55rem;
+  }
+
+  .bento-season__since {
+    font-size: 0.44rem;
+    letter-spacing: 0.03em;
+  }
+
+  .bento-season-bars {
+    gap: 0.18rem;
+    margin-top: 0.45rem;
+  }
+
+  .bento-season-bars__track {
+    min-height: 36px;
+  }
+
+  .bento-season-bars__label {
+    font-size: 0.5rem;
+    letter-spacing: 0.02em;
+  }
+
+  .bento-season__footer {
+    gap: 0.28rem;
+    margin-top: 0.42rem;
+  }
+
+  .bento-season__chip {
+    max-width: 100%;
+    padding: 0.18rem 0.36rem;
+    font-size: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bento-evidence__bar {
+    height: 0.64rem;
+    margin-top: 0.3rem;
+    border-width: 1.5px;
+  }
+
+  .bento-evidence {
+    gap: 0.28rem;
+    margin-top: 0.32rem;
+  }
+
+  .bento-evidence__row {
+    grid-template-columns: auto minmax(2.1rem, auto) minmax(0, 1fr);
+    column-gap: 0.28rem;
+  }
+
+  .bento-evidence__dot {
+    width: 0.48rem;
+    height: 0.48rem;
+    border-width: 1px;
+  }
+
+  .bento-evidence__pct {
+    font-size: 0.76rem;
+  }
+
+  .bento-evidence__row--rest .bento-evidence__pct {
+    font-size: 0.62rem;
+  }
+
+  .bento-evidence__label {
+    font-size: 0.5rem;
+    line-height: 1.08;
+  }
+
+  .bento-strip {
+    gap: 0.3rem;
+  }
+
+  .bento-strip__item img {
+    border-width: 1.5px;
+    border-radius: 6px;
+  }
+
+  .bento-strip__name {
+    font-size: 0.56rem;
+  }
+
+  .bento-strip__badge {
+    font-size: 0.46rem;
+    border-width: 1px;
+  }
+}
+
+@media (max-width: 760px) {
+  .bento-card--season-how {
+    padding: 0.58rem 0.66rem;
+  }
+
+  .bento-season-how {
+    gap: 0.5rem;
+  }
+
+  .bento-season-how__right {
+    width: 6.85rem;
+  }
+}

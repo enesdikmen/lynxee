@@ -56,20 +56,20 @@
      rows     three "33% Animalia" lines (kingdom mix)
      rank     "Recording intensity" percentile bar + cohort sub */
 .bento-card--sightings {
-  padding: 0.85rem 0.95rem;
+  padding: 0.74rem 0.82rem;
   justify-content: flex-start;
-  gap: 0.25rem;
+  gap: 0.18rem;
 }
 .bento-sightings__num {
   display: block;
   font-family: var(--font-display);
   /* Sized to fit a 7-digit grouped number (e.g. "2,376,448") inside a
     1×1 cell while staying readable across viewport sizes. */
-  font-size: clamp(1.05rem, 2.2vw, 1.7rem);
-  line-height: 1;
+  font-size: clamp(1rem, 1.9vw, 1.48rem);
+  line-height: 1.06;
   letter-spacing: -0.02em;
   color: rgb(var(--color-on-dark));
-  margin-top: 0.15rem;
+  margin-top: 0.08rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
@@ -77,12 +77,12 @@
 .bento-sightings__breakdown {
   list-style: none;
   padding: 0;
-  margin: 0.55rem 0 0;
+  margin: 0.42rem 0 0;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.16rem;
   border-top: 1px solid rgb(var(--color-on-dark) / 0.18);
-  padding-top: 0.45rem;
+  padding-top: 0.36rem;
 }
 .bento-sightings__row {
   display: grid;
@@ -114,9 +114,9 @@
 
 /* ── IUCN pills (inside dark sightings card) ──────────── */
 .bento-sightings__iucn {
-  padding-top: 0.45rem;
+  padding-top: 0.34rem;
   border-top: 1px solid rgb(var(--color-on-dark) / 0.18);
-  margin-top: 0.45rem;
+  margin-top: 0.34rem;
 }
 .bento-sightings__iucn-head {
   display: block;
@@ -129,7 +129,7 @@
 .bento-sightings__iucn-pills {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.14rem;
 }
 .bento-sightings__iucn-pill {
   display: flex;
@@ -158,16 +158,16 @@
 
 .bento-sightings__ranks {
   margin-top: auto;
-  padding-top: 0.65rem;
+  padding-top: 0.42rem;
   border-top: 1px solid rgb(var(--color-on-dark) / 0.18);
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.34rem;
 }
 .bento-sightings__ranks-head {
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.15;
+  font-size: 0.66rem;
+  line-height: 1.08;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: rgb(var(--color-on-dark) / 0.85);
@@ -184,12 +184,12 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.38rem;
 }
 .bento-sightings__rank {
   display: flex;
   flex-direction: column;
-  gap: 0.32rem;
+  gap: 0.22rem;
 }
 .bento-sightings__rank-head {
   display: flex;
@@ -198,19 +198,19 @@
   gap: 0.4rem;
 }
 .bento-sightings__rank-label {
-  font-size: 0.82rem;
-  line-height: 1.15;
+  font-size: 0.68rem;
+  line-height: 1.08;
   color: rgb(var(--color-on-dark) / 0.9);
 }
 .bento-sightings__rank-pct {
   font-family: var(--font-display);
-  font-size: 1.08rem;
+  font-size: 0.96rem;
   line-height: 1;
   color: rgb(var(--color-gold));
 }
 .bento-sightings__bar {
   position: relative;
-  height: 0.5rem;
+  height: 0.4rem;
   border-radius: 999px;
   background: rgb(var(--color-on-dark) / 0.12);
   overflow: hidden;
@@ -322,4 +322,148 @@
   width: min(74%, 8.8rem);
   height: auto;
   shape-rendering: crispEdges;
+}
+
+@media (max-width: 900px) {
+  .bento-card--how,
+  .bento-card--sightings {
+    padding: 0.62rem 0.7rem;
+  }
+
+  .bento-how__rows {
+    gap: 0.34rem;
+    margin-top: 0.34rem;
+  }
+
+  .bento-how__row {
+    grid-template-columns: 2.15rem minmax(0, 1fr);
+    gap: 0.38rem;
+  }
+
+  .bento-how__pct {
+    font-size: 0.92rem;
+  }
+
+  .bento-how__label {
+    font-size: 0.62rem;
+  }
+
+  .bento-sightings__num {
+    font-size: clamp(1rem, 2.8vw, 1.35rem);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .bento-sightings__breakdown {
+    gap: 0.16rem;
+    margin-top: 0.42rem;
+    padding-top: 0.36rem;
+  }
+
+  .bento-sightings__row {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .bento-sightings__pct {
+    font-size: 0.74rem;
+  }
+
+  .bento-sightings__label {
+    font-size: 0.62rem;
+  }
+
+  .bento-sightings__iucn {
+    margin-top: 0.34rem;
+    padding-top: 0.36rem;
+  }
+
+  .bento-sightings__iucn-head {
+    font-size: 0.56rem;
+    margin-bottom: 0.24rem;
+  }
+
+  .bento-sightings__iucn-pills {
+    gap: 0.16rem;
+  }
+
+  .bento-sightings__iucn-pill {
+    gap: 0.22rem;
+    font-size: 0.54rem;
+  }
+
+  .bento-sightings__iucn-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .bento-sightings__iucn-count {
+    font-size: 0.7rem;
+  }
+
+  .bento-sightings__ranks {
+    gap: 0.4rem;
+    padding-top: 0.48rem;
+  }
+
+  .bento-sightings__ranks-head {
+    font-size: 0.66rem;
+  }
+
+  .bento-sightings__rank-list {
+    gap: 0.46rem;
+  }
+
+  .bento-sightings__rank-label {
+    font-size: 0.68rem;
+  }
+
+  .bento-sightings__rank-pct {
+    font-size: 0.9rem;
+  }
+
+  .bento-sightings__bar {
+    height: 0.42rem;
+  }
+
+  .bento-sources {
+    column-gap: 0.38rem;
+  }
+
+  .bento-sources__text {
+    padding: 0 0.2rem;
+  }
+
+  .bento-sources__brand {
+    gap: 0.26rem;
+  }
+
+  .bento-sources__brand-logo {
+    width: 1.32rem;
+    height: 1.32rem;
+  }
+
+  .bento-sources__brand-name {
+    font-size: 0.8rem;
+  }
+
+  .bento-sources__separator {
+    margin: 0.24rem 0 0.2rem;
+  }
+
+  .bento-sources .bento-card__kicker {
+    font-size: 0.48rem;
+  }
+
+  .bento-sources__logo-link {
+    padding: 0.14rem 0.28rem;
+  }
+
+  .bento-sources__line {
+    font-size: 0.62rem;
+  }
+
+  .bento-sources__qr svg {
+    width: min(82%, 7.2rem);
+  }
 }

@@ -338,9 +338,39 @@ textarea {
   .app-header {
     flex-wrap: wrap;
     gap: 0.45rem;
+    top: 0.7rem;
+    left: 0.85rem;
+  }
+
+  .app-brand {
+    min-height: 2.58rem;
+    border-width: 2px;
+    border-radius: 10px;
+    padding: 0.14rem 0.48rem 0.16rem;
+    box-shadow: 2.5px 2.5px 0 0 rgb(var(--color-ink));
+  }
+
+  .app-brand__mark {
+    width: 2.16rem;
+    height: 2.16rem;
+  }
+
+  .app-brand__name {
+    font-size: 0.96rem;
   }
 
   .app-brand__tag {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-brand {
+    gap: 0;
+    padding: 0.14rem;
+  }
+
+  .app-brand__text {
     display: none;
   }
 }

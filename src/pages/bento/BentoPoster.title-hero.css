@@ -323,6 +323,87 @@
   background: rgb(var(--color-forest));
 }
 
+@media (max-width: 900px) {
+  .bento-title__text {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .bento-title__place {
+    font-size: clamp(1.35rem, 5.4vw, 2.35rem);
+    letter-spacing: 0;
+  }
+
+  .bento-title__sub {
+    font-size: clamp(0.58rem, 1.75vw, 0.78rem);
+    letter-spacing: 0.1em;
+    margin-top: 0.24rem;
+  }
+
+  .bento-hero__body {
+    padding: 0.58rem 0.72rem 0.7rem;
+    gap: 0.15rem;
+  }
+
+  .bento-hero__name {
+    font-size: clamp(1.15rem, 2.9vw, 1.32rem);
+    line-height: 0.98;
+  }
+
+  .bento-hero__sci {
+    font-size: 0.75rem;
+    line-height: 1.18;
+  }
+
+  .bento-hero__taxon {
+    font-size: 0.58rem;
+  }
+
+  .bento-mini__img {
+    aspect-ratio: 1.18 / 1;
+  }
+
+  .bento-card--mini > .bento-mini__name,
+  .bento-card--mini > .bento-mini__sci,
+  .bento-card--mini > .bento-mini__count,
+  .bento-card--mini > .bento-mini__status {
+    padding-left: 0.42rem;
+    padding-right: 0.42rem;
+  }
+
+  .bento-mini__name {
+    font-size: 0.68rem;
+    margin-top: 0.34rem;
+  }
+
+  .bento-mini__sci {
+    font-size: 0.58rem;
+  }
+
+  .bento-mini__count,
+  .bento-mini__status {
+    font-size: 0.58rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .bento-mini__badge,
+  .bento-mini__ribbon,
+  .bento-image-source-badge {
+    font-size: 0.48rem;
+    border-width: 1px;
+    border-radius: 5px;
+  }
+
+  .bento-mini__ribbon {
+    display: none;
+  }
+
+  .bento-image-source-badge {
+    top: 5px;
+    left: 5px;
+    padding: 0.05rem 0.28rem;
+  }
+}
+
 /* Image source badge shown on species cards (Wikidata / iNaturalist / GBIF). */
 .bento-image-source-badge {
   position: absolute;

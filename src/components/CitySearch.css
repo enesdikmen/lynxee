@@ -1,6 +1,7 @@
 .city-search {
   position: relative;
   display: inline-block;
+  min-width: 0;
 }
 
 .city-search__input {
@@ -34,6 +35,39 @@
   border-radius: 12px;
   box-shadow: 5px 5px 0 0 rgb(var(--color-ink));
   z-index: 100;
+}
+
+@media (max-width: 1100px) {
+  .city-search__input {
+    width: clamp(13.5rem, 28vw, 18rem);
+  }
+}
+
+@media (max-width: 900px) {
+  .city-search {
+    flex: 1 1 13rem;
+  }
+
+  .city-search__input {
+    width: 100%;
+    min-height: 2.58rem;
+    padding: 0.48rem 0.72rem;
+    border-width: 2.5px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    box-shadow: 2.5px 2.5px 0 0 rgb(var(--color-ink));
+  }
+
+  .city-search__dropdown {
+    width: min(21rem, calc(100vw - 1.7rem));
+  }
+}
+
+@media (max-width: 520px) {
+  .city-search {
+    flex-basis: 100%;
+    order: -1;
+  }
 }
 
 .city-search__item {
