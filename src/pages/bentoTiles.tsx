@@ -293,6 +293,16 @@ const renderSpeciesInfoButton = (
         ) : contextLine ? (
           <span className="bento-species-info__line">{contextLine}</span>
         ) : null}
+        <a
+          className="bento-species-info__taxon-link"
+          href={`https://www.gbif.org/species/${sp.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => event.currentTarget.blur()}
+        >
+          View taxon on GBIF
+          <span className="bento-species-info__external" aria-hidden="true">↗︎</span>
+        </a>
         {photoLabel && (
           <span className="bento-species-info__photo">
             {photoTitle && sp.imageCredit?.sourceUrl ? (
@@ -300,8 +310,10 @@ const renderSpeciesInfoButton = (
                 href={sp.imageCredit.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(event) => event.currentTarget.blur()}
               >
                 {photoTitle}
+                <span className="bento-species-info__external" aria-hidden="true">↗︎</span>
               </a>
             ) : photoTitle ? (
               <span>{photoTitle}</span>
@@ -310,8 +322,10 @@ const renderSpeciesInfoButton = (
                 href={sp.imageCredit.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(event) => event.currentTarget.blur()}
               >
                 Photo source: {photoLabel}
+                <span className="bento-species-info__external" aria-hidden="true">↗︎</span>
               </a>
             ) : (
               <span>Photo source: {photoLabel}</span>

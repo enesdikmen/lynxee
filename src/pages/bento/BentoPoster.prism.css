@@ -1,0 +1,101 @@
+/* Prism-specific punch-up: keep other themes token-only, but let Prism use
+   extra spot colors across card roles so the poster reads as multicolor. */
+.theme-prism .bento-card--title.accent-gold {
+  background: rgb(var(--color-gold));
+}
+
+.theme-prism .bento-sources.accent-gold {
+  background: rgb(var(--color-prism-lime));
+}
+
+.theme-prism .bento-card--sightings.accent-ink {
+  background: rgb(var(--color-dark));
+}
+
+.theme-prism .bento-card--season-how.accent-paper {
+  background: rgb(var(--color-prism-lavender));
+}
+
+.theme-prism .bento-season-bars__bar {
+  background: rgb(var(--color-prism-blue));
+}
+
+.theme-prism .bento-season-bars__bar.is-peak,
+.theme-prism .bento-evidence__seg--secondary,
+.theme-prism .bento-evidence__row--secondary .bento-evidence__dot {
+  background: rgb(var(--color-prism-orange));
+}
+
+.theme-prism .bento-season-bars__label.is-peak,
+.theme-prism .bento-evidence__row--secondary .bento-evidence__pct {
+  color: rgb(var(--color-prism-orange));
+}
+
+.theme-prism .bento-card--hero.accent-forest,
+.theme-prism .bento-card--signature.accent-forest {
+  background: rgb(var(--color-prism-blue));
+}
+
+.theme-prism .bento-card--signature .bento-mini__name,
+.theme-prism .bento-card--signature .bento-mini__sci,
+.theme-prism .bento-card--signature .bento-mini__count {
+  color: rgb(var(--color-on-dark));
+}
+
+.theme-prism .bento-card--signature .bento-mini__ribbon--signature {
+  background: rgb(var(--color-prism-magenta));
+}
+
+.theme-prism .bento-card--at-risk.accent-paper {
+  background: rgb(var(--color-prism-blush));
+}
+
+.theme-prism .bento-card--at-risk .bento-mini__img {
+  border-bottom-color: rgb(var(--color-prism-magenta));
+}
+
+.theme-prism .bento-card--at-risk .bento-mini__ribbon--danger,
+.theme-prism .bento-mini__badge {
+  background: rgb(var(--color-prism-magenta));
+}
+
+.theme-prism .bento-card--thematic.accent-gold {
+  background: rgb(var(--color-prism-orange));
+}
+
+.theme-prism .bento-card--thematic.accent-forest {
+  background: rgb(var(--color-prism-mint));
+}
+
+.theme-prism .bento-grid > .bento-card--mini.accent-paper:nth-child(4n + 1) {
+  background: rgb(var(--color-prism-mint));
+}
+
+.theme-prism .bento-grid > .bento-card--mini.accent-paper:nth-child(4n + 2) {
+  background: rgb(var(--color-prism-blush));
+}
+
+.theme-prism .bento-grid > .bento-card--mini.accent-paper:nth-child(4n + 3) {
+  background: rgb(var(--color-prism-lavender));
+}
+
+.theme-prism .bento-grid > .bento-card--mini.accent-paper:nth-child(4n) {
+  background: rgb(var(--color-paper));
+}
+
+.theme-prism .bento-card--species-pattern {
+  --species-pattern-wash: linear-gradient(
+    rgb(var(--color-overlay-light) / 0.86),
+    rgb(var(--color-overlay-light) / 0.86)
+  );
+}
+
+.theme-prism .bento-card--filler {
+  background: repeating-linear-gradient(
+    45deg,
+    rgb(var(--color-prism-magenta)) 0 10px,
+    rgb(var(--color-prism-lime)) 10px 20px,
+    rgb(var(--color-prism-blue)) 20px 30px
+  );
+  opacity: 0.32;
+}

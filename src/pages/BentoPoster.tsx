@@ -39,7 +39,12 @@ import {
 } from './bentoTiles'
 import './BentoPoster.css'
 
-type PosterThemeId = 'playful' | 'canopy' | 'orchid' | 'jungle'
+type PosterThemeId =
+  | 'playful'
+  | 'canopy'
+  | 'prism'
+  | 'afterdark'
+  | 'acidgarden'
 
 interface Props {
   selectedPlace: Place

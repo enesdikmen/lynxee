@@ -12,7 +12,12 @@ import {
 import type { Place } from './types/lens'
 
 type AppView = 'poster' | 'about'
-type AppTheme = 'playful' | 'canopy' | 'orchid' | 'jungle'
+type AppTheme =
+  | 'playful'
+  | 'canopy'
+  | 'prism'
+  | 'afterdark'
+  | 'acidgarden'
 type AppThemeOption = { id: AppTheme; label: string; swatch: string }
 
 const brandLogoSrc = `${import.meta.env.BASE_URL}logo.svg`
@@ -20,18 +25,39 @@ const THEME_STORAGE_KEY = 'bee-around-theme'
 const THEME_CLASS_BY_ID: Record<AppTheme, string> = {
   playful: 'theme-playful',
   canopy: 'theme-canopy',
-  orchid: 'theme-orchid',
-  jungle: 'theme-jungle',
+  prism: 'theme-prism',
+  afterdark: 'theme-afterdark',
+  acidgarden: 'theme-acidgarden',
 }
 const THEME_OPTIONS: AppThemeOption[] = [
   { id: 'playful', label: 'Original', swatch: 'rgb(251 191 36)' },
   { id: 'canopy', label: 'Aqua', swatch: 'rgb(24 198 196)' },
-  { id: 'orchid', label: 'Berry', swatch: 'rgb(236 64 138)' },
-  { id: 'jungle', label: 'Jungle', swatch: 'rgb(64 214 78)' },
+  {
+    id: 'prism',
+    label: 'Prism',
+    swatch:
+      'linear-gradient(135deg, rgb(0 190 220) 0 33%, rgb(255 230 0) 33% 66%, rgb(255 71 87) 66% 100%)',
+  },
+  {
+    id: 'afterdark',
+    label: 'Afterdark',
+    swatch:
+      'linear-gradient(135deg, rgb(42 16 84) 0 28%, rgb(255 112 32) 28% 52%, rgb(198 255 0) 52% 76%, rgb(0 224 255) 76% 100%)',
+  },
+  {
+    id: 'acidgarden',
+    label: 'Acid Garden',
+    swatch:
+      'linear-gradient(135deg, rgb(29 88 44) 0 30%, rgb(199 255 24) 30% 55%, rgb(116 82 255) 55% 78%, rgb(245 178 42) 78% 100%)',
+  },
 ]
 
 const isAppTheme = (value: string | null): value is AppTheme =>
-  value === 'playful' || value === 'canopy' || value === 'orchid' || value === 'jungle'
+  value === 'playful' ||
+  value === 'canopy' ||
+  value === 'prism' ||
+  value === 'afterdark' ||
+  value === 'acidgarden'
 
 const readThemeFromStorage = (): AppTheme => {
   if (typeof window === 'undefined') return 'playful'

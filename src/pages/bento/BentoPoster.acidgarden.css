@@ -1,0 +1,138 @@
+/* Acid Garden: mutant botanical, loud but earth-rooted. */
+.theme-acidgarden .bento-card--title.accent-gold {
+  background:
+    linear-gradient(118deg, rgb(var(--color-acid-lime)) 0 48%, transparent 48%),
+    linear-gradient(145deg, transparent 0 68%, rgb(var(--color-acid-sage)) 68% 100%),
+    rgb(var(--color-acid-butter));
+}
+
+.theme-acidgarden .bento-sources.accent-gold {
+  background:
+    linear-gradient(90deg, rgb(var(--color-acid-sky)) 0 50%, rgb(var(--color-acid-lime)) 50% 100%);
+}
+
+.theme-acidgarden .bento-card--sightings.accent-ink {
+  background:
+    linear-gradient(180deg, rgb(var(--color-dark)) 0 58%, rgb(var(--color-acid-violet)) 58% 100%);
+}
+
+.theme-acidgarden .bento-sightings__pct,
+.theme-acidgarden .bento-sightings__rank-pct {
+  color: rgb(var(--color-acid-lime));
+}
+
+.theme-acidgarden .bento-sightings__bar-fill {
+  background: rgb(var(--color-acid-lime));
+}
+
+.theme-acidgarden .bento-card--season-how.accent-paper {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgb(var(--color-acid-butter)) 0 18px,
+      rgb(var(--color-surface)) 18px 36px
+    );
+}
+
+.theme-acidgarden .bento-season-bars__bar {
+  background: rgb(var(--color-acid-sky));
+}
+
+.theme-acidgarden .bento-season-bars__bar.is-peak,
+.theme-acidgarden .bento-evidence__seg--secondary,
+.theme-acidgarden .bento-evidence__row--secondary .bento-evidence__dot {
+  background: rgb(var(--color-acid-violet));
+}
+
+.theme-acidgarden .bento-season-bars__label.is-peak,
+.theme-acidgarden .bento-evidence__row--secondary .bento-evidence__pct {
+  color: rgb(var(--color-acid-violet));
+}
+
+.theme-acidgarden .bento-card--hero.accent-forest {
+  background: rgb(var(--color-acid-sky));
+}
+
+.theme-acidgarden .bento-card--hero .bento-hero__body {
+  background:
+    linear-gradient(135deg, rgb(var(--color-surface)) 0 72%, rgb(var(--color-acid-sage)) 72% 100%);
+}
+
+.theme-acidgarden .bento-card--signature.accent-forest {
+  background: rgb(var(--color-dark));
+}
+
+.theme-acidgarden .bento-card--signature .bento-mini__img {
+  border-bottom: 3px solid rgb(var(--color-acid-lime));
+}
+
+.theme-acidgarden .bento-card--signature .bento-mini__name,
+.theme-acidgarden .bento-card--signature .bento-mini__sci,
+.theme-acidgarden .bento-card--signature .bento-mini__count {
+  color: rgb(var(--color-on-dark));
+}
+
+.theme-acidgarden .bento-card--signature .bento-mini__ribbon--signature {
+  background: rgb(var(--color-acid-marigold));
+  color: rgb(var(--color-ink));
+}
+
+.theme-acidgarden .bento-card--at-risk.accent-paper {
+  background: rgb(var(--color-acid-lilac));
+}
+
+.theme-acidgarden .bento-card--at-risk .bento-mini__img {
+  border-bottom-color: rgb(var(--color-acid-violet));
+}
+
+.theme-acidgarden .bento-card--at-risk .bento-mini__ribbon--danger,
+.theme-acidgarden .bento-mini__badge {
+  background: rgb(var(--color-acid-violet));
+}
+
+.theme-acidgarden .bento-card--thematic.accent-gold {
+  background: rgb(var(--color-acid-marigold));
+}
+
+.theme-acidgarden .bento-card--thematic.accent-forest {
+  background: rgb(var(--color-acid-leaf));
+}
+
+.theme-acidgarden .bento-grid > .bento-card--mini.accent-paper:nth-child(5n + 1) {
+  background: rgb(var(--color-acid-sage));
+}
+
+.theme-acidgarden .bento-grid > .bento-card--mini.accent-paper:nth-child(5n + 2) {
+  background: rgb(var(--color-acid-butter));
+}
+
+.theme-acidgarden .bento-grid > .bento-card--mini.accent-paper:nth-child(5n + 3) {
+  background: rgb(var(--color-acid-lilac));
+}
+
+.theme-acidgarden .bento-grid > .bento-card--mini.accent-paper:nth-child(5n + 4) {
+  background: rgb(var(--color-surface));
+}
+
+.theme-acidgarden .bento-grid > .bento-card--mini.accent-paper:nth-child(5n) {
+  background: rgb(var(--color-surface-soft-alt-2));
+}
+
+.theme-acidgarden .bento-card--species-pattern {
+  --species-pattern-wash: linear-gradient(
+    rgb(var(--color-overlay-light) / 0.84),
+    rgb(var(--color-overlay-light) / 0.84)
+  );
+}
+
+.theme-acidgarden .bento-card--filler {
+  background:
+    repeating-radial-gradient(
+      ellipse at 18% 14%,
+      rgb(var(--color-acid-sage)) 0 8px,
+      rgb(var(--color-acid-lime)) 8px 15px,
+      rgb(var(--color-acid-violet)) 15px 17px,
+      rgb(var(--color-acid-marigold)) 17px 24px
+    );
+  opacity: 0.34;
+}
