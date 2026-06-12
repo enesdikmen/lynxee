@@ -123,6 +123,7 @@ const THEMATIC_CARD_CLASS =
   'bento-card bento-card--mini bento-card--thematic accent-gold'
 
 const SPECIES_PATTERN_CLASS_BY_KIND = {
+  species: 'bento-pattern--species',
   mammal: 'bento-pattern--mammal',
   bird: 'bento-pattern--bird',
   insect: 'bento-pattern--insect',
@@ -144,7 +145,7 @@ const speciesPatternClass = (sp: Pick<SpeciesCard, 'highlight' | 'taxonLine'>) =
 
   return kind
     ? `bento-card--species-pattern ${SPECIES_PATTERN_CLASS_BY_KIND[kind]}`
-    : ''
+    : `bento-card--species-pattern ${SPECIES_PATTERN_CLASS_BY_KIND.species}`
 }
 
 function toThematicTileInstance(
@@ -178,7 +179,7 @@ function toThematicTileInstance(
     speciesIds: [sp.id],
     className:
       'bento-card bento-card--mini bento-card--thematic ' +
-      (index % 2 === 0 ? 'accent-gold' : 'accent-forest'),
+      `${index % 2 === 0 ? 'accent-gold' : 'accent-forest'} ${speciesPatternClass(sp)}`,
     render: () => (
       <>
         {renderSpeciesImage({
@@ -360,9 +361,7 @@ const renderSpeciesImage = ({
       className={`${className} bento-img-placeholder`}
       role="img"
       aria-label={uiText.poster.imageUnavailableAria(alt)}
-    >
-      <span className="bento-img-placeholder__text">{uiText.poster.imageUnavailable}</span>
-    </div>
+    />
   )
 }
 
@@ -885,6 +884,7 @@ export const CARD_DEFS: CardDef[] = [
         id: `at-risk-${i}`,
         slotId: `at-risk-${i}`,
         speciesIds: [sp.id],
+        className: `bento-card bento-card--mini bento-card--at-risk accent-paper ${speciesPatternClass(sp)}`,
         render: () => (
           <>
             {renderSpeciesImage({
@@ -946,6 +946,7 @@ export const CARD_DEFS: CardDef[] = [
           id: 'signature-species',
           slotId: 'signature-species',
           speciesIds: [sp.id],
+          className: `bento-card bento-card--mini bento-card--signature accent-forest ${speciesPatternClass(sp)}`,
           render: () => (
             <>
               {renderSpeciesImage({
@@ -1151,7 +1152,7 @@ export function buildSpeciesBackupTiles(
       speciesIds: [sp.id],
       w: 1,
       h: 1,
-      className: 'bento-card bento-card--mini accent-paper',
+      className: `bento-card bento-card--mini accent-paper ${speciesPatternClass(sp)}`,
       render: () => (
         <>
           {renderSpeciesImage({

@@ -162,8 +162,10 @@
 .bento-pattern--plant { --species-pattern: url('/patterns/pattern-plant.svg'); }
 .bento-pattern--fungi { --species-pattern: url('/patterns/pattern-fungi.svg'); }
 .bento-pattern--fish { --species-pattern: url('/patterns/pattern-fish.svg'); }
+.bento-pattern--species { --species-pattern: url('/patterns/species_pattern.svg'); }
 
 .bento-hero__img {
+  --species-placeholder-icon-size: min(38%, 8.5rem);
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
@@ -227,6 +229,7 @@
   background-position: 0 0, 8px 100%;
 }
 .bento-mini__img {
+  --species-placeholder-icon-size: min(48%, 4.9rem);
   width: 100%;
   aspect-ratio: 3 / 2;
   flex: 0 0 auto;
@@ -539,22 +542,14 @@
 
 /* Missing-image placeholder used when no source resolves. */
 .bento-img-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  display: block;
   border-top: 1.5px dashed rgb(var(--color-ink) / 0.35);
   border-bottom: 1.5px dashed rgb(var(--color-ink) / 0.35);
   background:
-    linear-gradient(135deg, rgb(var(--color-overlay-light) / 0.35), rgb(var(--color-overlay-light) / 0)),
+    linear-gradient(135deg, rgb(var(--color-overlay-light) / 0.42), rgb(var(--color-overlay-light) / 0.12)),
+    var(--species-pattern, url('/patterns/species_pattern.svg')),
     rgb(var(--color-surface-soft-alt-3));
-}
-
-.bento-img-placeholder__text {
-  font-family: var(--font-display);
-  font-size: 0.58rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(var(--color-ink) / 0.7);
-  padding: 0 0.45rem;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: auto, var(--species-placeholder-icon-size, min(46%, 6rem)), auto;
 }
