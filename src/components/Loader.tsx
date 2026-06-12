@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import lottie, { type AnimationItem } from 'lottie-web'
 
 const BEE_LOTTIE_PATH = `${import.meta.env.BASE_URL}c5aaaea6-1184-11ee-9a35-6bda63c4fe7d.json`
-const BEE_LOTTIE_SPEED = 1.25
+const BEE_LOTTIE_SPEED = 1.45
 
 interface Props {
   size?: number
@@ -15,6 +15,8 @@ export default function Loader({ size = 60, label, steps }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const visibleSteps = steps?.filter(Boolean).slice(0, 3) ?? []
   const [stepIndex, setStepIndex] = useState(0)
+  const displayLabel =
+    visibleSteps.length > 0 ? (visibleSteps[stepIndex] ?? visibleSteps[0]) : label
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -76,12 +78,15 @@ export default function Loader({ size = 60, label, steps }: Props) {
         aria-hidden="true"
       />
 
-      {visibleSteps.length > 0 ? (
-        <span className="lynx-loader__label" aria-label={label}>
-          {visibleSteps[stepIndex] ?? visibleSteps[0]}
+      {displayLabel && (
+        <span className="lynx-loader__label" aria-label={label ?? displayLabel}>
+          <span className="lynx-loader__label-text">{displayLabel}</span>
+          <span className="lynx-loader__dots" aria-hidden="true">
+            <span>.</span>
+            <span>.</span>
+            <span>.</span>
+          </span>
         </span>
-      ) : (
-        label && <span className="lynx-loader__label">{label}</span>
       )}
     </motion.div>
   )

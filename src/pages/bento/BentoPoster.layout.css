@@ -13,6 +13,39 @@
   overflow-x: hidden;
 }
 
+.bento-shell::before {
+  content: "";
+  position: absolute;
+  inset: -8rem;
+  z-index: 0;
+  pointer-events: none;
+  background-color: rgb(var(--hex-field-color));
+  opacity: var(--hex-field-opacity);
+  transform: rotate(-2deg);
+  transform-origin: center;
+  mask-image: var(--hex-field-mask);
+  mask-repeat: repeat;
+  mask-size: 18rem 15.58rem;
+  -webkit-mask-image: var(--hex-field-mask);
+  -webkit-mask-repeat: repeat;
+  -webkit-mask-size: 18rem 15.58rem;
+}
+
+.theme-afterdark .bento-shell::before {
+  background-color: rgb(var(--hex-field-color));
+  opacity: var(--hex-field-opacity);
+}
+
+.theme-acidgarden .bento-shell::before {
+  background-color: rgb(var(--hex-field-color));
+  opacity: var(--hex-field-opacity);
+}
+
+.bento-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Hide the browser's broken-image glyph while images are loading or
    when no source is enabled. The card's tan background shows through. */
 img[src=""] { visibility: hidden; }
@@ -241,6 +274,10 @@ img[src=""] { visibility: hidden; }
   display: block;
 }
 .lynx-loader__label {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  min-width: min(18rem, 82vw);
   font-family: var(--font-display);
   font-size: clamp(0.78rem, 1.9vw, 0.95rem);
   line-height: 1.25;
@@ -253,6 +290,44 @@ img[src=""] { visibility: hidden; }
     0 -1px 0 #fff,
     -1px 0 0 #fff;
   max-width: min(26rem, 82vw);
+}
+.lynx-loader__dots {
+  display: inline-flex;
+  width: 1.15em;
+  justify-content: flex-start;
+  color: rgb(var(--color-ink));
+}
+.lynx-loader__dots span {
+  opacity: 0.2;
+  animation: lynx-loader-dot 1.1s ease-in-out infinite;
+}
+.lynx-loader__dots span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.lynx-loader__dots span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes lynx-loader-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-0.08em);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lynx-loader__dots span {
+    animation: none;
+  }
+
+  .lynx-loader__dots span {
+    opacity: 1;
+    transform: none;
+  }
 }
 @media (max-width: 700px) {
   /* On phones, drop the strict aspect ratio — let cards grow as tall as
