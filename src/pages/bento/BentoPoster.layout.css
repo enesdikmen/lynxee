@@ -13,7 +13,8 @@
   overflow-x: hidden;
 }
 
-.bento-shell::before {
+.bento-shell::before,
+.bento-shell::after {
   content: "";
   position: fixed;
   inset: -10rem;
@@ -31,14 +32,37 @@
   -webkit-mask-size: 16rem 13.85rem;
 }
 
-.theme-afterdark .bento-shell::before {
+.bento-shell::after {
+  opacity: calc(var(--hex-field-opacity) * 0.45);
+  transform: rotate(-2.5deg) translate(6px, 4px);
+  mask-position: 6px 4px;
+  -webkit-mask-position: 6px 4px;
+}
+
+.theme-afterdark .bento-shell::before,
+.theme-afterdark .bento-shell::after {
   background-color: rgb(var(--hex-field-color));
+}
+
+.theme-afterdark .bento-shell::before {
   opacity: var(--hex-field-opacity);
 }
 
-.theme-acidgarden .bento-shell::before {
+.theme-afterdark .bento-shell::after {
+  opacity: calc(var(--hex-field-opacity) * 0.45);
+}
+
+.theme-acidgarden .bento-shell::before,
+.theme-acidgarden .bento-shell::after {
   background-color: rgb(var(--hex-field-color));
+}
+
+.theme-acidgarden .bento-shell::before {
   opacity: var(--hex-field-opacity);
+}
+
+.theme-acidgarden .bento-shell::after {
+  opacity: calc(var(--hex-field-opacity) * 0.45);
 }
 
 .bento-shell > * {

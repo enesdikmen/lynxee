@@ -72,6 +72,17 @@
     -webkit-mask-size: 26rem 22.5rem !important;
   }
 
+  .bento-shell::after {
+    position: fixed !important;
+    inset: -18mm !important;
+    opacity: calc(var(--hex-field-opacity) * 0.5) !important;
+    transform: translate(6px, 4px) !important;
+    mask-size: 26rem 22.5rem !important;
+    mask-position: 6px 4px !important;
+    -webkit-mask-size: 26rem 22.5rem !important;
+    -webkit-mask-position: 6px 4px !important;
+  }
+
   /* Hide interactive chrome that has no place on a printed poster. */
   .bento-toolbar,
   .bento-lock-btn,

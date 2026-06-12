@@ -306,7 +306,8 @@ textarea {
   overflow: hidden;
 }
 
-.about-page::before {
+.about-page::before,
+.about-page::after {
   content: "";
   position: fixed;
   inset: -10rem;
@@ -324,14 +325,37 @@ textarea {
   -webkit-mask-size: 16rem 13.85rem;
 }
 
-.theme-afterdark .about-page::before {
+.about-page::after {
+  opacity: calc(var(--hex-field-opacity) * 0.45);
+  transform: rotate(-2.5deg) translate(6px, 4px);
+  mask-position: 6px 4px;
+  -webkit-mask-position: 6px 4px;
+}
+
+.theme-afterdark .about-page::before,
+.theme-afterdark .about-page::after {
   background-color: rgb(var(--hex-field-color));
+}
+
+.theme-afterdark .about-page::before {
   opacity: var(--hex-field-opacity);
 }
 
-.theme-acidgarden .about-page::before {
+.theme-afterdark .about-page::after {
+  opacity: calc(var(--hex-field-opacity) * 0.45);
+}
+
+.theme-acidgarden .about-page::before,
+.theme-acidgarden .about-page::after {
   background-color: rgb(var(--hex-field-color));
+}
+
+.theme-acidgarden .about-page::before {
   opacity: var(--hex-field-opacity);
+}
+
+.theme-acidgarden .about-page::after {
+  opacity: calc(var(--hex-field-opacity) * 0.45);
 }
 
 .about-content {
