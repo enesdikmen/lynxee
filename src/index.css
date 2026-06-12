@@ -19,7 +19,7 @@
 /* PLAYFUL — warm cream + coral, emerald & amber on beige. */
 .theme-playful {
   --hex-field-color: var(--color-ink);
-  --hex-field-opacity: 0.045;
+  --hex-field-opacity: 0.026;
   --color-ink: 0 0 0;
   --color-ink-soft: 67 56 98;
   --color-paper: 255 247 237;
@@ -52,7 +52,7 @@
    The light cards stay near-neutral so the colored cards truly stand out. */
 .theme-canopy {
   --hex-field-color: var(--color-ink);
-  --hex-field-opacity: 0.05;
+  --hex-field-opacity: 0.028;
   --color-ink: 0 0 0;
   --color-ink-soft: 24 62 64;
   --color-paper: 235 240 239;
@@ -83,7 +83,7 @@
    card surfaces keep the biodiversity imagery readable inside the chaos. */
 .theme-prism {
   --hex-field-color: var(--color-ink);
-  --hex-field-opacity: 0.045;
+  --hex-field-opacity: 0.026;
   --color-ink: 0 0 0;
   --color-ink-soft: 26 32 72;
   --color-paper: 255 250 235;
@@ -121,7 +121,7 @@
    lavender and mint species surfaces. */
 .theme-afterdark {
   --hex-field-color: var(--color-afterdark-lime);
-  --hex-field-opacity: 0.06;
+  --hex-field-opacity: 0.034;
   --color-ink: 8 4 20;
   --color-ink-soft: 62 38 96;
   --color-paper: 243 236 255;
@@ -159,7 +159,7 @@
    blue-violet, sky blue, and marigold blocks with plant-tinted surfaces. */
 .theme-acidgarden {
   --hex-field-color: var(--color-acid-lime);
-  --hex-field-opacity: 0.06;
+  --hex-field-opacity: 0.034;
   --color-ink: 4 18 10;
   --color-ink-soft: 36 64 38;
   --color-paper: 246 252 220;
@@ -318,10 +318,10 @@ textarea {
   transform-origin: center;
   mask-image: var(--hex-field-mask);
   mask-repeat: repeat;
-  mask-size: 12.75rem 11.03rem;
+  mask-size: 16rem 13.85rem;
   -webkit-mask-image: var(--hex-field-mask);
   -webkit-mask-repeat: repeat;
-  -webkit-mask-size: 12.75rem 11.03rem;
+  -webkit-mask-size: 16rem 13.85rem;
 }
 
 .theme-afterdark .about-page::before {

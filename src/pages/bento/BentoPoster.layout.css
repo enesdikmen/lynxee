@@ -25,10 +25,10 @@
   transform-origin: center;
   mask-image: var(--hex-field-mask);
   mask-repeat: repeat;
-  mask-size: 12.75rem 11.03rem;
+  mask-size: 16rem 13.85rem;
   -webkit-mask-image: var(--hex-field-mask);
   -webkit-mask-repeat: repeat;
-  -webkit-mask-size: 12.75rem 11.03rem;
+  -webkit-mask-size: 16rem 13.85rem;
 }
 
 .theme-afterdark .bento-shell::before {

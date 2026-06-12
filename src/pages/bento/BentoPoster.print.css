@@ -16,17 +16,17 @@
 
 @media print {
   :root {
-    --print-card-border: 1.35mm;
-    --print-detail-border: 0.8mm;
-    --print-grid-gap: 4.2mm;
-    --print-grid-padding: 8mm;
-    --print-shadow: 1.8mm 1.8mm 0 0 rgb(var(--color-ink));
+    --print-card-border: 0.92mm;
+    --print-detail-border: 0.52mm;
+    --print-grid-gap: 3.4mm;
+    --print-grid-padding: 5.2mm;
+    --print-shadow: 1.45mm 1.45mm 0 0 rgb(var(--color-ink));
   }
 
   /* Fallback page — JS injects an exact-aspect rule with higher
     specificity (via <style id="bee-around-print-page">) before printing. */
   @page {
-    size: A2 portrait;
+    size: A3 portrait;
     margin: 0;
   }
 
@@ -66,7 +66,10 @@
   .bento-shell::before {
     position: fixed !important;
     inset: -18mm !important;
-    opacity: var(--hex-field-opacity) !important;
+    opacity: calc(var(--hex-field-opacity) * 1.15) !important;
+    transform: none !important;
+    mask-size: 26rem 22.5rem !important;
+    -webkit-mask-size: 26rem 22.5rem !important;
   }
 
   /* Hide interactive chrome that has no place on a printed poster. */
@@ -117,13 +120,12 @@
     transition: none !important;
   }
 
-  /* Stronger borders and shadows read better at print scale — the 2.5px
-     screen border can appear hairline-thin on a large A2 sheet. */
+  /* Keep the screen's punchy neo-brutalist frame in the exported PDF. */
   .bento-card {
     break-inside: avoid;
     page-break-inside: avoid;
     border-width: var(--print-card-border) !important;
-    border-radius: 4mm !important;
+    border-radius: 3.2mm !important;
     box-shadow: var(--print-shadow) !important;
   }
 
@@ -132,18 +134,18 @@
   .bento-card--mini,
   .bento-card--stats,
   .bento-sources {
-    border-radius: 4mm !important;
+    border-radius: 3.2mm !important;
   }
 
   .bento-title__layout,
   .bento-hero__img,
   .bento-card--mini > .bento-mini__img {
-    border-radius: calc(4mm - var(--print-card-border)) calc(4mm - var(--print-card-border)) 0 0 !important;
+    border-radius: calc(3.2mm - var(--print-card-border)) calc(3.2mm - var(--print-card-border)) 0 0 !important;
   }
 
   .bento-card--title .bento-title__layout,
   .bento-card--stats .bento-stats {
-    border-radius: calc(4mm - var(--print-card-border)) !important;
+    border-radius: calc(3.2mm - var(--print-card-border)) !important;
   }
 
   .bento-hero__body,
@@ -175,50 +177,52 @@
   }
 
   .bento-title__place {
-    font-size: 4.65rem !important;
+    font-size: 4.15rem !important;
     -webkit-text-stroke-width: 0.035em !important;
     text-shadow: 0.065em 0.065em 0 rgb(var(--color-paper)) !important;
   }
 
   .bento-title__sub,
   .bento-card__kicker {
-    font-size: 1.12rem !important;
+    font-size: 0.94rem !important;
   }
 
   .bento-hero__name {
-    font-size: 2.78rem !important;
+    font-size: 2.18rem !important;
+    line-height: 0.98 !important;
   }
 
   .bento-hero__sci {
-    font-size: 1.12rem !important;
+    font-size: 0.94rem !important;
   }
 
   .bento-hero__taxon,
   .bento-hero__count,
   .bento-card__sub {
-    font-size: 1.18rem !important;
+    font-size: 0.94rem !important;
   }
 
   .bento-mini__name {
-    font-size: 1.38rem !important;
+    font-size: 1.02rem !important;
     line-height: 1.05 !important;
   }
 
   .bento-mini__sci,
   .bento-mini__count,
   .bento-mini__status {
-    font-size: 0.98rem !important;
+    font-size: 0.72rem !important;
     line-height: 1.1 !important;
   }
 
   .bento-sightings__num {
-    font-size: 3.62rem !important;
+    font-size: 2.34rem !important;
+    line-height: 0.98 !important;
   }
 
   .bento-sightings__pct,
   .bento-sightings__iucn-count,
   .bento-sightings__rank-pct {
-    font-size: 1.68rem !important;
+    font-size: 1.32rem !important;
   }
 
   .bento-sightings__label,
@@ -226,7 +230,7 @@
   .bento-sightings__iucn-pill,
   .bento-sightings__rank-label,
   .bento-sightings__ranks-head {
-    font-size: 1.22rem !important;
+    font-size: 0.96rem !important;
   }
 
   .bento-strip__name,
@@ -237,36 +241,56 @@
   .bento-how__label,
   .bento-sources__line,
   .bento-source-logo__caption {
-    font-size: 0.96rem !important;
+    font-size: 0.78rem !important;
   }
 
   .bento-how__pct,
   .bento-evidence__pct {
-    font-size: 1.24rem !important;
+    font-size: 1rem !important;
   }
 
   .bento-mini__badge,
   .bento-mini__ribbon,
   .bento-image-source-badge,
   .bento-strip__badge {
-    font-size: 0.88rem !important;
-    border-radius: 1.6mm !important;
+    font-size: 0.64rem !important;
+    border-radius: 1.3mm !important;
+  }
+
+  .bento-mini__ribbon {
+    display: block !important;
+    right: 0.32rem !important;
+    bottom: 0.32rem !important;
+    max-width: calc(100% - 0.64rem) !important;
+    padding: 0.1rem 0.36rem !important;
+  }
+
+  .bento-mini__img {
+    aspect-ratio: 1.56 / 1 !important;
+  }
+
+  .bento-card--mini > .bento-mini__name,
+  .bento-card--mini > .bento-mini__sci,
+  .bento-card--mini > .bento-mini__count,
+  .bento-card--mini > .bento-mini__status {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
   }
 
   .bento-card--sightings {
-    padding: 1.25rem 1.25rem !important;
-    gap: 0.65rem !important;
+    padding: 1rem 1.05rem !important;
+    gap: 0.5rem !important;
   }
 
   .bento-sightings__breakdown {
-    gap: 0.45rem !important;
-    margin-top: 0.65rem !important;
-    padding-top: 0.75rem !important;
+    gap: 0.34rem !important;
+    margin-top: 0.5rem !important;
+    padding-top: 0.6rem !important;
   }
 
   .bento-sightings__row {
-    grid-template-columns: 5rem minmax(0, 1fr) !important;
-    gap: 0.45rem !important;
+    grid-template-columns: 4.1rem minmax(0, 1fr) !important;
+    gap: 0.38rem !important;
   }
 
   .bento-sightings__pct {
@@ -274,21 +298,21 @@
   }
 
   .bento-sightings__iucn {
-    margin-top: 0.75rem !important;
-    padding-top: 0.75rem !important;
+    margin-top: 0.58rem !important;
+    padding-top: 0.58rem !important;
   }
 
   .bento-sightings__iucn-pill {
-    gap: 0.45rem !important;
+    gap: 0.35rem !important;
   }
 
   .bento-sightings__iucn-pills {
-    gap: 0.4rem !important;
+    gap: 0.3rem !important;
   }
 
   .bento-sightings__iucn-dot {
-    width: 0.55rem !important;
-    height: 0.55rem !important;
+    width: 0.42rem !important;
+    height: 0.42rem !important;
   }
 
   .bento-sightings__rank-head {
@@ -302,21 +326,21 @@
   }
 
   .bento-sightings__ranks {
-    margin-top: 1.4rem !important;
-    padding-top: 1rem !important;
-    gap: 0.95rem !important;
+    margin-top: 1rem !important;
+    padding-top: 0.75rem !important;
+    gap: 0.7rem !important;
   }
 
   .bento-sightings__rank-list {
-    gap: 0.95rem !important;
+    gap: 0.7rem !important;
   }
 
   .bento-sightings__rank {
-    gap: 0.5rem !important;
+    gap: 0.38rem !important;
   }
 
   .bento-sightings__bar {
-    height: 0.72rem !important;
+    height: 0.58rem !important;
   }
 
   .bento-card--season-how {
@@ -368,20 +392,32 @@
 
   .bento-evidence__bar {
     height: 0.9rem !important;
-    border-width: 0.12mm !important;
+    border-width: 0.42mm !important;
     margin-top: 0.5rem !important;
   }
 
   .bento-evidence__seg + .bento-evidence__seg {
-    border-left-width: 0.08mm !important;
+    border-left-width: 0.3mm !important;
+  }
+
+  .bento-card--species-pattern {
+    --species-pattern-size: 56px 56px;
+  }
+
+  .bento-card--species-pattern .bento-hero__body {
+    background-size: auto, 76px 76px !important;
   }
 
   .bento-sources {
-    column-gap: 1rem !important;
+    column-gap: 0.72rem !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
   }
 
   .bento-sources__text {
     gap: 0.08rem !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
 
   .bento-sources__brand {
@@ -389,12 +425,12 @@
   }
 
   .bento-sources__brand-logo {
-    width: 3rem !important;
-    height: 3rem !important;
+    width: 2.45rem !important;
+    height: 2.45rem !important;
   }
 
   .bento-sources__brand-name {
-    font-size: 1.8rem !important;
+    font-size: 1.45rem !important;
   }
 
   .bento-sources__separator {
@@ -408,21 +444,27 @@
   }
 
   .bento-sources__logo-link {
-    width: min(100%, 18.5rem) !important;
+    width: min(100%, 15rem) !important;
     margin: 0 !important;
   }
 
+  .bento-sources__qr {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
   .bento-sources__qr svg {
-    width: min(94%, 13rem) !important;
+    width: min(88%, 10.8rem) !important;
+    max-height: calc(100% - 0.65rem) !important;
   }
 
   .bento-sources .bento-card__kicker {
-    font-size: 1.15rem !important;
+    font-size: 0.92rem !important;
   }
 
   .bento-sources__line {
     margin: 0 !important;
-    font-size: 1.45rem !important;
+    font-size: 1.08rem !important;
     line-height: 1.08 !important;
     font-weight: 800 !important;
   }

@@ -26,7 +26,7 @@ export interface PrintPosterOptions {
 }
 
 /** Longest physical edge of the printed page, in millimetres. */
-const PAGE_LONG_EDGE_MM = 594 // A2 long edge — large but still fits common home printers when scaled.
+const PAGE_LONG_EDGE_MM = 420 // A3 long edge balances crisp export with responsive PDF viewing.
 /** Keep a tiny safety margin for browser print rounding quirks. */
 const PAGE_SAFE_MARGIN_MM = 2
 

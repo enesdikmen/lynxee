@@ -57,6 +57,69 @@ const safeJson = async <T>(
 
 const stripHtml = (s?: string) => s?.replace(/<[^>]*>?/gm, '').trim()
 
+const HERO_IMAGE_WIDTH = 1000
+const SQUARE_IMAGE_WIDTH = 400
+
+const inatSizedUrl = (input: string, size: 'medium' | 'square') =>
+  input.replace(
+    /\/(square|small|medium|large|original)\.(jpe?g|png|webp)(?=($|\?))/i,
+    `/${size}.$2`,
+  )
+
+const wikimediaThumbFromUrl = (input: string, width: number) => {
+  try {
+    const url = new URL(input)
+    if (!url.hostname.endsWith('wikimedia.org')) return null
+    const decodedPath = decodeURIComponent(url.pathname)
+
+    const specialFile = decodedPath.match(/\/wiki\/Special:FilePath\/([^?#]+)/)
+    if (specialFile?.[1]) return commonsThumb(specialFile[1], width)
+
+    const uploadFile = decodedPath.match(/\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/]+)$/i)
+    if (uploadFile?.[1]) return commonsThumb(uploadFile[1], width)
+  } catch {
+    return null
+  }
+  return null
+}
+
+const hasBoundedImageHint = (input: string) => {
+  try {
+    const url = new URL(input)
+    const width = Number(
+      url.searchParams.get('width') ??
+        url.searchParams.get('w') ??
+        url.searchParams.get('maxwidth'),
+    )
+    if (Number.isFinite(width) && width > 0 && width <= HERO_IMAGE_WIDTH) return true
+    return /\/(square|small|medium|large)\.(jpe?g|png|webp)(?=($|\?))/i.test(
+      url.pathname,
+    )
+  } catch {
+    return false
+  }
+}
+
+const normalizeGbifMediaUrl = (input: string) => {
+  const wikimediaHero = wikimediaThumbFromUrl(input, HERO_IMAGE_WIDTH)
+  if (wikimediaHero) {
+    return {
+      url: wikimediaHero,
+      squareUrl: wikimediaThumbFromUrl(input, SQUARE_IMAGE_WIDTH) ?? wikimediaHero,
+    }
+  }
+
+  if (/static\.inaturalist\.org/i.test(input)) {
+    return {
+      url: inatSizedUrl(input, 'medium'),
+      squareUrl: inatSizedUrl(input, 'square'),
+    }
+  }
+
+  if (hasBoundedImageHint(input)) return { url: input }
+  return null
+}
+
 // ── Wikidata ──────────────────────────────────────────────────────
 // 1) SPARQL P846 (GBIF taxon key) → QID
 // 2) Special:EntityData → P18 (image) claim → Commons file name
@@ -126,8 +189,8 @@ const tryWikidata = async (
 
   return {
     // Hero tile is 2×2 — 1000px gives object-fit: cover headroom on big screens.
-    url: commonsThumb(fileName, 1000),
-    squareUrl: commonsThumb(fileName, 400),
+    url: commonsThumb(fileName, HERO_IMAGE_WIDTH),
+    squareUrl: commonsThumb(fileName, SQUARE_IMAGE_WIDTH),
     source: 'wikidata',
     author: stripHtml(meta.Artist?.value),
     license: meta.LicenseShortName?.value,
@@ -167,13 +230,13 @@ const tryInat = async (
   const photo = data?.results?.find(
     (r) => r.name?.trim().toLowerCase() === target,
   )?.default_photo
-  // Prefer medium-size assets — `square_url` is often too small and looks
-  // blurry when cards render larger. The strip falls back to `url` via
-  // `squareImageUrl ?? imageUrl` in the consumer, so we don't set squareUrl.
+  // Prefer medium-size assets for rectangular cards and keep the square
+  // version for small cropped tiles so PDF exports never embed originals.
   const url = photo?.medium_url || photo?.url || photo?.square_url
   if (!url) return null
   return {
-    url,
+    url: inatSizedUrl(url, 'medium'),
+    squareUrl: photo?.square_url ?? inatSizedUrl(url, 'square'),
     source: 'inaturalist',
     author: photo?.attribution,
     license: photo?.license_code || undefined,
@@ -192,14 +255,16 @@ const tryGbif = async (
   try {
     const media = await fetchSpeciesMedia({ speciesKey, limit: 1, signal })
     const item = media.results.find((m) => m.identifier || m.references)
-    const url = item?.identifier || item?.references
-    if (!url) return null
+    const rawUrl = item?.identifier || item?.references
+    if (!rawUrl) return null
+    const image = normalizeGbifMediaUrl(rawUrl)
+    if (!image) return null
     return {
-      url,
+      ...image,
       source: 'gbif',
       author: item?.creator || item?.rightsHolder,
       license: item?.license,
-      sourceUrl: item?.references || item?.identifier,
+      sourceUrl: item?.references || rawUrl,
     }
   } catch {
     return null
