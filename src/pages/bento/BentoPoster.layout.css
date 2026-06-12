@@ -15,20 +15,20 @@
 
 .bento-shell::before {
   content: "";
-  position: absolute;
-  inset: -8rem;
+  position: fixed;
+  inset: -10rem;
   z-index: 0;
   pointer-events: none;
   background-color: rgb(var(--hex-field-color));
   opacity: var(--hex-field-opacity);
-  transform: rotate(-2deg);
+  transform: rotate(-2.5deg);
   transform-origin: center;
   mask-image: var(--hex-field-mask);
   mask-repeat: repeat;
-  mask-size: 18rem 15.58rem;
+  mask-size: 12.75rem 11.03rem;
   -webkit-mask-image: var(--hex-field-mask);
   -webkit-mask-repeat: repeat;
-  -webkit-mask-size: 18rem 15.58rem;
+  -webkit-mask-size: 12.75rem 11.03rem;
 }
 
 .theme-afterdark .bento-shell::before {
