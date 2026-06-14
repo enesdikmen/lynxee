@@ -184,7 +184,7 @@ export const useLensData = (
   const datasetKeys = useMemo(() => {
     if (!facetsSummary?.datasetKey?.length) return []
     return facetsSummary.datasetKey
-      .slice(0, 3)
+      .slice(0, 5)
       .map((item) => item.name)
   }, [facetsSummary])
 

@@ -324,6 +324,104 @@
   shape-rendering: crispEdges;
 }
 
+.bento-card.bento-sources:has(.bento-sources-info):hover,
+.bento-card.bento-sources:has(.bento-sources-info:focus-visible),
+.bento-card.bento-sources:has(.bento-sources-info:focus-within) {
+  overflow: visible;
+  z-index: 22;
+}
+
+.bento-sources-info {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  outline: none;
+  pointer-events: none;
+}
+
+.bento-sources-info__panel {
+  position: absolute;
+  right: 0.45rem;
+  bottom: calc(100% + 0.42rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  width: max-content;
+  min-width: 17rem;
+  max-width: min(29rem, 86vw);
+  max-height: min(72vh, 34rem);
+  overflow: auto;
+  padding: 0.7rem 0.78rem 0.76rem;
+  border: 2px solid rgb(var(--color-ink));
+  border-radius: 8px;
+  background: rgb(var(--color-surface-soft) / 0.98);
+  color: rgb(var(--color-ink));
+  box-shadow: 3px 3px 0 0 rgb(var(--color-ink));
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  letter-spacing: 0;
+  line-height: 1.32;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition: opacity 80ms ease, transform 80ms ease;
+}
+
+.bento-card.bento-sources:hover .bento-sources-info__panel,
+.bento-sources-info:focus-visible .bento-sources-info__panel,
+.bento-sources-info:focus-within .bento-sources-info__panel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.bento-sources-info__title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.bento-sources-info__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  padding-top: 0.42rem;
+  border-top: 1px solid rgb(var(--color-ink) / 0.16);
+}
+
+.bento-sources-info__heading,
+.bento-sources-info__dataset-title {
+  font-weight: 900;
+  color: rgb(var(--color-ink));
+}
+
+.bento-sources-info__dataset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: rgb(var(--color-ink));
+  text-decoration: none;
+}
+
+.bento-sources-info__dataset-count,
+.bento-sources-info__dataset-meta,
+.bento-sources-info__note {
+  color: rgb(var(--color-ink-soft));
+}
+
+.bento-sources-info__dataset-meta {
+  overflow-wrap: anywhere;
+}
+
+.bento-sources-info__external {
+  margin-left: 0.16rem;
+  font-size: 0.78em;
+}
+
 @media (min-width: 1500px) and (min-height: 850px) {
   .bento-card--how,
   .bento-card--sightings {

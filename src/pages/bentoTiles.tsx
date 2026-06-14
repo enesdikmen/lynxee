@@ -25,6 +25,7 @@ import { SPECIES_MINI_COUNT } from '../data/lensSelection'
 import { IMAGE_SOURCE_LABELS } from '../api/speciesImage'
 import TitlePlaceName from './bento/TitlePlaceName'
 import type {
+  DatasetSummary,
   ImageCredit,
   SpeciesCard,
   ThematicStripCard,
@@ -238,6 +239,16 @@ const imageCreditTitle = (
 
 type SpeciesInfoCard = SpeciesCard | ThreatenedSpecies | SignatureSpeciesCard
 
+const formatCount = (count: number | undefined, language: UiLanguage) =>
+  typeof count === 'number' ? count.toLocaleString(language) : null
+
+const datasetMetaLine = (dataset: DatasetSummary) =>
+  [
+    dataset.publisher ? `Publisher: ${dataset.publisher}` : null,
+    dataset.doi ? `DOI: ${dataset.doi}` : null,
+    dataset.license ? `License: ${dataset.license}` : null,
+  ].filter(Boolean).join(' · ')
+
 const formatRatio = (ratio: number) =>
   ratio >= 10 ? `${Math.round(ratio)}×` : `${ratio.toFixed(1)}×`
 
@@ -337,6 +348,69 @@ const renderSpeciesInfoButton = (
             )}
           </span>
         )}
+      </span>
+    </span>
+  )
+}
+
+const renderSourcesInfoButton = (
+  data: LensData,
+  {
+    language,
+    uiText,
+  }: {
+    language: UiLanguage
+    uiText: UiText
+  },
+) => {
+  const datasets = data.datasetSummaries.slice(0, 5)
+
+  return (
+    <span
+      className="bento-sources-info"
+      tabIndex={0}
+      aria-label={`${uiText.poster.sources}: attribution details`}
+    >
+      <span className="bento-sources-info__panel" role="tooltip">
+        <span className="bento-sources-info__title">{uiText.poster.sources}</span>
+        <span className="bento-sources-info__note">
+          Occurrence records, taxon names, counts, IUCN categories, evidence mix, seasonality,
+          and top dataset metadata come from GBIF.
+        </span>
+        {datasets.length > 0 && (
+          <span className="bento-sources-info__section">
+            <span className="bento-sources-info__heading">Top contributing datasets</span>
+            {datasets.map((dataset) => {
+              const count = formatCount(dataset.occurrenceCount, language)
+              const meta = datasetMetaLine(dataset)
+              return (
+                <a
+                  key={dataset.key}
+                  className="bento-sources-info__dataset"
+                  href={`https://www.gbif.org/dataset/${dataset.key}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => event.currentTarget.blur()}
+                >
+                  <span className="bento-sources-info__dataset-title">
+                    {dataset.title}
+                    <span className="bento-sources-info__external" aria-hidden="true">↗︎</span>
+                  </span>
+                  {count && (
+                    <span className="bento-sources-info__dataset-count">
+                      {count} matching records
+                    </span>
+                  )}
+                  {meta && <span className="bento-sources-info__dataset-meta">{meta}</span>}
+                </a>
+              )
+            })}
+          </span>
+        )}
+        <span className="bento-sources-info__note">
+          Search/place boundaries use OpenStreetMap Nominatim. The QR code reopens this
+          Bee Around view; for formal reuse, review the linked GBIF dataset pages.
+        </span>
       </span>
     </span>
   )
@@ -982,7 +1056,7 @@ export const CARD_DEFS: CardDef[] = [
     type: 'sources',
     size: { w: 2, h: 1 },
     className: 'bento-card accent-gold bento-sources',
-    build: ({ shareUrl, uiText }) => {
+    build: ({ data, language, shareUrl, uiText }) => {
       const brandLogoSrc = `${import.meta.env.BASE_URL}logo.svg`
       const gbifLogoSrc = `${import.meta.env.BASE_URL}gbif-logo.png`
       return [
@@ -1034,6 +1108,7 @@ export const CARD_DEFS: CardDef[] = [
                   />
                 </div>
               )}
+              {renderSourcesInfoButton(data, { language, uiText })}
             </>
           ),
         },
