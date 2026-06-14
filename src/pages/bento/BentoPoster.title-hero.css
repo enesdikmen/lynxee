@@ -334,6 +334,77 @@
   background: rgb(var(--color-forest));
 }
 
+@media (min-width: 1500px) and (min-height: 850px) {
+  .bento-title__text {
+    gap: 0.24rem;
+    padding: 1rem 1.2rem;
+  }
+
+  .bento-title__sub {
+    font-size: clamp(0.68rem, 0.72vw, 0.92rem);
+    padding: 0.12rem 0.34rem;
+  }
+
+  .bento-hero__body {
+    padding: 0.82rem 1rem 0.98rem;
+    gap: 0.24rem;
+  }
+
+  .bento-hero__name {
+    font-size: 1.58rem;
+  }
+
+  .bento-hero__sci {
+    font-size: 0.94rem;
+  }
+
+  .bento-hero__taxon {
+    font-size: 0.72rem;
+  }
+
+  .bento-hero__count {
+    font-size: 0.84rem;
+  }
+
+  .bento-card--mini > .bento-mini__name,
+  .bento-card--mini > .bento-mini__sci,
+  .bento-card--mini > .bento-mini__count,
+  .bento-card--mini > .bento-mini__status {
+    padding-left: 0.64rem;
+    padding-right: 0.64rem;
+  }
+
+  .bento-mini__name {
+    font-size: 0.88rem;
+    margin-top: 0.46rem;
+  }
+
+  .bento-mini__sci {
+    font-size: 0.72rem;
+  }
+
+  .bento-mini__count,
+  .bento-mini__status {
+    font-size: 0.72rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .bento-mini__badge,
+  .bento-mini__ribbon {
+    font-size: 0.66rem;
+  }
+
+  .bento-species-info__panel {
+    font-size: 0.72rem;
+    min-width: 12rem;
+    max-width: min(18rem, 78vw);
+  }
+
+  .bento-species-info__name {
+    font-size: 0.98rem;
+  }
+}
+
 @media (max-width: 1100px) {
   .bento-mini__ribbon {
     display: none;

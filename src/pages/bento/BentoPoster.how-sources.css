@@ -324,6 +324,82 @@
   shape-rendering: crispEdges;
 }
 
+@media (min-width: 1500px) and (min-height: 850px) {
+  .bento-card--how,
+  .bento-card--sightings {
+    padding: 0.84rem 0.94rem;
+  }
+
+  .bento-how__row {
+    grid-template-columns: 2.9rem 1fr;
+  }
+
+  .bento-how__pct {
+    font-size: 1.22rem;
+  }
+
+  .bento-how__label {
+    font-size: 0.8rem;
+  }
+
+  .bento-sightings__num {
+    font-size: clamp(1.25rem, 1.55vw, 1.7rem);
+  }
+
+  .bento-sightings__row {
+    grid-template-columns: 2.65rem 1fr;
+  }
+
+  .bento-sightings__pct {
+    font-size: 0.95rem;
+  }
+
+  .bento-sightings__label {
+    font-size: 0.76rem;
+  }
+
+  .bento-sightings__iucn-head {
+    font-size: 0.7rem;
+  }
+
+  .bento-sightings__iucn-pill {
+    font-size: 0.68rem;
+  }
+
+  .bento-sightings__iucn-count {
+    font-size: 0.88rem;
+  }
+
+  .bento-sightings__ranks-head {
+    font-size: 0.72rem;
+  }
+
+  .bento-sightings__rank-label {
+    font-size: 0.74rem;
+  }
+
+  .bento-sightings__rank-pct {
+    font-size: 1.08rem;
+  }
+
+  .bento-sources__brand-logo {
+    width: 1.85rem;
+    height: 1.85rem;
+  }
+
+  .bento-sources__brand-name {
+    font-size: 1.12rem;
+  }
+
+  .bento-sources__line {
+    font-size: 0.84rem;
+  }
+
+  .bento-sources__qr svg {
+    width: min(78%, 9.6rem);
+  }
+}
+
 @media (max-width: 1100px) {
   .bento-card--sightings {
     padding: 0.66rem 0.72rem;

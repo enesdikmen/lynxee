@@ -372,6 +372,77 @@
   min-width: 1.8rem;
 }
 
+@media (min-width: 1500px) and (min-height: 850px) {
+  .bento-strip {
+    gap: 0.46rem;
+  }
+
+  .bento-strip__name {
+    font-size: 0.72rem;
+  }
+
+  .bento-strip__badge {
+    font-size: 0.62rem;
+  }
+
+  .bento-card--season-how {
+    padding: 0.85rem 1.05rem 0.8rem;
+  }
+
+  .bento-season-how__right {
+    width: 9.45rem;
+    padding-left: 0.95rem;
+  }
+
+  .bento-season__since {
+    font-size: 0.58rem;
+  }
+
+  .bento-season-bars__label {
+    font-size: 0.66rem;
+  }
+
+  .bento-season__chip {
+    font-size: 0.64rem;
+  }
+
+  .bento-evidence__pct {
+    font-size: 1rem;
+  }
+
+  .bento-evidence__row--rest .bento-evidence__pct {
+    font-size: 0.78rem;
+  }
+
+  .bento-evidence__label {
+    font-size: 0.64rem;
+  }
+
+  .bento-iucn__pill {
+    font-size: 0.68rem;
+  }
+
+  .bento-iucn__count {
+    font-size: 0.95rem;
+  }
+
+  .bento-iucn__strip .bento-strip__name {
+    font-size: 0.66rem;
+  }
+
+  .bento-bucket__count {
+    font-size: 1.32rem;
+  }
+
+  .bento-bucket__label {
+    font-size: 0.86rem;
+  }
+
+  .bento-bucket__hint {
+    font-size: 0.66rem;
+  }
+}
+
 @media (max-width: 900px) {
   .bento-card--season-how {
     padding: 0.62rem 0.72rem 0.58rem;

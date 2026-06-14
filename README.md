@@ -53,6 +53,7 @@ The project emphasizes:
 
 - [How Bee Around works](docs/how-it-works.md)
 - [Data and attribution](docs/data-and-attribution.md)
+- [Precompute notebook](docs/precompute_comparison_sample.ipynb)
 
 ## Run Locally
 
@@ -73,4 +74,4 @@ npm run build
 
 ## Implementation Notes
 
-Bee Around is a frontend-only React/Vite app. It calls public web APIs directly from the browser. It includes two static precomputed data files: `comparison_precompute.json` for peer percentiles and curated comparison rows, and `global_baseline.json` for global signature-species ratios.
+Bee Around is a frontend-only React/Vite app. It calls public web APIs directly from the browser. It includes two static precomputed data files: `comparison_precompute.json` for peer percentiles and curated comparison rows, and `global_baseline.json` for global signature-species ratios. The precompute workflow used to create those files is documented in `docs/precompute_comparison_sample.ipynb`.

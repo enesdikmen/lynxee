@@ -236,6 +236,17 @@ img[src=""] { visibility: hidden; }
   display: grid;
   gap: clamp(0.5rem, 1vw, 0.85rem);
 }
+
+@media (min-width: 1500px) and (min-height: 850px) {
+  .bento-shell {
+    padding-top: 4.8rem;
+  }
+
+  .bento-grid {
+    max-width: min(1420px, calc(100vw - 4rem), calc((100vh - 7rem) * 1.5));
+    gap: clamp(0.85rem, 0.75vw, 1rem);
+  }
+}
 .bento-grid-wrap {
   position: relative;
   width: 100%;
@@ -565,6 +576,21 @@ img[src=""] { visibility: hidden; }
   outline-offset: -6px;
 }
 
+@media (min-width: 1500px) and (min-height: 850px) {
+  .bento-card {
+    border-width: 3px;
+    border-radius: 14px;
+    box-shadow: 5px 5px 0 0 rgb(var(--color-ink));
+  }
+
+  .bento-lock-btn {
+    width: 29px;
+    height: 29px;
+    top: 7px;
+    right: 7px;
+  }
+}
+
 /* ── Card type ────────────────────────────────────────── */
 .bento-card__kicker {
   font-family: var(--font-display);
@@ -595,6 +621,49 @@ img[src=""] { visibility: hidden; }
 }
 .bento-bignum--sm {
   font-size: clamp(1.4rem, 3vw, 2.2rem);
+}
+
+@media (min-width: 1500px) and (min-height: 850px) {
+  .bento-card {
+    padding: 0.95rem 1.1rem;
+    gap: 0.42rem;
+  }
+
+  .bento-card__kicker {
+    font-size: 0.66rem;
+  }
+
+  .bento-card__sub {
+    font-size: 0.78rem;
+  }
+
+  .bento-prose {
+    font-size: 1.05rem;
+  }
+
+  .bento-bignum {
+    font-size: clamp(2.4rem, 3.2vw, 3.7rem);
+  }
+
+  .bento-bignum--sm {
+    font-size: clamp(1.65rem, 2.3vw, 2.5rem);
+  }
+
+  .bento-stats__count--sightings {
+    font-size: clamp(1.5rem, 2.35vw, 2.65rem);
+  }
+
+  .bento-stats__count--risk {
+    font-size: clamp(1.25rem, 1.75vw, 2rem);
+  }
+
+  .bento-stats__caption {
+    font-size: 0.8rem;
+  }
+
+  .bento-stats__caption-kicker {
+    font-size: 0.62rem;
+  }
 }
 
 /* ── Combined stats card (sightings + at-risk + kingdom caption) ────── */

@@ -101,7 +101,7 @@ The comparison bars come from `comparison_precompute.json`, not from live browse
 - recording intensity percentile: records per square kilometer;
 - threatened-share percentile: threatened IUCN record share.
 
-`uniqueSpecies` exists in the precomputed file but is intentionally not displayed in the current card because an earlier precompute version saturated this metric for many places.
+`uniqueSpecies` exists in the precomputed file but is intentionally not displayed in the current card.
 
 ### Hero Species
 
@@ -332,17 +332,27 @@ Bee Around ships with:
 - `comparison_precompute.json`: 477 rows, generated on 2026-05-12, with 195 countries and 282 cities.
 - `global_baseline.json`: global total record count, monthly counts, and top 500 global species counts.
 
-The comparison precompute notebook:
+The reproducible workflow lives in [`precompute_comparison_sample.ipynb`](precompute_comparison_sample.ipynb). The notebook is checkpointed and writes its working files under `~/bee_around_precompute/` so longer runs can be interrupted and resumed.
 
-1. Resolves curated countries and cities through Nominatim and stores their bounding boxes.
-2. Uses GBIF occurrence facets for each bounding box.
-3. Computes approximate bbox area on a sphere using Earth radius 6371.0088 km:
+Inputs and caches:
+
+- optional `~/bee_around_precompute/countries.csv` and `~/bee_around_precompute/cities.csv` provide the country and city query lists; if they are absent, the notebook falls back to a tiny inline sample;
+- Nominatim results are cached in `~/bee_around_precompute/nominatim_cache.json`;
+- one checkpoint JSON is written per place under `~/bee_around_precompute/checkpoints/`;
+- `~/bee_around_precompute/global_baseline.json` is reused until deleted or rebuilt.
+
+The notebook:
+
+1. Resolves curated countries and cities through Nominatim and stores their labels, point coordinates, country code, and bounding boxes.
+2. Uses polite request handling: a custom user agent, Nominatim throttling near 1 request/second, GBIF pacing, retries for transient errors, and `Retry-After` handling.
+3. Uses GBIF occurrence facets for each bounding box.
+4. Computes approximate bbox area on a sphere using Earth radius 6371.0088 km:
 
 ```text
 area = abs(sin(latMax) - sin(latMin)) * abs(lonDeltaRadians) * earthRadiusKm^2
 ```
 
-4. Computes:
+5. Computes:
 
 ```text
 recordsPerKm2 = totalRecords / areaKm2
@@ -350,19 +360,21 @@ threatenedShare = (VU + EN + CR record counts) / all returned IUCN record counts
 uniqueSpecies = paginated count of speciesKey facet rows
 ```
 
-5. Converts each metric into a percentile within its own cohort, where cities compare to cities and countries compare to countries:
+The unique-species count is paginated with `facet=speciesKey`, `facetLimit=1000`, and increasing `facetOffset`. This avoids the old shortcut of using `len(speciesFacetRows)`, which silently saturated when a place had more species than the facet limit.
+
+6. Converts each metric into a percentile within its own cohort, where cities compare to cities and countries compare to countries:
 
 ```text
 percentile = numberOfCohortValuesLessThanOrEqualToThisValue / cohortSize
 ```
 
-6. Computes precomputed signature species with the same share-ratio idea used at runtime:
+7. Computes precomputed signature species with the same share-ratio idea used at runtime:
 
 ```text
 localShare / globalShare
 ```
 
-The runtime comparison card uses only the row lookup and percentiles. Runtime live signature species uses `global_baseline.json` directly so it can work for any searched place, not only curated precompute rows.
+The notebook writes a full working output, but the app ships a slim runtime file. The current `src/comparison_precompute.json` rows contain `id`, `kind`, `place`, `percentiles`, and `signatureSpecies`; they do not include the full intermediate metric object. The runtime comparison card uses only the row lookup and percentiles. Runtime live signature species uses `global_baseline.json` directly so it can work for any searched place, not only curated precompute rows.
 
 ## Export And Print
 

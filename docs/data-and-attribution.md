@@ -21,10 +21,10 @@ Bee Around uses `limit=0` with facets so GBIF returns counts rather than full re
 - `datasetKey`: top contributing datasets;
 - `kingdomKey`: top broad taxonomic groups;
 - `basisOfRecord`: how the records were made;
-- `speciesKey`: species-selection pools, threatened species, signature species;
+- `speciesKey`: species-selection pools, threatened species, signature species, and precomputed unique-species counts;
 - `iucnRedListCategory`: conservation buckets.
 
-The app also sends filters such as `classKey`, `kingdomKey`, `orderKey`, `familyKey`, `speciesKey`, `mediaType`, `month`, `year`, and `iucnRedListCategory` when a card needs a smaller pool.
+The app also sends filters such as `classKey`, `kingdomKey`, `orderKey`, `familyKey`, `speciesKey`, `month`, `year`, and `iucnRedListCategory` when a card needs a smaller pool. The GBIF client supports `mediaType`, but no current poster card uses it for occurrence filtering.
 
 ### GBIF Species Metadata
 
@@ -247,7 +247,7 @@ Displayed metrics:
 - recording intensity: `totalRecords / bboxAreaKm2`;
 - threatened share: `(VU + EN + CR record counts) / all returned IUCN record counts`.
 
-The runtime app matches the selected point to a row by nearest city within 75 km, then country bbox containment.
+The precompute notebook also calculates unique species with paginated `speciesKey` facets, but the runtime poster does not currently display that percentile. The runtime app matches the selected point to a row by nearest city within 75 km, then country bbox containment.
 
 ## Precomputed Files
 
@@ -265,18 +265,20 @@ It is used by runtime signature species. The current file has `totalRecords = 3,
 
 Contains 477 curated rows: 195 countries and 282 cities. It was generated on 2026-05-12.
 
+The workflow is in [`precompute_comparison_sample.ipynb`](precompute_comparison_sample.ipynb). It can read `countries.csv` and `cities.csv` from `~/bee_around_precompute/`, caches Nominatim lookups, writes one checkpoint per place, and emits both `comparison_precompute.json` and `global_baseline.json`.
+
 For each row, the notebook:
 
 1. Resolved the place through Nominatim.
 2. Queried GBIF occurrence facets for the bounding box.
 3. Counted total records.
-4. Paginated `facet=speciesKey` to estimate unique species count without the old 1,000-row cap.
+4. Paginated `facet=speciesKey` with `facetLimit=1000` and `facetOffset` to estimate unique species count without the old 1,000-row cap.
 5. Computed IUCN counts and threatened share.
 6. Computed bounding-box area and records per square kilometer.
 7. Computed per-cohort percentiles.
 8. Computed signature species against the global baseline.
 
-The precompute is intentionally a comparison sample, not a full global gazetteer.
+The app ships a slim version of the precompute rows: `id`, `kind`, `place`, `percentiles`, and `signatureSpecies`. Full intermediate metrics are part of the notebook workflow, not the runtime JSON currently imported by the app. The precompute is intentionally a comparison sample, not a full global gazetteer.
 
 ## Image Attribution
 
