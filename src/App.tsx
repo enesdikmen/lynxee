@@ -36,19 +36,19 @@ const THEME_OPTIONS: AppThemeOption[] = [
     id: 'prism',
     label: 'Prism',
     swatch:
-      'linear-gradient(135deg, rgb(0 190 220) 0 33%, rgb(255 230 0) 33% 66%, rgb(255 71 87) 66% 100%)',
+      'linear-gradient(135deg, rgb(0 190 220) 0 45%, rgb(255 230 0) 45% 72%, rgb(74 58 255) 72% 100%)',
   },
   {
     id: 'afterdark',
     label: 'Afterdark',
     swatch:
-      'linear-gradient(135deg, rgb(42 16 84) 0 28%, rgb(255 112 32) 28% 52%, rgb(198 255 0) 52% 76%, rgb(0 224 255) 76% 100%)',
+      'linear-gradient(135deg, rgb(42 16 84) 0 52%, rgb(255 112 32) 52% 76%, rgb(198 255 0) 76% 100%)',
   },
   {
     id: 'acidgarden',
     label: 'Acid Garden',
     swatch:
-      'linear-gradient(135deg, rgb(29 88 44) 0 30%, rgb(199 255 24) 30% 55%, rgb(116 82 255) 55% 78%, rgb(245 178 42) 78% 100%)',
+      'linear-gradient(135deg, rgb(29 88 44) 0 50%, rgb(199 255 24) 50% 76%, rgb(116 82 255) 76% 100%)',
   },
 ]
 
